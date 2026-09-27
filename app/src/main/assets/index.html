@@ -401,8 +401,21 @@ select.chip{cursor:pointer}
 .ln.note .ch{font-size:.8em}
 .pb#pChords.on{background:#3A2C12;color:#FFC870}
 .pb#pChords.off span{text-decoration:line-through;opacity:.7}
-#play.setOpen .pb.wide span,#play.setOpen .pNext,#play.setOpen .pBar .vsep{display:none}
-#play.setOpen .pBar{gap:8px;padding:0 10px}
+.pBar{gap:9px;padding:0 12px;height:78px}
+.pb{width:44px;height:44px}
+.pb.big{width:58px;height:58px}
+.pb.wide{flex-direction:column;gap:1px;min-width:54px;width:auto;height:52px;padding:0 6px;font-size:11px;font-weight:700;line-height:1.1}
+.pb.wide span{white-space:nowrap}
+.pNext{flex-shrink:1;min-width:0}
+.pNext b{max-width:140px}
+.pBar.tight .pb.wide{min-width:44px;width:44px;height:44px;padding:0}
+.pBar.tight .pb.wide span,.pBar.tight .pNext{display:none}
+.pBar.tighter{gap:5px;padding:0 8px;height:62px}
+.pBar.tighter .vsep,.pBar.tighter .spd small{display:none}
+.pBar.tighter .pb,.pBar.tighter .pb.wide{width:38px;min-width:38px;height:38px;font-size:14px}
+.pBar.tighter .pb.big{width:48px;height:48px}
+.pBar.tighter .spd{width:44px}
+.pBar.tighter .pPart{min-width:70px}
 #edChords.pri{box-shadow:0 0 0 2px rgba(255,181,71,.25)}
 .chTools{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;padding:12px 16px;background:#17181B;border:1px solid var(--ln2);border-radius:14px;margin-bottom:14px}
 .chHint{flex:1;min-width:280px;display:flex;align-items:center;gap:10px;color:var(--mu);font-size:14px;line-height:1.55}
@@ -418,6 +431,7 @@ select.chip{cursor:pointer}
 .chLines .ch:active{background:rgba(255,181,71,.24)}
 .chLines .ch.dragging{opacity:.25}
 .chLines .gap{height:.45em}
+.cl.pick{background:rgba(255,181,71,.14)}
 .chGhost{position:fixed;z-index:90;transform:translate(-50%,-50%);font-family:'Rubik',sans-serif;font-weight:700;padding:4px 10px;border-radius:9px;background:rgba(20,21,23,.92);border:1px solid #6B5530;box-shadow:0 8px 24px rgba(0,0,0,.5);pointer-events:none;direction:ltr}
 .chMark{position:fixed;z-index:89;height:4px;border-radius:2px;background:#FFB547;pointer-events:none;display:none}
 .cpModal{max-width:760px}
@@ -1179,9 +1193,10 @@ function chordPicker(cur,songList,cb){
  draw();
  $('#mCancel').onclick=closeModal;
  const done=c=>{c=String(c||'').trim();if(!c)return;closeModal();cb(c)};
- $('#cpOk').onclick=()=>done($('#cpIn').value);
+ $('#cpOk').onclick=()=>{if(performance.now()-t0>600)done($('#cpIn').value)};
  $('#cpIn').onkeydown=e=>{if(e.key==='Enter')done($('#cpIn').value)};
- $('#cpBody').onclick=e=>{const b=e.target.closest('button');if(!b)return;
+ const t0=performance.now();
+ $('#cpBody').onclick=e=>{if(performance.now()-t0<600)return;const b=e.target.closest('button');if(!b)return;
   if(b.dataset.root!=null){st.root=b.dataset.root;draw();return}
   if(b.dataset.bass!=null){st.bass=b.dataset.bass;draw();return}
   if(b.dataset.pick)done(b.dataset.pick);
@@ -1232,7 +1247,7 @@ function onChordDouble(el,x,y){
  let a=i,b=i;while(a>0&&!/\s/.test(text[a-1]))a--;while(b<text.length-1&&!/\s/.test(text[b+1]))b++;
  const len=b-a+1,ci=len%2?a+(len-1)/2:a+len/2-1,n=len%2?1:2;
  const s=curSong();
- chordPicker('',songChords(s),c=>placeChord(el.dataset.p,+el.dataset.l,ci,n,c));
+ el.classList.add('pick');setTimeout(()=>{el.classList.remove('pick');chordPicker('',songChords(s),c=>placeChord(el.dataset.p,+el.dataset.l,ci,n,c))},320);
 }
 function chordMenu(pid,k){
  const s=curSong(),ch=chordAt(s,pid,k);if(!ch)return;
@@ -1364,7 +1379,7 @@ async function loadPlay(){
  $('#pPrev').disabled=P.i===0;$('#pNext').disabled=P.i>=P.list.length-1;
  $('#pInv').hidden=!isPdf;$('#pSm').hidden=isPdf;$('#pLg').hidden=isPdf;$('#pMarker').hidden=isPdf;
  $('#pInv').classList.toggle('on',!!s.invert);$('#pMir').classList.toggle('on',!!S.ui.mirror);
- applyMode();updChordBtn();renderSetPanel();
+ applyMode();updChordBtn();renderSetPanel();fitBar();
  sc.scrollTop=0;
  if(isPdf)await buildPdf(s);else buildText(s);
  applyMode();measure();
@@ -1494,7 +1509,7 @@ function toggleMode(){
  S.ui.manual=!S.ui.manual;save();P.playing=false;updPlayBtn();applyMode();P.cur=-1;
  if(S.ui.manual)showPage(at);
  else{P.pi=at;unfit();measure();const sc=$('#pScroll');if(P.parts[at])sc.scrollTop=Math.max(0,autoTop(P.parts[at]));P.pos=sc.scrollTop;onPScroll()}
- updProg();castPush();toast(S.ui.manual?'דפדוף ידני: כל חלק בדף נפרד':'גלילה אוטומטית');
+ updProg();fitBar();castPush();toast(S.ui.manual?'דפדוף ידני: כל חלק בדף נפרד':'גלילה אוטומטית');
 }
 function exitShow(){
  P.playing=false;P.tok=null;cancelAnimationFrame(P.raf);keepAwake(!!CAST.on);
@@ -1515,7 +1530,8 @@ $('#pMode').onclick=toggleMode;
 function updChordBtn(){const b=$('#pChords');if(!b)return;const s=playSong(),has=!!(s&&s.kind!=='pdf'&&songChords(s).length),hid=!!S.ui.hideChords;b.hidden=!!(s&&s.kind==='pdf');b.classList.toggle('on',!hid&&has);b.setAttribute('aria-label',hid?'הצג אקורדים':'הסתר אקורדים');b.classList.toggle('off',hid);b.setAttribute('aria-pressed',hid?'false':'true')}
 $('#pChords').onclick=()=>{S.ui.hideChords=!S.ui.hideChords;save();$('#pInner').classList.toggle('noCh',S.ui.hideChords);updChordBtn();
  const sc=$('#pScroll');if(S.ui.manual)fitPage(P.parts[P.pi]);else{const r=sc.scrollHeight?sc.scrollTop/sc.scrollHeight:0;measure();sc.scrollTop=r*sc.scrollHeight;P.pos=sc.scrollTop;P.cur=-1;onPScroll()}
- toast(S.ui.hideChords?'האקורדים מוסתרים':'האקורדים מוצגים')};
+ castPush();toast(S.ui.hideChords?'האקורדים מוסתרים':'האקורדים מוצגים')};
+function fitBar(){const b=$('.pBar');if(!b||SCREEN!=='play')return;b.classList.remove('tight','tighter');const over=()=>b.scrollWidth>b.clientWidth+1||b.getBoundingClientRect().width>b.parentElement.clientWidth-16;if(over())b.classList.add('tight');if(over())b.classList.add('tighter')}
 function renderSetPanel(){
  const E=$('#pSet');if(!E)return;
  $('#play').classList.toggle('setOpen',!!S.ui.setOpen);$('#pList').classList.toggle('on',!!S.ui.setOpen);
@@ -1523,7 +1539,7 @@ function renderSetPanel(){
  E.innerHTML='<div class="psHead"><b>שירי ההופעה</b><span>'+P.list.length+' שירים</span><button class="pb clear psX" id="psClose" aria-label="סגור רשימה">'+ic('close',20)+'</button></div><div class="psList scroll">'+P.list.map((id,j)=>{const x=S.songs.find(s=>s.id===id);if(!x)return '';return '<button class="psRow'+(j===P.i?' on':'')+(j<P.i?' done':'')+'" data-go="'+j+'"><span class="psN">'+(j+1)+'</span><span class="psT"><b>'+esc(x.title)+'</b>'+(x.artist?'<small>'+esc(x.artist)+'</small>':'')+'</span>'+(x.key?'<span class="keyB" dir="ltr">'+esc(x.key)+'</span>':'')+'</button>'}).join('')+'</div>';
  const on=E.querySelector('.psRow.on');if(on)on.scrollIntoView({block:'center'});
 }
-function toggleSetPanel(v){S.ui.setOpen=v==null?!S.ui.setOpen:v;save();renderSetPanel();setTimeout(()=>{if(S.ui.manual)fitPage(P.parts[P.pi]);else{measure();P.cur=-1;onPScroll()}},30)}
+function toggleSetPanel(v){S.ui.setOpen=v==null?!S.ui.setOpen:v;save();renderSetPanel();fitBar();setTimeout(()=>{if(S.ui.manual)fitPage(P.parts[P.pi]);else{measure();P.cur=-1;onPScroll()}},30)}
 $('#pList').onclick=()=>toggleSetPanel();
 $('#pSet').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.id==='psClose')return toggleSetPanel(false);if(b.dataset.go!=null){const j=+b.dataset.go;if(j!==P.i){P.i=j;loadPlay()}}});
 $('#pPartPrev').onclick=()=>goPart(-1);$('#pPartNext').onclick=()=>goPart(1);
@@ -1539,7 +1555,7 @@ $('#pPartPrev').onclick=()=>goPart(-1);$('#pPartNext').onclick=()=>goPart(1);
   goPart(left?1:-1);
  });
 })();
-window.addEventListener('resize',()=>{if(SCREEN==='play'){if(S.ui.manual)fitPage(P.parts[P.pi]);else{measure();P.cur=-1}onPScroll()}else if(SCREEN==='edit')$$('#blocks textarea[data-txt]').forEach(autosize)});
+window.addEventListener('resize',()=>{if(SCREEN==='play'){fitBar();if(S.ui.manual)fitPage(P.parts[P.pi]);else{measure();P.cur=-1}onPScroll()}else if(SCREEN==='edit')$$('#blocks textarea[data-txt]').forEach(autosize)});
 document.addEventListener('keydown',e=>{
  if(!$('#modalWrap').hidden){if(e.key==='Escape')closeModal();return}
  if(SCREEN!=='play')return;
@@ -1563,7 +1579,7 @@ function castState(){
  const base={title:s.title,artist:s.artist||'',idx:P.i,count:P.list.length,manual:!!S.ui.manual,mirror:false};
  if(s.kind==='pdf')return Object.assign(base,{kind:'pdf',page:curPart(),pages:P.parts.length});
  const st=s.style,f=font(st.font),L=labelMap(s),parts=[];
- s.parts.forEach(p=>{const src=srcOf(s,p);if(!src||!src.text.trim())return;const cm=S.ui.castChords===false?{}:partChordMap(src),ch=[];Object.keys(cm).forEach(l=>cm[l].forEach(c=>ch.push({l:+l,i:c.i,n:c.n,c:c.c})));parts.push({n:L[p.id]+(p.ref?' ↺':''),t:src.type,c:st.colors[src.type]||'#fff',x:src.text,ch})});
+ s.parts.forEach(p=>{const src=srcOf(s,p);if(!src||!src.text.trim())return;const cm=S.ui.hideChords?{}:partChordMap(src),ch=[];Object.keys(cm).forEach(l=>cm[l].forEach(c=>ch.push({l:+l,i:c.i,n:c.n,c:c.c})));parts.push({n:L[p.id]+(p.ref?' ↺':''),t:src.type,c:st.colors[src.type]||'#fff',x:src.text,ch})});
  return Object.assign(base,{kind:'text',cc:chordColor(s),font:f.css,w:f.w,align:st.align,lh:st.lh,labels:!!st.labels,size:st.size,parts,part:curPart(),line:Math.max(0,P.cur)});
 }
 function castSend(){
@@ -1635,14 +1651,12 @@ function castModal(){
  const disp=I.display?'<div class="castStat"><span class="castDot"></span>מחובר ל-'+esc(I.display)+' – המילים מוצגות עליו</div>':'<p>חבר טלוויזיה או מקרן בשידור מסך אלחוטי (Miracast / Smart View) או בכבל HDMI. כשהמסך מתחבר, המילים יופיעו עליו אוטומטית במסך מלא – בלי סרגל הכלים.</p>';
  const net=url?'<p>בכל מכשיר עם דפדפן שמחובר לאותה רשת Wi-Fi – טלוויזיה חכמה, טאבלט נוסף או מחשב – פתח את הכתובת או סרוק את הקוד:</p><div class="castUrl">'+esc(url)+'</div>'+qrImg(url)+(CAST.sim?'<p>בתצוגה המקדימה הכתובת היא לדוגמה. החלון הקטן בפינה מדמה את המסך השני.</p>':''):'<p>הטאבלט לא מחובר לרשת Wi-Fi. חבר אותו לרשת (או הפעל נקודה חמה) ופתח את החלון הזה שוב.</p>';
  openModal('<h2 class="castHead">שידור למסך נוסף</h2><div class="castStat"><span class="castDot"></span>השידור פעיל – המסך השני עוקב אחרי הטאבלט</div>'+
-  '<label class="tgl castCh"><input type="checkbox" id="castCh"'+(S.ui.castChords===false?'':' checked')+'><span>הצג אקורדים במסך השני</span></label>'+
   '<div id="ccBox">'+ccHtml()+'</div>'+
   '<div class="castBox"><b>מסך אלחוטי או HDMI</b>'+disp+'</div>'+
   '<div class="castBox"><b>דרך רשת Wi-Fi</b>'+net+'</div>'+
   '<div class="acts"><button class="btn" id="castOff" style="color:#FF9A8F">עצור שידור</button><span class="flex1"></span><button class="btn pri" id="castClose">סגור</button></div>',true);
  $('#castOff').onclick=()=>{castStop();closeModal();toast('השידור הופסק')};
  $('#castClose').onclick=closeModal;
- $('#castCh').onchange=e=>{S.ui.castChords=e.target.checked;save();CAST.last='';castSend()};
  $('#ccBox').onclick=e=>{const t=e.target.closest('button');if(!t)return;if(t.id==='ccScan')ccScan();else if(t.dataset.cc)ccCast(t.dataset.cc);else if(t.dataset.ccstop)ccStop()};
 }
 window.__castDisplay=function(name){if(CAST.on){if(CAST.info)CAST.info.display=name||null;toast(name?'מסך מחובר: '+name:'המסך החיצוני נותק')}};
