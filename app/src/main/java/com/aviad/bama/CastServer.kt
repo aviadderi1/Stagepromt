@@ -26,6 +26,8 @@ class CastServer(private val context: Context) {
         private set
 
     private var server: ServerSocket? = null
+    /** Sets shared with band members: token -> JSON. */
+    val shares = java.util.concurrent.ConcurrentHashMap<String, String>()
     private val clients = CopyOnWriteArrayList<OutputStream>()
     private val sender = Executors.newSingleThreadScheduledExecutor()
 
@@ -108,8 +110,26 @@ class CastServer(private val context: Context) {
             }
             val parts = request.split(" ")
             var path = if (parts.size > 1) parts[1] else "/"
+            val query = path.substringAfter('?', "")
             path = path.substringBefore('?').substringBefore('#')
             val out = sock.getOutputStream()
+
+            if (path.startsWith("/share/")) {
+                val token = path.removePrefix("/share/").trim('/')
+                val json = shares[token]
+                val wantJson = query.split('&').any { it == "json=1" }
+                val (type, body) = when {
+                    json == null -> "text/plain; charset=utf-8" to "The shared set is no longer available".toByteArray()
+                    wantJson -> "application/json; charset=utf-8" to json.toByteArray(Charsets.UTF_8)
+                    else -> "text/html; charset=utf-8" to sharePage(json).toByteArray(Charsets.UTF_8)
+                }
+                val code = if (json == null) "404 Not Found" else "200 OK"
+                out.write(("HTTP/1.1 $code\r\nContent-Type: $type\r\nContent-Length: ${body.size}\r\nAccess-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n").toByteArray())
+                out.write(body)
+                out.flush()
+                sock.close()
+                return
+            }
 
             if (path == "/events") {
                 sock.soTimeout = 0
@@ -148,6 +168,14 @@ class CastServer(private val context: Context) {
         } catch (_: Exception) {
             try { sock.close() } catch (_: Exception) { }
         }
+    }
+
+    private fun sharePage(json: String): String {
+        val safe = json.replace("</", "<\\/")
+        return "<!doctype html><html lang=\"he\" dir=\"rtl\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">" +
+            "<title>StagePromt – סט</title><style>body{margin:0;background:#111214;color:#F2EEE6;font-family:sans-serif;padding:24px}h1{margin:0 0 6px}li{margin:8px 0;font-size:18px}small{color:#A09A90}</style></head><body>" +
+            "<h1 id=\"n\"></h1><p><small>כדי להוסיף את הסט: פתח את StagePromt ← קבלת סט מחבר להקה ← סרוק קוד.</small></p><ol id=\"l\"></ol>" +
+            "<script>var d=" + safe + ";document.getElementById('n').textContent=d.name;d.songs.forEach(function(s){var li=document.createElement('li');li.textContent=s.title+(s.artist?' – '+s.artist:'');document.getElementById('l').appendChild(li)});</script></body></html>"
     }
 
     private fun mime(n: String): String = when (n.substringAfterLast('.', "").lowercase()) {

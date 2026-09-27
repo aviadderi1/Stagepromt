@@ -35,6 +35,9 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.charset.Charset
 import kotlin.concurrent.thread
+import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 
 class MainActivity : ComponentActivity() {
 
@@ -75,6 +78,54 @@ class MainActivity : ComponentActivity() {
             if (res.resultCode == Activity.RESULT_OK && uri != null) sendPdf(uri)
             else js("window.__pdfCancel && window.__pdfCancel()")
         }
+
+    private var fileReq: Triple<String, String, String>? = null   // id, kind, text
+
+    private val saveLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { res ->
+            val req = fileReq; fileReq = null
+            val uri = res.data?.data
+            if (req == null) return@registerForActivityResult
+            if (res.resultCode != Activity.RESULT_OK || uri == null) { fileDone(req.first, false, "cancel"); return@registerForActivityResult }
+            try {
+                contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            } catch (_: Exception) { }
+            writeUri(req.first, uri, req.third, uri.toString())
+        }
+
+    private val openLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { res ->
+            val req = fileReq; fileReq = null
+            val uri = res.data?.data
+            if (req == null) return@registerForActivityResult
+            if (res.resultCode != Activity.RESULT_OK || uri == null) { fileDone(req.first, false, "cancel"); return@registerForActivityResult }
+            thread {
+                try {
+                    val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: throw IllegalStateException("empty")
+                    val b64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+                    runOnUiThread {
+                        js("window.__fileBegin()")
+                        var i = 0
+                        while (i < b64.length) { val e = minOf(i + 400_000, b64.length); js("window.__fileChunk('" + b64.substring(i, e) + "')"); i = e }
+                        js("window.__fileEnd(" + JSONObject.quote(req.first) + ")")
+                    }
+                } catch (e: Exception) { fileDone(req.first, false, e.message ?: "read error") }
+            }
+        }
+
+    private fun fileDone(id: String, ok: Boolean, msg: String) {
+        runOnUiThread { js("window.__fileDone(" + JSONObject.quote(id) + "," + ok + "," + JSONObject.quote(msg) + ")") }
+    }
+
+    private fun writeUri(id: String, uri: Uri, text: String, result: String) {
+        thread {
+            try {
+                val os = try { contentResolver.openOutputStream(uri, "wt") } catch (_: Exception) { contentResolver.openOutputStream(uri, "w") }
+                (os ?: throw IllegalStateException("no stream")).use { it.write(text.toByteArray(Charsets.UTF_8)) }
+                fileDone(id, true, result)
+            } catch (e: Exception) { fileDone(id, false, e.message ?: "write error") }
+        }
+    }
 
     private val chooserLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { res ->
@@ -451,6 +502,60 @@ class MainActivity : ComponentActivity() {
 
         @JavascriptInterface
         fun castInfo(): String = castInfoJson()
+
+        @JavascriptInterface
+        fun saveFile(id: String, name: String, text: String) {
+            runOnUiThread {
+                fileReq = Triple(id, "save", text)
+                val i = Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
+                    .setType("application/json").putExtra(Intent.EXTRA_TITLE, name)
+                try { saveLauncher.launch(i) } catch (e: Exception) { fileReq = null; fileDone(id, false, "no picker") }
+            }
+        }
+
+        @JavascriptInterface
+        fun writeFile(id: String, uri: String, text: String) {
+            writeUri(id, Uri.parse(uri), text, uri)
+        }
+
+        @JavascriptInterface
+        fun openFile(id: String, a: String, b: String) {
+            runOnUiThread {
+                fileReq = Triple(id, "open", "")
+                val i = Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*")
+                    .putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("application/json", "application/octet-stream", "text/plain", "*/*"))
+                try { openLauncher.launch(i) } catch (e: Exception) { fileReq = null; fileDone(id, false, "no picker") }
+            }
+        }
+
+        @JavascriptInterface
+        fun scanQr(id: String, a: String, b: String) {
+            runOnUiThread {
+                try {
+                    val opts = GmsBarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_QR_CODE).build()
+                    GmsBarcodeScanning.getClient(this@MainActivity, opts).startScan()
+                        .addOnSuccessListener { code -> fileDone(id, true, code.rawValue ?: "") }
+                        .addOnCanceledListener { fileDone(id, false, "cancel") }
+                        .addOnFailureListener { e -> fileDone(id, false, e.message ?: "scan error") }
+                } catch (e: Exception) { fileDone(id, false, e.message ?: "scan error") }
+            }
+        }
+
+        @JavascriptInterface
+        fun shareStart(json: String): String {
+            if (cast.start() == 0) return "{}"
+            val token = java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 10)
+            cast.shares.clear()
+            cast.shares[token] = json
+            val ip = CastServer.localIps().firstOrNull() ?: return "{}"
+            return JSONObject().put("url", "http://$ip:${cast.port}/share/$token").toString()
+        }
+
+        @JavascriptInterface
+        fun shareStop() {
+            cast.shares.clear()
+            if (!casting) cast.stop()
+        }
 
         @JavascriptInterface
         fun castStop() {
