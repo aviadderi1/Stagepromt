@@ -493,7 +493,25 @@ select.chip{cursor:pointer}
 .audT{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .audT b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .audT small{font-size:12.5px;color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.audBar{height:4px;border-radius:2px;background:#2A2C31;margin-top:4px;overflow:hidden}
+.audBar{flex:1;height:4px;border-radius:2px;background:#2A2C31;overflow:hidden}
+.audLine{display:flex;align-items:center;gap:8px;margin-top:5px;direction:ltr}
+.audTm{font-size:11.5px;color:var(--mu2);font-variant-numeric:tabular-nums;min-width:30px;text-align:center}
+.rowAud{display:flex;align-items:center;gap:12px;padding:10px 14px;margin-top:-9px;background:#17181C;border:1px solid #2A2D33;border-top:0;border-radius:0 0 12px 12px;flex-shrink:0}
+.rowAud .audT b{display:none}
+.rowAud.inWeb{margin-top:-9px;padding:8px 10px;gap:8px}
+.rowAud.inWeb .audYT{padding:0 8px;font-size:12.5px}
+.rowAud.inWeb .audT small{display:none}
+.rowAud.inWeb .audLine{margin-top:0}
+.rowAud.inLib{display:flex;align-items:center;gap:6px;height:44px;margin:0 4px 0 6px;padding:0 6px 0 4px;border:1px solid #4A3E28;border-radius:22px;background:#1E1B15;animation:audIn .18s ease-out}
+.rowAud.inLib .audPP{width:34px;height:34px}
+.rowAud.inLib .audPP .spin{width:14px;height:14px}
+.rowAud.inLib .audLine{width:150px;margin:0;gap:6px}
+.rowAud.inLib .audMsg{font-size:12.5px;color:var(--mu);padding:0 6px;white-space:nowrap}
+.audIc{width:32px;height:32px;border:0;border-radius:50%;background:transparent;color:var(--mu);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.audIc.yt{color:#FF8A80}
+@keyframes audIn{from{opacity:0}to{opacity:1}}
+.wRow.hasAud .wItem{border-bottom-left-radius:0;border-bottom-right-radius:0}
+.lsn.on{color:#F4C77A;background:#2A2419}
 .audBar i{display:block;height:4px;width:0;background:var(--am)}
 .audYT{flex-shrink:0;color:#FF8A80}
 .wRow{display:flex;align-items:stretch;gap:6px}
@@ -906,6 +924,7 @@ function renderLib(){
   G.innerHTML=$('#q').value?'<div class="emptyLib"><h2>לא נמצאו שירים</h2><p>נסה מילה אחרת מהשם או מהמילים.</p></div>':
    '<div class="emptyLib"><h2>אין עדיין שירים כאן</h2><p>כתוב שיר חדש או ייבא קובץ PDF עם מילים.</p><div><button class="btn pri" id="emptyNew">'+ic('plus',18)+'שיר חדש</button><button class="btn" id="emptyWeb">'+ic('globe',18)+'חיפוש ברשת</button><button class="btn" id="emptyImp">'+ic('upload',18)+'ייבוא PDF</button></div></div>';
  }else G.innerHTML=list.map((s,i)=>listRow(s,i,list.length,reorder)).join('');
+ if(window.audRender)audRender();
  G.classList.add('asList');
  $('#lib').classList.toggle('navHidden',!!S.ui.navHidden);
 
@@ -923,7 +942,7 @@ function listRow(s,i,n,reorder){
  const pills=s.kind==='pdf'?'<span class="badge">PDF</span>':'';
  const side=reorder?
   '<button class="ib sm" data-up="'+s.id+'" '+(i===0?'disabled':'')+' aria-label="הזז למעלה">'+ic('up',18)+'</button><button class="ib sm" data-down="'+s.id+'" '+(i===n-1?'disabled':'')+' aria-label="הזז למטה">'+ic('down',18)+'</button>':
-  '<button class="ib sm lsn" data-listen="'+s.id+'" aria-label="האזן לשיר">'+ic('listen',18)+'</button><button class="playBtn sm" data-play="'+s.id+'" aria-label="הצג במצב הופעה">'+ic('play',16)+'</button><button class="ib sm ghost" data-sm="'+s.id+'" aria-label="אפשרויות שיר">'+ic('dots',18)+'</button>';
+  '<button class="ib sm lsn" data-listen="'+s.id+'" data-ak="lib:'+s.id+'" aria-label="האזן לשיר">'+ic('listen',18)+'</button><button class="playBtn sm" data-play="'+s.id+'" aria-label="הצג במצב הופעה">'+ic('play',16)+'</button><button class="ib sm ghost" data-sm="'+s.id+'" aria-label="אפשרויות שיר">'+ic('dots',18)+'</button>';
  return '<div class="lrow"><button class="lOpen" data-open="'+s.id+'">'+(S.ui.sort==='set'?'<span class="lNum">'+(i+1)+'</span>':'')+avatarHtml(s.img,s.artist||s.title,'lAv')+'<span class="lTitle">'+(s.fav?'<span class="favS">'+ic('starF',14)+'</span>':'')+esc(s.title||'ללא שם')+(s.key?'<span class="keyB" dir="ltr">'+esc(s.key)+'</span>':'')+'</span><span class="lArt">'+esc(s.artist||'')+'</span>'+(pills?'<span class="pills">'+pills+'</span>':'')+'</button><div class="lside">'+side+'</div></div>';
 }
 function moveSong(id,dir){
@@ -2165,6 +2184,7 @@ function renderWebRes(){
    (WEB.res.length?'<div class="wHead sub"><b>תוצאות נוספות</b></div>':'');
  }
  E.innerHTML=back+top+WEB.res.map((r,i)=>'<div class="wRow"><button class="wItem'+(WEB.selUrl===r.url?' on':'')+'" data-wi="'+i+'"><b>'+esc(r.title)+'</b><span class="dom'+(r.known?' known':'')+'">'+esc(r.demo?'תצוגה מקדימה':r.direct?'lyrics.ovh':hostOf(r.url))+'</span>'+(r.snippet&&!r.direct?'<span class="sn">'+esc(r.snippet)+'</span>':'')+'</button>'+(r.demo?'':lsnBtn(parseTitle(r.title).title||r.title,r.artist||parseTitle(r.title).artist||WEB.a))+'</div>').join('')+(WEB.busy?'<div class="wMore"><span class="spin"></span>מחפש באתרים נוספים…</div>':'');
+ audRender();
 }
 async function pickWeb(i){
  WEB.sel=i;WEB.selUrl=WEB.res[i]&&WEB.res[i].url;WEB.cur=null;WEB.saved=null;WEB.loading=true;WEB.view='split';const tok=WEB.tok=uid();
@@ -2327,7 +2347,7 @@ function onSugInput(field){
 
 /* ========= listen to a song (30s preview + YouTube) ========= */
 const AUD={el:null,key:'',title:'',artist:'',state:'',cache:{},tok:0};
-function lsnBtn(t,a){return '<button class="ib sm lsn" data-lt="'+esc(t||'')+'" data-la="'+esc(a||'')+'" aria-label="האזן לשיר">'+ic('listen',18)+'</button>'}
+function lsnBtn(t,a){return '<button class="ib sm lsn" data-lt="'+esc(t||'')+'" data-la="'+esc(a||'')+'" data-ak="'+esc('web:'+(t||'')+'|'+(a||''))+'" aria-label="האזן לשיר">'+ic('listen',18)+'</button>'}
 function cleanTitleForAudio(t){return String(t||'').replace(/\s*[\(\[].*?[\)\]]\s*/g,' ').replace(/\s*(מילים|אקורדים|lyrics|chords)\s*/gi,' ').replace(/\s+/g,' ').trim()}
 async function findPreview(title,artist){
  const k=normTxt(title)+'|'+normTxt(artist);if(AUD.cache[k]!==undefined)return AUD.cache[k];
@@ -2348,27 +2368,42 @@ async function findPreview(title,artist){
  }
  return AUD.cache[k]=best;
 }
-function audBar(){
- let b=$('#aud');
- if(!b){b=document.createElement('div');b.id='aud';b.className='aud';b.hidden=true;document.body.appendChild(b);
-  b.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;
-   if(t.id==='audPP'){const a=AUD.el;if(!a)return;if(a.paused)a.play().catch(()=>{});else a.pause();return}
-   if(t.id==='audX')return audStop();
-   if(t.id==='audYT'){const u='https://www.youtube.com/results?search_query='+encodeURIComponent((AUD.title+' '+AUD.artist).trim());if(window.Android&&window.Android.openUrl)window.Android.openUrl(u);else window.open(u,'_blank','noopener')}
-  });
- }
- return b;
+function audBar(){let b=$('#aud');if(!b){b=document.createElement('div');b.id='aud';b.className='aud';b.hidden=true;document.body.appendChild(b)}return b}
+document.addEventListener('click',e=>{
+ const t=e.target.closest('[data-aa]');if(!t)return;const k=t.dataset.aa;
+ if(k==='pp'){const a=AUD.el;if(!a)return;if(a.paused)a.play().catch(()=>{});else a.pause();return}
+ if(k==='x')return audStop();
+ if(k==='yt'){const u='https://www.youtube.com/results?search_query='+encodeURIComponent((AUD.title+' '+AUD.artist).trim());if(window.Android&&window.Android.openUrl)window.Android.openUrl(u);else window.open(u,'_blank','noopener')}
+});
+function audHost(){if(!AUD.key)return null;const b=$$('[data-ak]').find(x=>x.dataset.ak===AUD.key&&x.offsetParent);return b?b.closest('.lrow,.wRow'):null}
+const fmtT=t=>{t=Math.max(0,Math.floor(t||0));return Math.floor(t/60)+':'+String(t%60).padStart(2,'0')};
+function audHtml(web){
+ const st=AUD.state,a=AUD.el,playing=!!(a&&!a.paused);
+ const pp=st==='loading'?'<span class="spin"></span>':st==='none'?ic('listen',20):ic(playing?'pause':'play',20);
+ const sub=st==='loading'?'מחפש הקלטה…':st==='none'?'לא נמצאה דוגמה לשמיעה – אפשר לשמוע ביוטיוב':(AUD.artist?AUD.artist+' · ':'')+'דוגמה של 30 שניות';
+ return '<button class="audPP" data-aa="pp" aria-label="'+(playing?'השהה':'נגן')+'"'+(st!=='ready'?' disabled':'')+'>'+pp+'</button>'+
+  '<div class="audT"><b dir="auto">'+esc(AUD.title)+'</b><small dir="auto">'+esc(sub)+'</small>'+
+  (st==='ready'?'<div class="audLine"><span class="audTm" data-at="cur">'+fmtT(a&&a.currentTime)+'</span><div class="audBar"><i data-at="bar" style="width:'+(a&&a.duration?a.currentTime/a.duration*100:0)+'%"></i></div><span class="audTm">'+fmtT(a&&a.duration||30)+'</span></div>':'')+'</div>'+
+  '<button class="btn sm audYT" data-aa="yt">'+ic('play',14)+(web?'יוטיוב':'השיר המלא ביוטיוב')+'</button><button class="ib sm" data-aa="x" aria-label="סגור נגן">'+ic('close',16)+'</button>';
+}
+function audMini(){
+ const st=AUD.state,a=AUD.el,playing=!!(a&&!a.paused);
+ const pp=st==='loading'?'<span class="spin"></span>':st==='none'?ic('close',14):ic(playing?'pause':'play',16);
+ return '<button class="audPP" data-aa="pp" aria-label="'+(playing?'השהה':'נגן')+'"'+(st!=='ready'?' disabled':'')+'>'+pp+'</button>'+
+  (st==='ready'?'<div class="audLine"><span class="audTm" data-at="cur">'+fmtT(a&&a.currentTime)+'</span><div class="audBar"><i data-at="bar" style="width:'+(a&&a.duration?a.currentTime/a.duration*100:0)+'%"></i></div></div>':'<span class="audMsg">'+(st==='loading'?'מחפש…':'אין דוגמה')+'</span>')+
+  '<button class="audIc yt" data-aa="yt" aria-label="השיר המלא ביוטיוב">'+ic('ext',16)+'</button><button class="audIc" data-aa="x" aria-label="סגור נגן">'+ic('close',15)+'</button>';
 }
 function audRender(){
- const b=audBar(),st=AUD.state;
- b.hidden=!st;if(!st)return;
- const a=AUD.el,playing=!!(a&&!a.paused);
- const pp=st==='loading'?'<span class="spin"></span>':st==='none'?ic('listen',20):ic(playing?'pause':'play',20);
- b.innerHTML='<button class="audPP" id="audPP" aria-label="'+(playing?'השהה':'נגן')+'"'+(st!=='ready'?' disabled':'')+'>'+pp+'</button>'+
-  '<div class="audT"><b dir="auto">'+esc(AUD.title)+'</b><small dir="auto">'+esc(st==='loading'?'מחפש הקלטה…':st==='none'?'לא נמצאה דוגמה לשמיעה – אפשר לשמוע ביוטיוב':(AUD.artist?AUD.artist+' · ':'')+'דוגמה של 30 שניות')+'</small>'+(st==='ready'?'<div class="audBar"><i id="audProg"></i></div>':'')+'</div>'+
-  '<button class="btn sm audYT" id="audYT">'+ic('play',14)+'השיר המלא ביוטיוב</button><button class="ib sm" id="audX" aria-label="סגור נגן">'+ic('close',16)+'</button>';
- if(a&&a.duration){const g=$('#audProg');if(g)g.style.width=(a.currentTime/a.duration*100)+'%'}
+ $$('.rowAud').forEach(e=>e.remove());$$('.hasAud').forEach(e=>e.classList.remove('hasAud'));$$('[data-ak].on').forEach(e=>e.classList.remove('on'));
+ const bar=audBar();
+ if(!AUD.state){bar.hidden=true;return}
+ const host=audHost();
+ if(host){
+  bar.hidden=true;host.classList.add('hasAud');const btn=$$('[data-ak]',host).find(x=>x.dataset.ak===AUD.key);if(btn)btn.classList.add('on');
+  const web=host.classList.contains('wRow'),d=document.createElement('div');d.className='rowAud'+(web?' inWeb':' inLib');d.innerHTML=web?audHtml(true):audMini();if(web)host.after(d);else{const side=$('.lside',host);side.insertBefore(d,side.firstChild)}
+ }else{bar.hidden=false;bar.innerHTML=audHtml()}
 }
+function audTick(){const a=AUD.el;if(!a)return;$$('[data-at="bar"]').forEach(g=>{if(a.duration)g.style.width=(a.currentTime/a.duration*100)+'%'});$$('[data-at="cur"]').forEach(x=>x.textContent=fmtT(a.currentTime))}
 async function listen(title,artist,key){
  title=cleanTitleForAudio(title);artist=(artist||'').trim();
  if(AUD.key===key&&AUD.el&&AUD.state==='ready'){if(AUD.el.paused)AUD.el.play().catch(()=>{});else AUD.el.pause();return}
@@ -2381,7 +2416,7 @@ async function listen(title,artist,key){
  const a=AUD.el=new Audio(p.url);a.preload='auto';
  a.onplay=a.onpause=()=>{if(AUD.el===a)audRender()};
  a.onended=()=>{if(AUD.el===a){a.currentTime=0;audRender()}};
- a.ontimeupdate=()=>{const g=$('#audProg');if(g&&a.duration)g.style.width=(a.currentTime/a.duration*100)+'%'};
+ a.ontimeupdate=()=>{if(AUD.el===a)audTick()};
  a.onerror=()=>{if(AUD.el===a){AUD.el=null;AUD.state='none';audRender()}};
  AUD.state='ready';audRender();
  try{await a.play()}catch(e){}
