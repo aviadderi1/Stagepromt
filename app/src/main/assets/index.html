@@ -476,6 +476,15 @@ select.chip{cursor:pointer}
 .psT small{font-size:12.5px;color:var(--mu2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .psRow .keyB{margin:0}
 @media (max-width:1000px){#play.setOpen .pSet{width:240px}#play.setOpen .pScroll,#play.setOpen .pBarWrap{left:240px}}
+.wSug{position:fixed;z-index:60;max-height:min(60vh,520px);overflow-y:auto;background:#1B1C20;border:1px solid #33363D;border-radius:14px;box-shadow:0 18px 44px rgba(0,0,0,.55);padding:6px}
+.wSugI{width:100%;display:flex;align-items:center;gap:12px;padding:10px 12px;border:0;border-radius:10px;background:transparent;color:var(--mu);text-align:right;min-height:48px}
+.wSugI:active,.wSugI:hover{background:#26282E}
+.wSugI span{display:flex;flex-direction:column;min-width:0}
+.wSugI b{color:var(--tx);font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wSugI small{font-size:13px;color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wSugI em{font-style:normal;font-size:11.5px;color:#F4C77A;background:#2A2418;border-radius:6px;padding:2px 7px;flex-shrink:0}
+.wMore{display:flex;align-items:center;gap:10px;justify-content:center;padding:12px;color:var(--mu2);font-size:13.5px}
+.wMore .spin{width:16px;height:16px;border-width:2px}
 </style>
 </head>
 <body>
@@ -1790,13 +1799,13 @@ $('#imp').addEventListener('input',e=>{const t=e.target;if(t.dataset.ti)IMP.song
 /* ========= online lyrics search ========= */
 const HTTP={n:0,cb:{}};
 const CAN_HTTP=!!(window.Android&&window.Android.httpGet);
-function httpGet(url,bin){
+function httpGet(url,bin,ms){
  return new Promise((res,rej)=>{
   if(url.startsWith('demo:'))return setTimeout(()=>res({text:demoPage(),url}),400);
   if(!CAN_HTTP)return rej(new Error('nonative'));
   const id='h'+(++HTTP.n);HTTP.cb[id]={res,rej};
   try{if(bin){if(!window.Android.httpGetData)throw new Error('nobin');window.Android.httpGetData(id,url)}else window.Android.httpGet(id,url)}catch(e){delete HTTP.cb[id];return rej(e)}
-  setTimeout(()=>{if(HTTP.cb[id]){delete HTTP.cb[id];rej(new Error('timeout'))}},25000);
+  setTimeout(()=>{if(HTTP.cb[id]){delete HTTP.cb[id];rej(new Error('timeout'))}},ms||25000);
  });
 }
 window.__httpDone=function(id,ok,text,finalUrl){const c=HTTP.cb[id];if(!c)return;delete HTTP.cb[id];if(ok)c.res({text:text,url:finalUrl});else c.rej(new Error(text))};
@@ -1875,7 +1884,7 @@ function parseShironet(html){
 }
 const wordsOf=s=>normTxt(s).split(' ').filter(w=>w.length>1);
 const fracIn=(words,t)=>words.length?words.filter(w=>t.includes(w)).length/words.length:1;
-async function jget(u){return JSON.parse((await httpGet(u)).text)}
+async function jget(u,ms){return JSON.parse((await httpGet(u,false,ms)).text)}
 async function deezerArtist(name){
  try{const j=await jget('https://api.deezer.com/search/artist?q='+encodeURIComponent(name));return (j.data||[]).find(x=>normTxt(x.name)===normTxt(name))||null}catch(e){return null}
 }
@@ -1898,12 +1907,13 @@ async function artistSongs(artist){
  got.forEach(list=>list.forEach(x=>add(x.t,x.u,x.s)));
  return out;
 }
-async function webSearch(song,artist){
+async function webSearch(song,artist,onUpdate){
+ onUpdate=onUpdate||(()=>{});
  if(!CAN_HTTP)return [{title:'אור ראשון – שיר לדוגמה',url:'demo:1',snippet:'בתצוגה המקדימה אין גישה לאתרים. באפליקציה בטאבלט יופיעו כאן תוצאות אמיתיות מכל אתרי המילים.',demo:true}];
  song=(song||'').trim();artist=(artist||'').trim();
  WEB.artistMode='';WEB.songs=[];
  // only a band/artist: list its songs
- if(!song&&artist){const l=await artistSongs(artist);WEB.artistMode=artist;WEB.songs=l;WEB.diag=l.length?'':'לא נמצאה רשימת שירים עבור '+artist;return []}
+ if(!song&&artist){const l=await artistSongs(artist);if(!l.length)WEB.artistMode='';WEB.artistMode=artist;WEB.songs=l;WEB.diag=l.length?'':'לא נמצאה רשימת שירים עבור '+artist;return []}
  // a single box that may be an artist name → also list that artist's songs (in parallel with the normal search)
  const artistProbe=song&&!artist?deezerArtist(song).then(a=>a?artistSongs(a.name).then(l=>({a,l})):null).catch(()=>null):Promise.resolve(null);
  const q=(song+' '+artist).trim(),heb=HEB.test(q),qq=q+(heb?' מילים לשיר':' lyrics'),E=encodeURIComponent;
@@ -1935,39 +1945,46 @@ async function webSearch(song,artist){
  src.push({n:'Brave',u:'https://search.brave.com/search?q='+E(qq),p:h=>parseGeneric(h,'https://search.brave.com/')});
  src.push({n:'Mojeek',u:'https://www.mojeek.com/search?q='+E(qq),p:h=>parseGeneric(h,'https://www.mojeek.com/')});
  const direct=[];
- if(song&&!artist&&!heb)direct.push(jget('https://api.lyrics.ovh/suggest/'+E(song)).then(async j=>{
+ if(song&&!artist&&!heb)direct.push(jget('https://api.lyrics.ovh/suggest/'+E(song),6000).then(async j=>{
   const cand=(j.data||[]).filter(x=>fracIn(wordsOf(song),normTxt(x.title))>=.8).slice(0,3),out=[];
-  for(const x of cand){try{const l=await jget('https://api.lyrics.ovh/v1/'+E(x.artist.name)+'/'+E(x.title));if(l&&l.lyrics&&l.lyrics.trim().length>40)out.push({title:x.title+' – '+x.artist.name,url:'lyricsovh:'+x.artist.name+'|'+x.title,snippet:'lyrics.ovh',direct:l.lyrics,artist:x.artist.name,known:true,first:true})}catch(e){}}
+  for(const x of cand){try{const l=await jget('https://api.lyrics.ovh/v1/'+E(x.artist.name)+'/'+E(x.title),6000);if(l&&l.lyrics&&l.lyrics.trim().length>40)out.push({title:x.title+' – '+x.artist.name,url:'lyricsovh:'+x.artist.name+'|'+x.title,snippet:'lyrics.ovh',direct:l.lyrics,artist:x.artist.name,known:true,first:true})}catch(e){}}
   return out;
  }).catch(()=>[]));
- if(song&&artist&&!heb)direct.push(jget('https://api.lyrics.ovh/v1/'+E(artist)+'/'+E(song)).then(j=>j&&j.lyrics&&j.lyrics.trim().length>40?[{title:song+' – '+artist,url:'lyricsovh:'+artist+'|'+song,snippet:'lyrics.ovh',direct:j.lyrics,artist,known:true,first:true}]:[]).catch(()=>[]));
- const got=await Promise.all(src.map(x=>httpGet(x.u).then(r=>{let list=[];try{list=x.p(r.text)||[]}catch(e){}return {x,list,err:null}}).catch(e=>({x,list:[],err:String(e&&e.message||e)}))));
- const dres=(await Promise.all(direct)).flat();
- WEB.diag=got.map(g=>g.x.n+': '+(g.err?'שגיאה':g.list.length)).join(' · ');
- let res=dres.slice();got.filter(g=>g.x.first).forEach(g=>res=res.concat(g.list.map(r=>Object.assign(r,{first:true}))));
- got.filter(g=>!g.x.first).forEach(g=>res=res.concat(g.list));
- const seen=new Set();
- const keyOf=r=>{const w=(r.url||'').match(/shironet[^?]*\?.*wrkid=(\d+)/);return w?'shironet:'+w[1]:r.url};
- res=res.filter(r=>(r.direct||/^https?:/.test(r.url))&&!SKIP.test(r.url)&&!seen.has(keyOf(r))&&seen.add(keyOf(r)));
- res.forEach(r=>{if(/shironet\.mako/.test(r.url)){r.known=true;if(heb)r.first=true;const t=parseTitle(r.title);if(t.artist){r.title=t.title;r.artist=r.artist||t.artist}r.snippet=(r.artist?r.artist+' · ':'')+'שירונט'}});
- const sw=wordsOf(song),aw=wordsOf(artist);
- res.forEach(r=>{
-  r.known=r.known||!!r.first||KNOWN.test(r.url);
-  const t=normTxt(r.title+' '+r.snippet+' '+decodeURIComponentSafe(r.url).replace(/[-_/+.]/g,' '));
-  r.fs=fracIn(sw,t);r.fa=aw.length?fracIn(aw,normTxt(r.title+' '+r.snippet+' '+(r.artist||'')+' '+decodeURIComponentSafe(r.url).replace(/[-_/+.]/g,' '))):1;
-  r.lyr=/מילים|lyrics|lyric|שיר|song|שירונט|genius/i.test(r.title+' '+r.snippet+' '+r.url);
- });
- const before=res.length;
- res=res.filter(r=>{
-  if(aw.length&&r.fa<.5)return false;            // must belong to the requested artist
-  if(r.first||r.direct)return r.fs>=.5;
-  if(r.known)return r.fs>=.5;
-  return r.lyr&&r.fs>=.67;
- });
- WEB.filtered=before-res.length;
- const ap=await artistProbe;if(ap&&ap.l.length){WEB.artistMode=ap.a.name;WEB.songs=ap.l}
- res.sort((a,b)=>((b.direct?5:0)+(b.first?4:0)+(b.known?2:0)+b.fs+b.fa)-((a.direct?5:0)+(a.first?4:0)+(a.known?2:0)+a.fs+a.fa));
- return res.slice(0,20);
+ if(song&&artist&&!heb)direct.push(jget('https://api.lyrics.ovh/v1/'+E(artist)+'/'+E(song),6000).then(j=>j&&j.lyrics&&j.lyrics.trim().length>40?[{title:song+' – '+artist,url:'lyricsovh:'+artist+'|'+song,snippet:'lyrics.ovh',direct:j.lyrics,artist,known:true,first:true}]:[]).catch(()=>[]));
+ const T=7000,got=[],dres=[];let upT=0,finished=false;
+ const rank=()=>{
+  let res=dres.map(r=>Object.assign({},r));got.filter(g=>g.x.first).forEach(g=>res=res.concat(g.list.map(r=>Object.assign({},r,{first:true}))));
+  got.filter(g=>!g.x.first).forEach(g=>res=res.concat(g.list.map(r=>Object.assign({},r))));
+  const seen=new Set();
+  const keyOf=r=>{const w=(r.url||'').match(/shironet[^?]*\?.*wrkid=(\d+)/);return w?'shironet:'+w[1]:r.url};
+  res=res.filter(r=>(r.direct||/^https?:/.test(r.url))&&!SKIP.test(r.url)&&!seen.has(keyOf(r))&&seen.add(keyOf(r)));
+  res.forEach(r=>{if(/shironet\.mako/.test(r.url)){r.known=true;if(heb)r.first=true;const t=parseTitle(r.title);if(t.artist){r.title=t.title;r.artist=r.artist||t.artist}r.snippet=(r.artist?r.artist+' · ':'')+'שירונט'}});
+  const sw=wordsOf(song),aw=wordsOf(artist);
+  res.forEach(r=>{
+   r.known=r.known||!!r.first||KNOWN.test(r.url);
+   const t=normTxt(r.title+' '+r.snippet+' '+decodeURIComponentSafe(r.url).replace(/[-_/+.]/g,' '));
+   r.fs=fracIn(sw,t);r.fa=aw.length?fracIn(aw,normTxt(r.title+' '+r.snippet+' '+(r.artist||'')+' '+decodeURIComponentSafe(r.url).replace(/[-_/+.]/g,' '))):1;
+   r.lyr=/מילים|lyrics|lyric|שיר|song|שירונט|genius/i.test(r.title+' '+r.snippet+' '+r.url);
+  });
+  const before=res.length;
+  res=res.filter(r=>{
+   if(aw.length&&r.fa<.5)return false;            // must belong to the requested artist
+   if(r.first||r.direct)return r.fs>=.5;
+   if(r.known)return r.fs>=.5;
+   return r.lyr&&r.fs>=.67;
+  });
+  WEB.filtered=before-res.length;
+  res.sort((a,b)=>((b.direct?5:0)+(b.first?4:0)+(b.known?2:0)+b.fs+b.fa)-((a.direct?5:0)+(a.first?4:0)+(a.known?2:0)+a.fs+a.fa));
+  return res.slice(0,20);
+ };
+ const bump=()=>{if(finished||upT)return;upT=setTimeout(()=>{upT=0;if(!finished)onUpdate(rank())},120)};
+ const jobs=src.map(x=>httpGet(x.u,false,T).then(r=>{let list=[];try{list=x.p(r.text)||[]}catch(e){}return {x,list,err:null}}).catch(e=>({x,list:[],err:String(e&&e.message||e)})).then(g=>{got.push(g);if(g.list.length)bump()}));
+ direct.forEach(d=>jobs.push(d.then(l=>{dres.push(...l);if(l.length)bump()})));
+ jobs.push(artistProbe.then(ap=>{if(ap&&ap.l.length){WEB.artistMode=ap.a.name;WEB.songs=ap.l;bump()}}));
+ await Promise.race([Promise.all(jobs),new Promise(r=>setTimeout(r,T+1500))]);
+ finished=true;clearTimeout(upT);
+ WEB.diag=src.map(x=>{const g=got.find(g=>g.x===x);return x.n+': '+(!g?'איטי':g.err?'שגיאה':g.list.length)}).join(' · ');
+ return rank();
 }
 const SITE_SEL=[
  [/shironet/,'.artist_lyrics_text, span[itemprop="lyrics"], .lyrics_text, #lyrics'],
@@ -2069,13 +2086,26 @@ function extractLyrics(html,url){
 
 const WEB={q:'',res:[],sel:-1,busy:false,loading:false,cur:null,view:'split',folder:'',saved:null,tok:null};
 function openWeb(){WEB.folder=S.folders.some(x=>x.id===S.ui.folder)?S.ui.folder:'';show('web');renderWebRes();renderWebPrev();setTimeout(()=>$('#wq').focus(),80)}
-function closeWeb(){WEB.tok=null;show('lib');renderLib()}
+function closeWeb(){hideSug();WEB.tok=null;show('lib');renderLib()}
+const WCACHE={};
 async function doWebSearch(auto){
  const q=$('#wq').value.trim(),a=$('#wa').value.trim();if(!q&&!a)return toast('כתוב שם של שיר או של אמן');
- $('#wq').blur();$('#wa').blur();WEB.q=q;WEB.a=a;WEB.busy=true;WEB.res=[];WEB.sel=-1;WEB.cur=null;renderWebRes();renderWebPrev();
- try{WEB.res=await webSearch(q,a)}catch(e){WEB.res=[]}
- WEB.busy=false;renderWebRes();renderWebPrev();
- if(WEB.res.length&&!WEB.artistMode&&(auto||window.innerWidth>900))pickWeb(0);
+ hideSug();$('#wq').blur();$('#wa').blur();
+ const key=normTxt(q)+'|'+normTxt(a),stok=WEB.stok=uid();
+ WEB.q=q;WEB.a=a;WEB.res=[];WEB.sel=-1;WEB.selUrl='';WEB.cur=null;WEB.artistMode='';WEB.songs=[];WEB.tok=null;
+ const want=()=>!WEB.artistMode&&(auto||window.innerWidth>900);
+ const c=WCACHE[key];
+ if(c&&Date.now()-c.at<15*60000){Object.assign(WEB,{res:c.res,artistMode:c.am,songs:c.songs,diag:c.diag,busy:false});renderWebRes();renderWebPrev();if(WEB.res.length&&want())pickWeb(0);return}
+ WEB.busy=true;renderWebRes();renderWebPrev();
+ let res=[];
+ try{res=await webSearch(q,a,r=>{if(stok!==WEB.stok)return;WEB.res=r;renderWebRes();
+  // show the lyrics of the first strong hit right away
+  if(!WEB.selUrl&&!WEB.loading&&want()&&r[0]&&(r[0].first||r[0].direct||r[0].known))pickWeb(0)})}catch(e){res=[]}
+ if(stok!==WEB.stok)return;
+ WEB.res=res;WEB.busy=false;
+ if(res.length||(WEB.songs&&WEB.songs.length))WCACHE[key]={at:Date.now(),res,am:WEB.artistMode,songs:WEB.songs,diag:WEB.diag};
+ renderWebRes();if(!WEB.cur&&!WEB.loading)renderWebPrev();
+ if(WEB.res.length&&!WEB.selUrl&&want())pickWeb(0);
 }
 function songOfArtist(i){
  const r=WEB.songs[i];WEB.back={songs:WEB.songs,res:WEB.res,artist:WEB.artistMode};
@@ -2085,7 +2115,7 @@ function songOfArtist(i){
 function renderWebRes(){
  const E=$('#wRes');
  const back=WEB.back&&!WEB.artistMode?'<button class="btn sm wBack" id="wBack">'+ic('back',16)+'חזרה לשירים של '+esc(WEB.back.artist)+'</button>':'';
- if(WEB.busy){E.innerHTML=back+'<div class="wMsg"><span class="spin big"></span>מחפש בכל אתרי המילים…</div>';return}
+ if(WEB.busy&&!WEB.res.length&&!(WEB.songs&&WEB.songs.length)){E.innerHTML=back+'<div class="wMsg"><span class="spin big"></span>מחפש בכל אתרי המילים…</div>';return}
  if(!WEB.q&&!WEB.a){E.innerHTML='<div class="hint">כתוב שם של שיר. כדי לקבל תוצאות מדויקות הוסף גם את שם האמן או הלהקה. אם תכתוב רק שם של אמן או להקה, תופיע רשימת השירים שלהם.</div>';return}
  if(!WEB.res.length&&!(WEB.songs&&WEB.songs.length)){E.innerHTML=back+'<div class="wMsg">לא נמצאו תוצאות מתאימות. נסה ניסוח אחר, או חפש בגוגל בדפדפן והעתק את המילים ל"הדבק טקסט".<button class="btn sm" id="wGoogle">'+ic('ext',16)+'חפש בגוגל</button>'+(WEB.diag?'<small class="wDiag">'+esc(WEB.diag)+'</small>':'')+'</div>';return}
  let top='';
@@ -2094,10 +2124,10 @@ function renderWebRes(){
    WEB.songs.map((r,i)=>'<button class="wItem song" data-ws="'+i+'"><b>'+esc(r.title)+'</b><span class="dom known">'+esc(r.snippet)+'</span></button>').join('')+
    (WEB.res.length?'<div class="wHead sub"><b>תוצאות נוספות</b></div>':'');
  }
- E.innerHTML=back+top+WEB.res.map((r,i)=>'<button class="wItem'+(WEB.sel===i?' on':'')+'" data-wi="'+i+'"><b>'+esc(r.title)+'</b><span class="dom'+(r.known?' known':'')+'">'+esc(r.demo?'תצוגה מקדימה':r.direct?'lyrics.ovh':hostOf(r.url))+'</span>'+(r.snippet&&!r.direct?'<span class="sn">'+esc(r.snippet)+'</span>':'')+'</button>').join('');
+ E.innerHTML=back+top+WEB.res.map((r,i)=>'<button class="wItem'+(WEB.selUrl===r.url?' on':'')+'" data-wi="'+i+'"><b>'+esc(r.title)+'</b><span class="dom'+(r.known?' known':'')+'">'+esc(r.demo?'תצוגה מקדימה':r.direct?'lyrics.ovh':hostOf(r.url))+'</span>'+(r.snippet&&!r.direct?'<span class="sn">'+esc(r.snippet)+'</span>':'')+'</button>').join('')+(WEB.busy?'<div class="wMore"><span class="spin"></span>מחפש באתרים נוספים…</div>':'');
 }
 async function pickWeb(i){
- WEB.sel=i;WEB.cur=null;WEB.saved=null;WEB.loading=true;WEB.view='split';const tok=WEB.tok=uid();
+ WEB.sel=i;WEB.selUrl=WEB.res[i]&&WEB.res[i].url;WEB.cur=null;WEB.saved=null;WEB.loading=true;WEB.view='split';const tok=WEB.tok=uid();
  renderWebRes();renderWebPrev();
  const r=WEB.res[i];
  try{
@@ -2203,8 +2233,56 @@ $('#web').addEventListener('click',e=>{
 let wArtT=0;
 $('#web').addEventListener('input',e=>{const t=e.target,c=WEB.cur;if(!c)return;if(t.id==='wTitle')c.title=t.value;else if(t.id==='wArtist'){c.artist=t.value;clearTimeout(wArtT);wArtT=setTimeout(()=>webArtistImage(WEB.tok),900)}else if(t.id==='wText')c.text=t.value});
 $('#web').addEventListener('change',e=>{if(e.target.id==='wFolder')WEB.folder=e.target.value});
-$('#wq').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();WEB.back=null;doWebSearch()}});
-$('#wa').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();WEB.back=null;doWebSearch()}});
+/* ---- live suggestions while typing ---- */
+const SUG={tok:0,t:0,field:null,items:[],cache:{}};
+function hideSug(){clearTimeout(SUG.t);SUG.tok++;const e=$('#wSug');if(e)e.remove();SUG.items=[]}
+function cleanSug(t){return String(t||'').replace(/\s*(מילים|אקורדים|מילים ואקורדים|lyrics|chords|שירונט|tab4u|youtube|יוטיוב|קליפ|שיר)\s*/gi,' ').replace(/\s+/g,' ').trim()}
+async function fetchSug(field,q){
+ const k=field+'|'+normTxt(q);if(SUG.cache[k])return SUG.cache[k];
+ const E=encodeURIComponent,nq=normTxt(q),out=[],seen=new Set();
+ const add=(title,artist,src)=>{title=(title||'').trim();artist=(artist||'').trim();if(!title)return;const key=normTxt(title)+'|'+normTxt(artist);if(seen.has(key))return;seen.add(key);out.push({title,artist,src})};
+ // your own library first – instant
+ S.songs.forEach(x=>{if(field==='wa'){if(x.artist&&normTxt(x.artist).includes(nq))add(x.artist,'','lib')}else if(normTxt(x.title).includes(nq)||normTxt(x.artist).includes(nq))add(x.title,x.artist,'lib')});
+ if(!CAN_HTTP)return out.slice(0,8);
+ const jobs=[];
+ if(field==='wa'){
+  jobs.push(jget('https://api.deezer.com/search/artist?q='+E(q)+'&limit=8',3500).then(j=>(j.data||[]).map(x=>[x.name,'','dz'])).catch(()=>[]));
+ }else{
+  jobs.push(jget('https://api.deezer.com/search?q='+E(q)+'&limit=10',3500).then(j=>(j.data||[]).map(x=>[x.title_short||x.title,x.artist&&x.artist.name,'dz'])).catch(()=>[]));
+  jobs.push(jget('https://suggestqueries.google.com/complete/search?client=firefox&hl='+(HEB.test(q)?'he':'en')+'&q='+E(q+(HEB.test(q)?' מילים':' lyrics')),3500).then(j=>(j[1]||[]).map(t=>[cleanSug(t),'','g'])).catch(()=>[]));
+ }
+ const lists=await Promise.all(jobs);
+ // Deezer hits that really start with / contain what was typed come first
+ const flat=[].concat(...lists).filter(x=>x[0]&&normTxt(x[0]).length>1);
+ flat.sort((a,b)=>(normTxt(b[0]).startsWith(nq)?2:normTxt(b[0]+' '+b[1]).includes(nq)?1:0)-(normTxt(a[0]).startsWith(nq)?2:normTxt(a[0]+' '+a[1]).includes(nq)?1:0));
+ flat.forEach(x=>add(x[0],x[1],x[2]));
+ return SUG.cache[k]=out.slice(0,10);
+}
+function renderSug(field){
+ hideSug.keep=true;const old=$('#wSug');if(old)old.remove();
+ if(!SUG.items.length)return;
+ const inp=$('#'+field),r=inp.closest('label').getBoundingClientRect();
+ const d=document.createElement('div');d.id='wSug';d.className='wSug';d.setAttribute('role','listbox');
+ d.style.cssText='top:'+(r.bottom+6)+'px;right:'+(innerWidth-r.right)+'px;width:'+Math.max(r.width,320)+'px';
+ d.innerHTML=SUG.items.map((x,i)=>'<button class="wSugI" data-sg="'+i+'" role="option">'+(x.src==='lib'?ic('music',16):ic('search',16))+'<span class="flex1"><b dir="auto">'+esc(x.title)+'</b>'+(x.artist?'<small dir="auto">'+esc(x.artist)+'</small>':'')+'</span>'+(x.src==='lib'?'<em>בספרייה</em>':'')+'</button>').join('');
+ document.body.appendChild(d);
+ d.addEventListener('pointerdown',e=>e.preventDefault());
+ d.addEventListener('click',e=>{const b=e.target.closest('[data-sg]');if(!b)return;const x=SUG.items[+b.dataset.sg];
+  if(field==='wa'){$('#wa').value=x.title}else{$('#wq').value=x.title;if(x.artist)$('#wa').value=x.artist}
+  hideSug();WEB.back=null;doWebSearch(true)});
+}
+function onSugInput(field){
+ const q=$('#'+field).value.trim();clearTimeout(SUG.t);const tok=++SUG.tok;
+ if(q.length<2){const e=$('#wSug');if(e)e.remove();return}
+ SUG.t=setTimeout(async()=>{let items=[];try{items=await fetchSug(field,q)}catch(e){}if(tok!==SUG.tok||$('#'+field).value.trim()!==q)return;SUG.items=items;renderSug(field)},180);
+}
+['wq','wa'].forEach(f=>{
+ const el=$('#'+f);
+ el.addEventListener('input',()=>onSugInput(f));
+ el.addEventListener('focus',()=>{if(el.value.trim().length>=2)onSugInput(f)});
+ el.addEventListener('blur',()=>setTimeout(()=>{if(document.activeElement!==$('#wq')&&document.activeElement!==$('#wa'))hideSug()},150));
+ el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();hideSug();WEB.back=null;doWebSearch()}else if(e.key==='Escape')hideSug()});
+});
 
 /* ========= backup & set sharing ========= */
 const NATIVE_FILES=!!(window.Android&&window.Android.saveFile);
