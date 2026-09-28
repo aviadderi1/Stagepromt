@@ -162,7 +162,7 @@ class MainActivity : ComponentActivity() {
             allowFileAccess = false
             allowContentAccess = false
             textZoom = 100
-            mediaPlaybackRequiresUserGesture = false
+            mediaPlaybackRequiresUserGesture = true
         }
 
         web.webViewClient = object : WebViewClient() {
