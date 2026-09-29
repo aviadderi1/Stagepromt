@@ -1945,7 +1945,7 @@ function renderBgModal(){
   h+='<div class="srcRow bgSrc"><button class="srcBig" data-bgsrc="device">'+ic('phone',30)+'<span>מהמכשיר</span></button><button class="srcBig" data-bgsrc="drive">'+gdriveIcon(30)+'<span dir="ltr">Google Drive</span></button><button class="srcBig'+(BGW.web?' on':'')+'" data-bgweb="1">'+ic('globe',30)+'<span>מהרשת</span></button></div>';
   if(BGW.web)h+='<div class="row" style="gap:8px"><input class="field" id="bgQ" dir="auto" placeholder="חפש תמונה (למשל: stage lights) או הדבק קישור" value="'+esc(BGW.q)+'"><button class="btn pri" id="bgGo">'+ic('search',18)+'חפש</button></div>'+
    (BGW.busy?'<div class="wMsg"><span class="spin big"></span></div>':BGW.res.length?'<div class="bgGrid" id="bgGrid">'+BGW.res.map((r,i)=>'<button class="bgT" data-bgi="'+i+'"><img alt=""></button>').join('')+'</div>':'');
-  if(b.type==='img')h+='<div class="grp"><div class="row"><label class="lbl flex1" for="bgDim">הכהיית התמונה (כדי שהמילים יבלטו)</label><b id="bgDimV">'+Math.round((b.dim==null?.45:b.dim)*100)+'%</b></div><input id="bgDim" type="range" min="0" max="0.85" step="0.05" value="'+(b.dim==null?.45:b.dim)+'"></div><button class="btn sm" data-bgc="#000000">הסר תמונה</button>';
+  if(b.type==='img')h+='<div class="grp"><div class="row"><label class="lbl flex1" for="bgDim" dir="ltr" style="text-align:right">Image dimming</label><b id="bgDimV">'+Math.round((b.dim==null?.45:b.dim)*100)+'%</b></div><input id="bgDim" type="range" min="0" max="0.85" step="0.05" value="'+(b.dim==null?.45:b.dim)+'"></div><button class="btn sm" data-bgc="#000000">הסר תמונה</button>';
  }
  h+='<div class="acts"><span class="flex1"></span><button class="btn pri" id="mCancel">סגור</button></div>';
  E.innerHTML=h;
