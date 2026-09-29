@@ -88,7 +88,7 @@ function loop(){
 function apply(s){
  st=s;
  if(!s||s.idle){$('#idle').classList.remove('off');$('#hdr').hidden=true;$('#msg').style.display='none';$('#in').innerHTML='';key='';return}
- $('#idle').classList.add('off');
+ $('#idle').classList.add('off');document.body.style.background=s.bgc||'#000';
  $('#hdr').hidden=false;$('#t').textContent=s.title+(s.artist?' · '+s.artist:'');
  $('#n').textContent=s.count>1?(s.idx+1)+' / '+s.count:'';
  if(s.kind==='pdf'){

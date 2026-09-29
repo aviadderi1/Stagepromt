@@ -550,6 +550,22 @@ class MainActivity : ComponentActivity() {
         }
 
         @JavascriptInterface
+        fun pickImage(id: String, source: String, b: String) {
+            runOnUiThread {
+                fileReq = Triple(id, "open", "")
+                val drive = source == "drive"
+                val i = if (drive) Intent(Intent.ACTION_GET_CONTENT).addCategory(Intent.CATEGORY_OPENABLE).setType("image/*").setPackage("com.google.android.apps.docs")
+                    else Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("image/*")
+                try { openLauncher.launch(i) } catch (e: Exception) {
+                    if (drive) {
+                        Toast.makeText(this@MainActivity, "בחר Google Drive מהתפריט של בוחר הקבצים", Toast.LENGTH_LONG).show()
+                        try { openLauncher.launch(Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("image/*")) } catch (e2: Exception) { fileReq = null; fileDone(id, false, "no picker") }
+                    } else { fileReq = null; fileDone(id, false, "no picker") }
+                }
+            }
+        }
+
+        @JavascriptInterface
         fun openFile(id: String, a: String, b: String) {
             runOnUiThread {
                 fileReq = Triple(id, "open", "")
