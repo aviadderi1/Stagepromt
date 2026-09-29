@@ -552,6 +552,12 @@ select.chip{cursor:pointer}
 .stkOpts .sw{width:30px;height:30px}
 .stkOpts input[type=color]{width:30px;height:30px}
 .pInner .sec,.endHint,.pvL{-webkit-text-stroke:0}
+.fontList{max-height:420px;overflow-y:auto}
+.fontG{padding:8px 14px 4px;font-size:11.5px;font-weight:700;color:var(--mu2);letter-spacing:.5px;background:#141518}
+.fontOpt{flex-shrink:0;gap:10px;justify-content:flex-start}
+.fontOpt .foN{font-size:17px;white-space:nowrap}
+.fontOpt .foS{flex:1;text-align:left;font-size:19px;color:var(--mu);white-space:nowrap}
+.fontOpt.on .foS{color:#F4C77A}
 </style>
 </head>
 <body>
@@ -746,12 +752,23 @@ function ic(n,s){s=s||20;return (ICON[n]||'').replace('<svg','<svg width="'+s+'"
 const KEYS=['C','Cm','C#','C#m','Db','D','Dm','D#m','Eb','Ebm','E','Em','F','Fm','F#','F#m','Gb','G','Gm','G#m','Ab','Abm','A','Am','A#m','Bb','Bbm','B','Bm'];
 const TYPES={verse:{name:'בית',short:'ב'},chorus:{name:'פזמון',short:'פ'},bridge:{name:'גשר',short:'ג'},note:{name:'הערה',short:'ה'}};
 const FONTS=[
- {id:'Assistant',label:'Assistant',css:"'Assistant',sans-serif",w:800},
- {id:'Frank Ruhl Libre',label:'Frank Ruhl',css:"'Frank Ruhl Libre',Georgia,serif",w:700},
- {id:'Rubik',label:'Rubik',css:"'Rubik','Assistant',sans-serif",w:600},
- {id:'Secular One',label:'Secular One',css:"'Secular One','Assistant',sans-serif",w:400},
- {id:'Suez One',label:'Suez One',css:"'Suez One',Georgia,serif",w:400}
+ {id:'Assistant',label:'Assistant',css:"'Assistant',sans-serif",w:800,g:'sans'},
+ {id:'Heebo',label:'Heebo',css:"'Heebo','Assistant',sans-serif",w:800,g:'sans'},
+ {id:'Rubik',label:'Rubik',css:"'Rubik','Assistant',sans-serif",w:600,g:'sans'},
+ {id:'IBM Plex Sans Hebrew',label:'IBM Plex',css:"'IBM Plex Sans Hebrew','Assistant',sans-serif",w:700,g:'sans'},
+ {id:'Varela Round',label:'Varela',css:"'Varela Round','Assistant',sans-serif",w:400,g:'sans'},
+ {id:'Alef',label:'Alef',css:"'Alef','Assistant',sans-serif",w:700,g:'sans'},
+ {id:'Secular One',label:'Secular One',css:"'Secular One','Assistant',sans-serif",w:400,g:'sans'},
+ {id:'Karantina',label:'Karantina',css:"'Karantina','Assistant',sans-serif",w:700,g:'sans'},
+ {id:'Miriam Libre',label:'Miriam',css:"'Miriam Libre','Assistant',sans-serif",w:700,g:'sans'},
+ {id:'Frank Ruhl Libre',label:'Frank Ruhl',css:"'Frank Ruhl Libre',Georgia,serif",w:700,g:'serif'},
+ {id:'David Libre',label:'David',css:"'David Libre','Frank Ruhl Libre',Georgia,serif",w:700,g:'serif'},
+ {id:'Suez One',label:'Suez One',css:"'Suez One',Georgia,serif",w:400,g:'serif'},
+ {id:'Bellefair',label:'Bellefair',css:"'Bellefair','Frank Ruhl Libre',serif",w:400,g:'serif'},
+ {id:'Playpen Sans Hebrew',label:'Playpen',css:"'Playpen Sans Hebrew','Assistant',sans-serif",w:700,g:'hand'},
+ {id:'Amatic SC',label:'Amatic',css:"'Amatic SC','Assistant',sans-serif",w:700,g:'hand'}
 ];
+const FONT_G={sans:'ללא תגים',serif:'עם תגים (קלאסי)',hand:'כתב יד'};
 const font=id=>FONTS.find(f=>f.id===id)||FONTS[0];
 const STK_COL=['#000000','#FFFFFF','#E8A33D','#1D3557','#7A1E1E'];
 function strokeOf(st){const k=st&&st.stroke;return k&&k.on?{c:k.c||'#000000',w:k.w||3}:null}
@@ -1147,7 +1164,7 @@ function renderStyle(){
  const cn={verse:'בית',chorus:'פזמון',bridge:'גשר',note:'הערה'};
  const cf=font(st.font),sk=st.stroke||{};
  E.innerHTML='<div class="grp"><div class="lbl">גופן</div><div class="fontRow"><div class="fontDD'+(STY.fdd?' open':'')+'"><button class="fontCur" data-fdd="1" aria-expanded="'+STY.fdd+'" style="font-family:'+cf.css+';font-weight:'+cf.w+'"><span>'+cf.label+'</span>'+ic(STY.fdd?'up':'down',16)+'</button>'+
-  (STY.fdd?'<div class="fontList" role="listbox">'+FONTS.map(f=>'<button class="fontOpt'+(st.font===f.id?' on':'')+'" role="option" data-font="'+f.id+'" style="font-family:'+f.css+';font-weight:'+f.w+'">'+f.label+(st.font===f.id?ic('check',16):'')+'</button>').join('')+'</div>':'')+'</div>'+
+  (STY.fdd?'<div class="fontList" role="listbox">'+FONTS.map((f,i)=>(i===0||FONTS[i-1].g!==f.g?'<div class="fontG">'+FONT_G[f.g]+'</div>':'')+'<button class="fontOpt'+(st.font===f.id?' on':'')+'" role="option" data-font="'+f.id+'" style="font-family:'+f.css+';font-weight:'+f.w+'"><span class="foN">'+f.label+'</span><span class="foS">שיר</span>'+(st.font===f.id?ic('check',16):'')+'</button>').join('')+'</div>':'')+'</div>'+
   '<button class="strokeBtn'+(sk.on?' on':'')+'" data-stroke="1" aria-pressed="'+!!sk.on+'"><span class="stkDemo" style="-webkit-text-stroke:1.2px '+(sk.on?(sk.c||'#000'):'#F2EEE6')+';paint-order:stroke fill;color:'+(sk.on?'#F2EEE6':'transparent')+'">A</span>Stroke</button></div>'+
   (sk.on?'<div class="stkOpts"><div class="lbl">צבע</div><div class="swRow">'+STK_COL.map(c=>'<button class="sw'+((sk.c||'#000000').toLowerCase()===c.toLowerCase()?' on':'')+'" style="background:'+c+'" data-stc="'+c+'" aria-label="צבע קו מתאר '+c+'"></button>').join('')+'<input type="color" data-stcin="1" value="'+(sk.c||'#000000')+'" aria-label="צבע קו מתאר מותאם"></div>'+
    '<div class="row"><label class="lbl flex1" for="stkW">עובי</label><b id="stkWV">'+(sk.w||3)+'</b></div><input id="stkW" type="range" min="1" max="10" step="1" value="'+(sk.w||3)+'"></div>':'')+'</div>'+
