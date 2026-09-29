@@ -135,7 +135,10 @@ select.chip{cursor:pointer}
 .bHead .cnt{font-size:13px;color:var(--mu2)}
 .block textarea{resize:none;background:transparent;border:0;outline:none;font-size:22px;font-weight:700;line-height:1.55;padding:0;width:100%;overflow:hidden;min-height:34px}
 .block textarea::placeholder{color:#5C5850;font-weight:500}
-.reptext{font-size:18px;color:#6E695F;white-space:pre-line;line-height:1.5}
+.reptext{font-size:18px;color:#6E695F;line-height:1.5}
+.reptext .rl.hasCh{padding-top:.7em}
+.reptext .rgap{height:.5em}
+.reptext .ch{font-size:.7em;opacity:.85}
 .addRow{display:flex;gap:10px;flex-wrap:wrap;flex-shrink:0}
 .addRow.mini{gap:6px;margin:-4px 0 6px}
 .addRow.mini .btn{height:36px;padding:0 11px;font-size:13px;border-radius:9px}
@@ -1072,15 +1075,15 @@ function renderStruct(){
  '<div class="hint">החצים משנים את סדר החלקים. פזמון שחוזר נכתב פעם אחת, והחזרות שלו מתעדכנות לבד.</div>';
 }
 function autosize(t){t.style.height='auto';t.style.height=t.scrollHeight+'px'}
+function repHtml(src){const cm=partChordMap(src);return String(src.text||'').split('\n').map((l,li)=>l.trim()?'<div class="rl'+(cm[li]?' hasCh':'')+'" dir="auto">'+lineHtml(l,cm[li])+'</div>':'<div class="rgap"></div>').join('')}
 function block(s,p,L){
  const src=srcOf(s,p)||p,st=s.style,f=font(st.font);
  const n=p.ref?0:p.text.split('\n').filter(l=>l.trim()).length;
  const sel=p.ref?'<span class="chip t-'+src.type+'">'+TYPES[src.type].name+'</span>':
   '<select class="chip t-'+p.type+'" data-type="'+p.id+'" aria-label="סוג החלק">'+Object.keys(TYPES).map(k=>'<option value="'+k+'"'+(k===p.type?' selected':'')+'>'+TYPES[k].name+'</option>').join('')+'</select>';
- const body=p.ref?'<div class="reptext" data-reptext="'+src.id+'" style="font-family:'+f.css+strokeCss(st)+'">'+esc(src.text)+'</div>':
+ const body=p.ref?'<div class="reptext" data-reptext="'+src.id+'" style="font-family:'+f.css+';--chc:'+chordColor(s)+strokeCss(st)+'">'+repHtml(src)+'</div>':
   '<textarea data-txt="'+p.id+'" rows="1" dir="auto" spellcheck="false" style="color:'+st.colors[p.type]+';font-family:'+f.css+';font-weight:'+f.w+strokeCss(st)+(p.type==='note'?';font-style:italic;font-size:18px':'')+'" placeholder="'+(p.type==='note'?'הערה לזמר, למשל: סולו גיטרה, חוזר פעמיים':'כתוב כאן את השורות…')+'">'+esc(p.text)+'</textarea>';
  return '<div class="block'+(p.ref?' ref':'')+'" id="b-'+p.id+'"><div class="bHead">'+sel+'<span class="cnt" data-cnt="'+p.id+'">'+esc(L[p.id])+' · '+(p.ref?'חוזר':lineTxt(n))+'</span><span class="flex1"></span>'+
-  (p.ref?'<button class="btn sm" data-unlink="'+p.id+'">'+ic('edit',16)+'ערוך בנפרד</button>':'')+
   '<button class="ib sm" data-rep="'+p.id+'" aria-label="חזור על החלק הזה">'+ic('repeat',17)+'</button><button class="ib sm danger" data-del="'+p.id+'" aria-label="מחק חלק">'+ic('trash',17)+'</button></div>'+body+'</div>';
 }
 function renderBlocks(){
@@ -1110,7 +1113,7 @@ $('#blocks').addEventListener('input',e=>{
  const s=curSong(),p=s.parts.find(x=>x.id===t.dataset.txt);if(!p)return;
  p.text=t.value;autosize(t);touch(s);
  const c=$('[data-cnt="'+p.id+'"]');if(c)c.textContent=labelMap(s)[p.id]+' · '+lineTxt(p.text.split('\n').filter(l=>l.trim()).length);
- $$('[data-reptext="'+p.id+'"]').forEach(x=>x.textContent=p.text);
+ $$('[data-reptext="'+p.id+'"]').forEach(x=>x.innerHTML=repHtml(p));
  updatePreview();
 });
 $('#blocks').addEventListener('change',e=>{
@@ -1124,7 +1127,6 @@ $('#blocks').addEventListener('click',e=>{
  if(t.id==='firstSplit'){const parts=autoSplit($('#firstText').value);if(!parts.length)return toast('כתוב או הדבק קודם את המילים');s.parts=parts;touch(s);refreshParts();return toast('חולק ל-'+parts.length+' חלקים — אפשר לתקן בכל רגע')}
  if(d.repchorus){const at=insertAt(s,d.after),all=s.parts.filter(p=>p.type==='chorus'&&!p.ref);const ch=s.parts.slice(0,at).filter(p=>p.type==='chorus'&&!p.ref).pop()||all[0];if(!ch)return toast('עדיין אין פזמון בשיר');const p={id:uid(),type:'chorus',text:'',ref:ch.id};s.parts.splice(at,0,p);touch(s);refreshParts();return focusPart(p.id)}
  if(d.rep){const i=s.parts.findIndex(x=>x.id===d.rep);const src=srcOf(s,s.parts[i]);if(!src)return;s.parts.splice(i+1,0,{id:uid(),type:src.type,text:'',ref:src.id});touch(s);return refreshParts()}
- if(d.unlink){const p=s.parts.find(x=>x.id===d.unlink),src=srcOf(s,p);if(src){p.text=src.text;p.type=src.type}p.ref=null;touch(s);refreshParts();return focusPart(p.id)}
  if(d.del){
   const p=s.parts.find(x=>x.id===d.del);const refs=s.parts.filter(x=>x.ref===p.id);
   const go=()=>{s.parts=s.parts.filter(x=>x.id!==p.id&&x.ref!==p.id);touch(s);refreshParts()};
