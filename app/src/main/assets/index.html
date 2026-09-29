@@ -503,7 +503,7 @@ select.chip{cursor:pointer}
 .navTool{border:0;background:transparent}
 .pBar{background:rgba(16,17,19,.94);border-color:#24262B;gap:6px}
 .pb{background:transparent;color:#CFC9BF}
-.pb.on,.pb.mode.on,.pb#pChords.on{background:transparent;color:#F4C77A;box-shadow:inset 0 -2px 0 #E8A33D;border-radius:10px}
+.pb.on,.pb.mode.on,.pb#pChords.on{background:transparent;color:#F4C77A;box-shadow:none;border-radius:10px}
 .pb.big{background:var(--am);color:#111214}
 .pBar .vsep{background:#24262B}
 .ib.danger{color:#FF9A8F}
@@ -968,7 +968,9 @@ const IDB={db:null,
 
 /* ========= ui helpers ========= */
 let toastT;
-function toast(m){const t=$('#toast');t.textContent=T(m);t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2800)}
+// only problems are shown; confirmations of button presses stay silent
+const TOAST_KEEP=/נכשל|עדיין אין|לא ניתן|לא נפתח|שגיאה|אין מספיק|לא נמצא|לא זוהו|לא מחובר|כתוב |הוסף |ודא |זה לא |אין מילים|אין שירים|אין עדיין|זמין באפליקציה|במצב דפדוף ידני|בדוק חיבור/;
+function toast(m){if(!TOAST_KEEP.test(String(m||'')))return;const t=$('#toast');t.textContent=T(m);t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2800)}
 function show(id){SCREEN=id;$$('.screen').forEach(s=>s.classList.toggle('active',s.id===id))}
 function openModal(html,wide){const m=$('#modal');m.className='modal'+(wide?' wide':'');m.innerHTML=html;$('#modalWrap').hidden=false;setTimeout(()=>{const f=$('#modal [autofocus]');if(f){f.focus();if(f.select&&f.value)f.select()}},60)}
 function closeModal(){$('#modalWrap').hidden=true;$('#modal').innerHTML=''}
