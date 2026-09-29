@@ -1903,7 +1903,7 @@ const BG_COLORS=['#000000','#0B0D12','#101826','#0E1A2B','#13233A','#1B1030','#2
 const BG={data:null,loaded:false};
 async function bgData(){if(BG.loaded)return BG.data;BG.loaded=true;const b=S.ui.bg;if(b&&b.type==='img'){try{BG.data=await IDB.get('stage-bg')}catch(e){BG.data=null}}return BG.data}
 async function applyBg(){
- const pl=$('#play'),b=S.ui.bg||{};
+ const pl=$('#play .pStage'),b=S.ui.bg||{};
  if(b.type==='img'){const d=await bgData();if(d){const k=(b.dim==null?.45:b.dim);pl.style.background='linear-gradient(rgba(0,0,0,'+k+'),rgba(0,0,0,'+k+')),url("'+d+'") center/cover no-repeat #000';return}}
  pl.style.background=b.type==='color'&&b.c?b.c:'';
 }
