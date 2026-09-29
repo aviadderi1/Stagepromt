@@ -419,7 +419,7 @@ select.chip{cursor:pointer}
 .pBar.tighter .pb.big{width:48px;height:48px}
 .pBar.tighter .spd{width:44px}
 .pBar.tighter .pPart{min-width:70px}
-#edChords.pri{box-shadow:0 0 0 2px rgba(255,181,71,.25)}
+.hdr .btn.act{background:transparent;border:1.5px solid #F2C14E;color:#F7D57A;box-shadow:none}
 .chTools{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;padding:12px 16px;background:#17181B;border:1px solid var(--ln2);border-radius:14px;margin-bottom:14px}
 .chHint{flex:1;min-width:280px;display:flex;align-items:center;gap:10px;color:var(--mu);font-size:14px;line-height:1.55}
 .chHint svg{flex-shrink:0;color:#FFC870}
@@ -1199,7 +1199,7 @@ $('#q').addEventListener('input',()=>{LIB.reorder=false;renderLib()});
 /* ========= editor ========= */
 const ED={id:null,chords:false};
 function curSong(){return S.songs.find(s=>s.id===ED.id)}
-function openEditor(id){ED.id=id;ED.chords=false;$('#edChords').classList.remove('pri');$('#edit').classList.remove('chordMode');show('edit');renderEditor();$('#blocks').scrollTop=0}
+function openEditor(id){ED.id=id;ED.chords=false;$('#edChords').classList.remove('act');$('#edit').classList.remove('chordMode');show('edit');renderEditor();$('#blocks').scrollTop=0}
 function closeEditor(){save(true);show('lib');renderLib()}
 function renderEditor(){
  const s=curSong();if(!s)return closeEditor();
@@ -1577,7 +1577,7 @@ function chordMenu(pid,k){
   if(e.target.dataset.chcolin){const s=curSong();s.style.chordColor=e.target.value;touch(s);refreshChords();renderStyle()}});
 })();
 function setChordMode(on){
- ED.chords=!!on;const b=$('#edChords');b.classList.toggle('pri',ED.chords);b.setAttribute('aria-pressed',ED.chords?'true':'false');
+ ED.chords=!!on;const b=$('#edChords');b.classList.toggle('act',ED.chords);b.setAttribute('aria-pressed',ED.chords?'true':'false');
  $('#edit').classList.toggle('chordMode',ED.chords);
  renderBlocks();
 }
@@ -1629,7 +1629,7 @@ async function toggleNikud(){
  if(ok){touch(s);refreshParts();toast(fail?'השיר נוקד (חלק מהקטעים לא נוקדו)':'השיר נוקד')}else toast('הניקוד נכשל – בדוק חיבור לאינטרנט ונסה שוב');
  updNikBtn();
 }
-function updNikBtn(){const b=$('#edNik');if(!b)return;const s=curSong();const on=!!(s&&s.parts.some(p=>!p.ref&&hasNik(p.text)));b.setAttribute('aria-pressed',on?'true':'false');b.querySelector('span').textContent=on?'הסר ניקוד':'ניקוד'}
+function updNikBtn(){const b=$('#edNik');if(!b)return;const s=curSong();const on=!!(s&&s.parts.some(p=>!p.ref&&hasNik(p.text)));b.classList.toggle('act',on);b.setAttribute('aria-pressed',on?'true':'false');b.querySelector('span').textContent=on?'הסר ניקוד':'ניקוד'}
 $('#edNik').onclick=toggleNikud;
 
 /* ========= pdf ========= */
