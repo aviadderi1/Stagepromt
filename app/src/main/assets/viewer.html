@@ -37,6 +37,7 @@ html,body{margin:0;height:100%;background:#000;color:#F2EEE6;overflow:hidden;fon
 .cw{position:relative;display:inline}
 .ch{position:absolute;bottom:92%;left:50%;transform:translateX(-50%);font-family:'Rubik','Assistant',sans-serif;font-style:normal;font-weight:700;font-size:.52em;line-height:1;color:var(--chc,#FFB547);white-space:nowrap;unicode-bidi:isolate}
 .ln.hasCh{padding-top:.62em}
+.sec{-webkit-text-stroke:0}
 #dot{position:fixed;left:14px;bottom:14px;width:10px;height:10px;border-radius:50%;background:#E0675C;display:none;z-index:3}
 </style>
 </head>
@@ -61,7 +62,7 @@ function lineHtml(text,chs){
 }
 function build(s){
  const inn=$('#in');
- inn.style.cssText='font-family:'+s.font+';font-weight:'+s.w+';font-size:'+Math.round(s.size*scale())+'px;text-align:'+s.align+';line-height:'+s.lh+';--chc:'+(s.cc||'#FFB547');
+ inn.style.cssText='font-family:'+s.font+';font-weight:'+s.w+';font-size:'+Math.round(s.size*scale())+'px;text-align:'+s.align+';line-height:'+s.lh+';--chc:'+(s.cc||'#FFB547')+(s.stk?';-webkit-text-stroke:calc('+s.stk.w+' * .03em) '+s.stk.c+';paint-order:stroke fill':'');
  let h='';
  s.parts.forEach(p=>{
   h+='<div class="part">';
@@ -96,7 +97,7 @@ function apply(s){
   return;
  }
  $('#msg').style.display='none';
- const k=JSON.stringify([s.title,s.parts,s.font,s.size,s.lh,s.align,s.labels,s.cc,innerWidth,innerHeight]);
+ const k=JSON.stringify([s.title,s.parts,s.font,s.size,s.lh,s.align,s.labels,s.cc,s.stk,innerWidth,innerHeight]);
  const inn=$('#in');
  if(k!==key){key=k;build(s);cur=target=0}
  inn.classList.toggle('paged',!!s.manual);

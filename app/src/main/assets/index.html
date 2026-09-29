@@ -537,6 +537,21 @@ select.chip{cursor:pointer}
 .stCard{display:flex;align-items:center;gap:16px;padding:16px 18px;background:#17181C;border:1px solid #2A2D33;border-radius:14px}
 .stCard b{display:block;font-size:16px}
 .stCard p{margin:4px 0 0;color:var(--mu);font-size:14px;line-height:1.5}
+.fontRow{display:flex;gap:8px;align-items:flex-start}
+.fontDD{flex:1;min-width:0;position:relative}
+.fontCur{width:100%;height:48px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 14px;background:var(--fld);color:var(--tx);border:1px solid var(--ln2);border-radius:10px;font-size:18px}
+.fontDD.open .fontCur{border-color:var(--am);border-radius:10px 10px 0 0}
+.fontList{display:flex;flex-direction:column;background:#17181C;border:1px solid var(--am);border-top:0;border-radius:0 0 10px 10px;overflow:hidden}
+.fontOpt{height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;border:0;background:transparent;color:var(--tx);font-size:18px;text-align:right}
+.fontOpt.on{color:#F4C77A;background:#2A2419}
+.strokeBtn{height:48px;display:flex;align-items:center;gap:8px;padding:0 12px;border:1px solid var(--ln2);border-radius:10px;background:var(--fld);color:#CFC9BF;font-size:14px;font-weight:700;flex-shrink:0}
+.strokeBtn.on{border-color:var(--am);background:#2A2419;color:#F4C77A}
+.stkDemo{font-family:'Rubik',sans-serif;font-size:22px;font-weight:800;line-height:1}
+.stkOpts{display:flex;flex-direction:column;gap:6px;margin-top:10px;padding:12px;background:#17181C;border:1px solid #2A2D33;border-radius:12px}
+.stkOpts .swRow{gap:6px}
+.stkOpts .sw{width:30px;height:30px}
+.stkOpts input[type=color]{width:30px;height:30px}
+.pInner .sec,.endHint,.pvL{-webkit-text-stroke:0}
 </style>
 </head>
 <body>
@@ -738,6 +753,10 @@ const FONTS=[
  {id:'Suez One',label:'Suez One',css:"'Suez One',Georgia,serif",w:400}
 ];
 const font=id=>FONTS.find(f=>f.id===id)||FONTS[0];
+const STK_COL=['#000000','#FFFFFF','#E8A33D','#1D3557','#7A1E1E'];
+function strokeOf(st){const k=st&&st.stroke;return k&&k.on?{c:k.c||'#000000',w:k.w||3}:null}
+function strokeCss(st){const k=strokeOf(st);return k?';-webkit-text-stroke:calc('+k.w+' * .03em) '+k.c+';paint-order:stroke fill':''}
+const STY={fdd:false};
 const DEF_STYLE={font:'Assistant',size:64,lh:1.35,align:'center',labels:true,colors:{verse:'#F3D9A8',chorus:'#A9D2FA',bridge:'#D8C2F5',note:'#9A958C'}};
 const SW={verse:['#F3D9A8','#FFFFFF','#FFD166','#9BE3B5'],chorus:['#A9D2FA','#FFFFFF','#7FE0E6','#FF9E7A'],bridge:['#D8C2F5','#FFFFFF','#F5A3C0','#FFD166'],note:['#9A958C','#FFFFFF','#E8A33D','#7FE0E6']};
 
@@ -1041,8 +1060,8 @@ function block(s,p,L){
  const n=p.ref?0:p.text.split('\n').filter(l=>l.trim()).length;
  const sel=p.ref?'<span class="chip t-'+src.type+'">'+TYPES[src.type].name+'</span>':
   '<select class="chip t-'+p.type+'" data-type="'+p.id+'" aria-label="סוג החלק">'+Object.keys(TYPES).map(k=>'<option value="'+k+'"'+(k===p.type?' selected':'')+'>'+TYPES[k].name+'</option>').join('')+'</select>';
- const body=p.ref?'<div class="reptext" data-reptext="'+src.id+'" style="font-family:'+f.css+'">'+esc(src.text)+'</div>':
-  '<textarea data-txt="'+p.id+'" rows="1" dir="auto" spellcheck="false" style="color:'+st.colors[p.type]+';font-family:'+f.css+';font-weight:'+f.w+(p.type==='note'?';font-style:italic;font-size:18px':'')+'" placeholder="'+(p.type==='note'?'הערה לזמר, למשל: סולו גיטרה, חוזר פעמיים':'כתוב כאן את השורות…')+'">'+esc(p.text)+'</textarea>';
+ const body=p.ref?'<div class="reptext" data-reptext="'+src.id+'" style="font-family:'+f.css+strokeCss(st)+'">'+esc(src.text)+'</div>':
+  '<textarea data-txt="'+p.id+'" rows="1" dir="auto" spellcheck="false" style="color:'+st.colors[p.type]+';font-family:'+f.css+';font-weight:'+f.w+strokeCss(st)+(p.type==='note'?';font-style:italic;font-size:18px':'')+'" placeholder="'+(p.type==='note'?'הערה לזמר, למשל: סולו גיטרה, חוזר פעמיים':'כתוב כאן את השורות…')+'">'+esc(p.text)+'</textarea>';
  return '<div class="block'+(p.ref?' ref':'')+'" id="b-'+p.id+'"><div class="bHead">'+sel+'<span class="cnt" data-cnt="'+p.id+'">'+esc(L[p.id])+' · '+(p.ref?'חוזר':lineTxt(n))+'</span><span class="flex1"></span>'+
   (p.ref?'<button class="btn sm" data-unlink="'+p.id+'">'+ic('edit',16)+'ערוך בנפרד</button>':'')+
   '<button class="ib sm" data-rep="'+p.id+'" aria-label="חזור על החלק הזה">'+ic('repeat',17)+'</button><button class="ib sm danger" data-del="'+p.id+'" aria-label="מחק חלק">'+ic('trash',17)+'</button></div>'+body+'</div>';
@@ -1126,7 +1145,12 @@ function renderStyle(){
  const s=curSong(),st=s.style,E=$('#style');
  if(s.kind==='pdf'){E.innerHTML='<div class="grp"><div class="lbl">תצוגה בהופעה</div><label class="tgl"><input type="checkbox" id="stInv"'+(s.invert?' checked':'')+'><span>היפוך צבעים: רקע כהה וטקסט בהיר</span></label><div class="hint">מומלץ על במה חשוכה — דף לבן מסנוור.</div></div>';return}
  const cn={verse:'בית',chorus:'פזמון',bridge:'גשר',note:'הערה'};
- E.innerHTML='<div class="grp"><div class="lbl">גופן</div><div class="fonts">'+FONTS.map(f=>'<button class="fontBtn'+(st.font===f.id?' on':'')+'" data-font="'+f.id+'" style="font-family:'+f.css+';font-weight:'+f.w+'">'+f.label+'</button>').join('')+'</div></div>'+
+ const cf=font(st.font),sk=st.stroke||{};
+ E.innerHTML='<div class="grp"><div class="lbl">גופן</div><div class="fontRow"><div class="fontDD'+(STY.fdd?' open':'')+'"><button class="fontCur" data-fdd="1" aria-expanded="'+STY.fdd+'" style="font-family:'+cf.css+';font-weight:'+cf.w+'"><span>'+cf.label+'</span>'+ic(STY.fdd?'up':'down',16)+'</button>'+
+  (STY.fdd?'<div class="fontList" role="listbox">'+FONTS.map(f=>'<button class="fontOpt'+(st.font===f.id?' on':'')+'" role="option" data-font="'+f.id+'" style="font-family:'+f.css+';font-weight:'+f.w+'">'+f.label+(st.font===f.id?ic('check',16):'')+'</button>').join('')+'</div>':'')+'</div>'+
+  '<button class="strokeBtn'+(sk.on?' on':'')+'" data-stroke="1" aria-pressed="'+!!sk.on+'"><span class="stkDemo" style="-webkit-text-stroke:1.2px '+(sk.on?(sk.c||'#000'):'#F2EEE6')+';paint-order:stroke fill;color:'+(sk.on?'#F2EEE6':'transparent')+'">A</span>Stroke</button></div>'+
+  (sk.on?'<div class="stkOpts"><div class="lbl">צבע</div><div class="swRow">'+STK_COL.map(c=>'<button class="sw'+((sk.c||'#000000').toLowerCase()===c.toLowerCase()?' on':'')+'" style="background:'+c+'" data-stc="'+c+'" aria-label="צבע קו מתאר '+c+'"></button>').join('')+'<input type="color" data-stcin="1" value="'+(sk.c||'#000000')+'" aria-label="צבע קו מתאר מותאם"></div>'+
+   '<div class="row"><label class="lbl flex1" for="stkW">עובי</label><b id="stkWV">'+(sk.w||3)+'</b></div><input id="stkW" type="range" min="1" max="10" step="1" value="'+(sk.w||3)+'"></div>':'')+'</div>'+
  '<div class="grp"><div class="row"><label class="lbl flex1" for="stSize">גודל טקסט בהופעה</label><b id="stSizeV">'+st.size+'</b></div><input id="stSize" type="range" min="28" max="160" step="2" value="'+st.size+'"></div>'+
  '<div class="grp"><div class="row"><label class="lbl flex1" for="stLh">ריווח שורות</label><b id="stLhV">'+st.lh.toFixed(2)+'</b></div><input id="stLh" type="range" min="1.05" max="1.9" step="0.05" value="'+st.lh+'"></div>'+
  '<div class="grp"><div class="lbl">צבע לפי חלק</div>'+Object.keys(SW).map(t=>'<div class="swRow"><span class="nm">'+cn[t]+'</span>'+SW[t].map(c=>'<button class="sw'+(st.colors[t].toLowerCase()===c.toLowerCase()?' on':'')+'" style="background:'+c+'" data-col="'+t+'" data-c="'+c+'" aria-label="צבע '+c+'"></button>').join('')+'<input type="color" data-colin="'+t+'" value="'+st.colors[t]+'" aria-label="צבע מותאם ל'+cn[t]+'"></div>').join('')+'</div>'+
@@ -1143,11 +1167,14 @@ function updatePreview(){
  const L=[];const v=r.find(p=>p.type==='verse'&&p.text.trim()),c=r.find(p=>p.type==='chorus'&&p.text.trim());
  if(v)L.push([first(v),st.colors.verse]);if(c)L.push([first(c),st.colors.chorus]);if(!L.length)L.push(['שורה לדוגמה',st.colors.verse]);
  const fs=Math.max(14,Math.round(st.size*.3));
- P.innerHTML='<div class="pvL">תצוגה מקדימה</div>'+L.map(x=>'<div style="font-family:'+f.css+';font-weight:'+f.w+';font-size:'+fs+'px;line-height:'+st.lh+';color:'+x[1]+';text-align:'+st.align+'">'+esc(x[0]||'')+'</div>').join('');
+ P.innerHTML='<div class="pvL">תצוגה מקדימה</div>'+L.map(x=>'<div style="font-family:'+f.css+';font-weight:'+f.w+';font-size:'+fs+'px;line-height:'+st.lh+';color:'+x[1]+';text-align:'+st.align+strokeCss(st)+'">'+esc(x[0]||'')+'</div>').join('');
 }
 $('#style').addEventListener('click',e=>{
  const t=e.target.closest('button');if(!t)return;const s=curSong(),st=s.style,d=t.dataset;
- if(d.font){st.font=d.font;touch(s);renderBlocks();renderStyle();return}
+ if(d.fdd){STY.fdd=!STY.fdd;renderStyle();return}
+ if(d.font){st.font=d.font;STY.fdd=false;touch(s);renderBlocks();renderStyle();return}
+ if(d.stroke){st.stroke=Object.assign({c:'#000000',w:3},st.stroke||{});st.stroke.on=!st.stroke.on;touch(s);renderBlocks();renderStyle();return}
+ if(d.stc){st.stroke.c=d.stc;touch(s);renderBlocks();renderStyle();return}
  if(d.col){st.colors[d.col]=d.c;touch(s);renderBlocks();renderStyle();return}
  if(d.al){st.align=d.al;touch(s);renderStyle();return}
  if(d.chc){st.chordColor=d.chc;touch(s);renderStyle();if(ED.chords)refreshChords();return}
@@ -1155,12 +1182,14 @@ $('#style').addEventListener('click',e=>{
 });
 $('#style').addEventListener('input',e=>{
  const t=e.target,s=curSong(),st=s.style;
+ if(t.id==='stkW'){st.stroke.w=+t.value;$('#stkWV').textContent=t.value;touch(s);renderBlocks();updatePreview();return}
  if(t.id==='stSize'){st.size=+t.value;$('#stSizeV').textContent=st.size;touch(s);updatePreview()}
  else if(t.id==='stLh'){st.lh=+t.value;$('#stLhV').textContent=st.lh.toFixed(2);touch(s);updatePreview()}
 });
 $('#style').addEventListener('change',e=>{
  const t=e.target,s=curSong();
  if(t.dataset.colin){s.style.colors[t.dataset.colin]=t.value;touch(s);renderBlocks();renderStyle()}
+ else if(t.dataset.stcin){s.style.stroke.c=t.value;touch(s);renderBlocks();renderStyle()}
  else if(t.dataset.chcin){s.style.chordColor=t.value;touch(s);renderStyle();if(ED.chords)refreshChords()}
  else if(t.id==='stLabels'){s.style.labels=t.checked;touch(s)}
  else if(t.id==='stInv'){s.invert=t.checked;touch(s)}
@@ -1291,7 +1320,7 @@ function chordBlocks(s){
   h+='<div class="block chv'+(p.ref?' ref':'')+'"><div class="bHead"><span class="chip t-'+src.type+'">'+TYPES[src.type].name+'</span><span class="cnt">'+esc(L[p.id])+(p.ref?' · חוזר – האקורדים משותפים למקור':'')+'</span></div>';
   if(!src.text.trim()){h+='<div class="hint">אין עדיין מילים בחלק הזה</div></div>';return}
   const map=partChordMap(src);
-  h+='<div class="chLines" style="font-family:'+f.css+';font-weight:'+f.w+';text-align:'+st.align+';--chc:'+chordColor(s)+'">'+src.text.split('\n').map((l,li)=>l.trim()?'<div class="cl'+(map[li]?' hasCh':'')+(src.type==='note'?' note':'')+'" dir="auto" data-p="'+src.id+'" data-l="'+li+'" style="color:'+col+'">'+lineHtml(l,map[li])+'</div>':'<div class="gap"></div>').join('')+'</div></div>';
+  h+='<div class="chLines" style="font-family:'+f.css+';font-weight:'+f.w+';text-align:'+st.align+';--chc:'+chordColor(s)+strokeCss(st)+'">'+src.text.split('\n').map((l,li)=>l.trim()?'<div class="cl'+(map[li]?' hasCh':'')+(src.type==='note'?' note':'')+'" dir="auto" data-p="'+src.id+'" data-l="'+li+'" style="color:'+col+'">'+lineHtml(l,map[li])+'</div>':'<div class="gap"></div>').join('')+'</div></div>';
  });
  return h;
 }
@@ -1468,7 +1497,7 @@ async function loadPlay(){
 function buildText(s){
  const st=s.style,f=font(st.font),inner=$('#pInner');
  inner.className='pInner'+(S.ui.mirror?' mirror':'');
- inner.style.cssText='font-family:'+f.css+';font-weight:'+f.w+';font-size:'+st.size+'px;text-align:'+st.align+';--lh:'+st.lh+';--chc:'+chordColor(s);
+ inner.style.cssText='font-family:'+f.css+';font-weight:'+f.w+';font-size:'+st.size+'px;text-align:'+st.align+';--lh:'+st.lh+';--chc:'+chordColor(s)+strokeCss(st);
  inner.classList.toggle('noCh',!!S.ui.hideChords);
  const L=labelMap(s);let h='';
  s.parts.forEach(p=>{
@@ -1722,7 +1751,7 @@ function castState(){
  if(s.kind==='pdf')return Object.assign(base,{kind:'pdf',page:curPart(),pages:P.parts.length});
  const st=s.style,f=font(st.font),L=labelMap(s),parts=[];
  s.parts.forEach(p=>{const src=srcOf(s,p);if(!src||!src.text.trim())return;const cm=S.ui.hideChords?{}:partChordMap(src),ch=[];Object.keys(cm).forEach(l=>cm[l].forEach(c=>ch.push({l:+l,i:c.i,n:c.n,c:shownChord(s,c.c)})));parts.push({n:L[p.id]+(p.ref?' ↺':''),t:src.type,c:st.colors[src.type]||'#fff',x:src.text,ch})});
- return Object.assign(base,{kind:'text',cc:chordColor(s),font:f.css,w:f.w,align:st.align,lh:st.lh,labels:!!st.labels,size:st.size,parts,part:curPart(),line:Math.max(0,P.cur)});
+ return Object.assign(base,{kind:'text',cc:chordColor(s),stk:strokeOf(st),font:f.css,w:f.w,align:st.align,lh:st.lh,labels:!!st.labels,size:st.size,parts,part:curPart(),line:Math.max(0,P.cur)});
 }
 function castSend(){
  CAST.t=0;if(!CAST.on)return;
