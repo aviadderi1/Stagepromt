@@ -564,6 +564,15 @@ select.chip{cursor:pointer}
 .reptext[data-detach]{cursor:text;border-radius:10px;padding:4px 6px;margin:0 -6px}
 .reptext[data-detach]:active{background:#1E2025}
 .repEdit{align-self:flex-start;display:flex;align-items:center;gap:6px;border:0;background:transparent;color:var(--mu2);font-size:12.5px;padding:0}
+.langRow{display:flex;gap:10px;margin:-6px 6px 12px}
+.langB{width:44px;height:44px;border-radius:50%;background:#fff;border:0;font-family:'Rubik',sans-serif;font-size:14px;font-weight:800;letter-spacing:.3px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px transparent}
+.langB.he{color:#1D4ED8}
+.langB.us{color:#DC2626}
+.langB.on{box-shadow:0 0 0 3px #111214,0 0 0 5px var(--am)}
+html[dir=ltr] svg.fl{transform:scaleX(-1)}
+html[dir=ltr] .lOpen,html[dir=ltr] .stCat,html[dir=ltr] .psRow,html[dir=ltr] .wSugI,html[dir=ltr] .fontOpt,html[dir=ltr] .mItem,html[dir=ltr] .wItem,html[dir=ltr] .sName,html[dir=ltr] .radio,html[dir=ltr] .navTool,html[dir=ltr] .fold{text-align:left}
+html[dir=ltr] .fontOpt .foS{text-align:right}
+html[dir=ltr] .stWrap{flex-direction:row-reverse}
 </style>
 </head>
 <body>
@@ -753,7 +762,8 @@ const ICON={
  gear:SV+'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
  move:SV+'<path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M10 13h6"/><path d="M13 10l3 3-3 3"/></svg>'
 };
-function ic(n,s){s=s||20;return (ICON[n]||'').replace('<svg','<svg width="'+s+'" height="'+s+'"')}
+const FLIP_IC={play:1,prev:1,next:1,back:1};
+function ic(n,s){s=s||20;return (ICON[n]||'').replace('<svg','<svg width="'+s+'" height="'+s+'"'+(FLIP_IC[n]?' class="fl"':''))}
 
 const KEYS=['C','Cm','C#','C#m','Db','D','Dm','D#m','Eb','Ebm','E','Em','F','Fm','F#','F#m','Gb','G','Gm','G#m','Ab','Abm','A','Am','A#m','Bb','Bbm','B','Bm'];
 const TYPES={verse:{name:'בית',short:'ב'},chorus:{name:'פזמון',short:'פ'},bridge:{name:'גשר',short:'ג'},note:{name:'הערה',short:'ה'}};
@@ -810,6 +820,126 @@ function load(){
  return d;
 }
 const S=load();
+/* ========= interface language ========= */
+const I18N_EN={
+'בית':'Verse','פזמון':'Chorus','גשר':'Bridge','הערה':'Note',
+'ללא תגים':'Sans serif','עם תגים (קלאסי)':'Serif (classic)','כתב יד':'Handwriting',
+'אור ראשון (שיר לדוגמה)':'First Light (sample song)','השמירה נכשלה — אין מספיק מקום במכשיר':'Saving failed – not enough space on the device',
+'ביטול':'Cancel','בתים':'verses','פזמונים':'choruses','גשרים':'bridges','ללא חלוקה':'No sections','שורה אחת':'1 line','שורות':'lines','עמודים':'Pages','עמוד':'Page',
+'שיר חדש':'New song','כל השירים':'All songs','מועדפים':'Favorites','ללא תיקייה':'No folder','אפשרויות תיקייה':'Folder options','הסתר':'Hide','תיקיות':'Folders','תיקייה חדשה':'New folder',
+'שיר אחד':'1 song','שירים':'songs','סיום':'Done','שנה סדר':'Reorder','סדר הופעה':'Set order','א–ת':'A–Z','אחרונים':'Recent',
+'לא נמצאו שירים':'No songs found','נסה מילה אחרת מהשם או מהמילים.':'Try another word from the title or lyrics.','אין עדיין שירים כאן':'No songs here yet',
+'כתוב שיר חדש או ייבא קובץ PDF עם מילים.':'Write a new song or import a PDF with lyrics.','חיפוש ברשת':'Web search','ייבוא PDF':'Import PDF','בסט':'in the set','התחל הופעה':'Start show',
+'עדיין בלי מילים':'No lyrics yet','גלילה על הקובץ המקורי':'Scrolls the original file','הזז למעלה':'Move up','הזז למטה':'Move down','הצג במצב הופעה':'Show on stage','אפשרויות שיר':'Song options','ללא שם':'Untitled','(עותק)':'(copy)',
+'עריכה':'Edit','הסר ממועדפים':'Remove from favorites','הוסף למועדפים':'Add to favorites','העבר לתיקייה':'Move to folder','השיר הועבר':'Song moved','שכפל':'Duplicate','נוצר עותק':'Copy created','מחק שיר':'Delete song',
+'למחוק את התיקייה':'Delete the folder','למחוק את':'Delete','השיר יימחק מהמכשיר ואי אפשר לשחזר אותו.':'The song will be deleted from the device and cannot be restored.','מחק':'Delete','השיר נמחק':'Song deleted',
+'שנה שם':'Rename','שם התיקייה':'Folder name','שמור':'Save','מחק תיקייה':'Delete folder','השירים שבתוכה יישארו בספרייה, בלי תיקייה.':'Its songs stay in the library, without a folder.','צור תיקייה':'Create folder',
+'סולם':'Key','מבנה השיר':'Song structure','השיר מוצג כקובץ PDF. המר אותו לטקסט כדי לחלק לבתים ופזמונים.':'This song is shown as a PDF. Convert it to text to split it into verses and choruses.',
+'חוזר':'repeat','עדיין אין חלקים.':'No sections yet.','החצים משנים את סדר החלקים. פזמון שחוזר נכתב פעם אחת, והחזרות שלו מתעדכנות לבד.':'The arrows change the order. A repeated chorus is written once, and its repeats update automatically.',
+'סוג החלק':'Section type','לחץ על הטקסט כדי לערוך רק את החזרה הזו':'Tap the text to edit only this repeat','הערה לזמר, למשל: סולו גיטרה, חוזר פעמיים':'Note for the singer, e.g. guitar solo, repeat twice','כתוב כאן את השורות…':'Write the lines here…',
+'חזור על החלק הזה':'Repeat this section','מחק חלק':'Delete section','קובץ PDF':'PDF file','בהופעה השיר יוצג כמו שהוא בקובץ, עם גלילה אוטומטית. כדי לשנות גופן, צבעים וחלוקה לבתים — המר אותו לטקסט.':'On stage the song is shown exactly as in the file, with auto-scroll. To change font, colors and sections – convert it to text.',
+'המר לטקסט עריך':'Convert to editable text','הקובץ לא נמצא':'File not found','כתוב או הדבק את מילות השיר':'Write or paste the lyrics',
+'השאר שורה ריקה בין בית לבית. פזמון שחוזר כמה פעמים יזוהה לבד. אפשר גם לכתוב כותרות כמו "פזמון:" או "בית 2".':'Leave an empty line between verses. A chorus that repeats is detected automatically. You can also write headings like "Chorus:" or "Verse 2".',
+'חלק לבתים ופזמונים':'Split into verses and choruses','התחל מבית ריק':'Start with an empty verse','+ בית':'+ Verse','+ פזמון':'+ Chorus','+ גשר':'+ Bridge','+ הערה לזמר':'+ Singer note','חזור על פזמון':'Repeat chorus',
+'החזרה הזו עכשיו עצמאית – השינויים לא ישפיעו על הפזמון המקורי':'This repeat is now independent – changes won’t affect the original chorus','כתוב או הדבק קודם את המילים':'Write or paste the lyrics first',
+'חלקים — אפשר לתקן בכל רגע':'sections – you can fix it any time','עדיין אין פזמון בשיר':'There is no chorus in this song yet','למחוק את החלק?':'Delete this section?','החלק הזה חוזר עוד':'This section repeats','פעם אחת':'once more','פעמים':'more times','בשיר, וגם החזרות יימחקו.':'in the song, and the repeats will be deleted too.','הטקסט של החלק יימחק.':'The section’s text will be deleted.',
+'תמונת האמן':'Artist photo','חפש תמונה לפי שם האמן':'Find a photo by artist name','הסר תמונה':'Remove photo','השיר נשמר':'Song saved','הוסף מילים לפני מצב הופעה':'Add lyrics before starting the show','הדבקת טקסט':'Paste text',
+'הדבק את מילות השיר. שורה ריקה מפרידה בין חלקים, ופזמון שחוזר יזוהה לבד. אפשר גם לכתוב כותרות כמו "פזמון:" או "בית 2".':'Paste the lyrics. An empty line separates sections, and a repeating chorus is detected automatically. You can also write headings like "Chorus:" or "Verse 2".',
+'החלף את הטקסט הקיים':'Replace the existing text','הוסף בסוף השיר':'Add to the end of the song','לא נמצא טקסט להדבקה':'No text to paste','חלקים':'sections',
+'תצוגה בהופעה':'Stage display','היפוך צבעים: רקע כהה וטקסט בהיר':'Invert colors: dark background, light text','מומלץ על במה חשוכה — דף לבן מסנוור.':'Recommended on a dark stage – a white page is blinding.',
+'גופן':'Font','צבע קו מתאר מותאם':'Custom stroke color','צבע קו מתאר':'Stroke color','צבע':'Color','עובי':'Thickness','גודל טקסט בהופעה':'Text size on stage','ריווח שורות':'Line spacing','צבע לפי חלק':'Color by section','צבע מותאם ל':'Custom color for ',
+'צבע אקורדים מותאם':'Custom chord color','צבע אקורדים':'Chord color','אקורדים':'Chords','יישור':'Alignment','מרכז':'Center','ימין':'Right','הצג שמות חלקים בהופעה':'Show section names on stage','קבע כברירת מחדל לשירים חדשים':'Set as default for new songs',
+'שורה לדוגמה':'Sample line','תצוגה מקדימה':'Preview','העיצוב הזה יחול על שירים חדשים':'This style will apply to new songs',
+'בשיר הזה':'In this song','צליל בסיס':'Root','בס (לא חובה)':'Bass (optional)','מאגר אקורדים':'Chord library','הצב':'Place','אחר, למשל':'Other, e.g.',
+'לחיצה כפולה על מילה':'Double-tap a word','פותחת את מאגר האקורדים ·':'to open the chord library ·','גרור':'Drag','אקורד כדי להזיז אותו ·':'a chord to move it ·','לחיצה':'Tap','על אקורד לשינוי או מחיקה':'a chord to change or delete it','צבע האקורדים':'Chord color',
+'החלפת סולם':'Transpose','חצי טון למעלה':'half a step up','חצי טון למטה':'half a step down','קאפו':'Capo','ללא קאפו':'No capo','ללא':'None','· חוזר – האקורדים משותפים למקור':'· repeat – chords shared with the original','אין עדיין מילים בחלק הזה':'No lyrics in this section yet',
+'החלף אקורד':'Change chord','מחק אקורד':'Delete chord','אקורד':'Chord','אין עדיין אקורדים או סולם בשיר':'No chords or key in this song yet','הסולם הועבר':'Transposed','– במסך ההופעה יוצגו תנוחות האקורדים עם קאפו':'– the show screen will show capo chord shapes','הוסף קודם מילים לשיר':'Add lyrics to the song first',
+'לא נמצא טקסט בקובץ — כנראה שהוא סרוק, ולכן יוצג כמו שהוא':'No text found in the file – it’s probably scanned, so it will be shown as is','הומר לטקסט — כדאי לעבור על החלוקה':'Converted to text – check the sections','לא ניתן לקרוא את הקובץ':'Can’t read the file',
+'אין מילים להצגה':'No lyrics to show','סוף השיר · הבא:':'End of song · next:','סוף הסט':'End of set','מתוך':'of','הבא בסט':'Next in set','טוען את הקובץ…':'Loading the file…','לא ניתן לטעון את קובץ ה-PDF':'Can’t load the PDF file',
+'עצור גלילה':'Stop scrolling','הפעל גלילה':'Start scrolling','לשיר הזה':'this song','מהירות':'Speed','מהירות הגלילה –':'Scroll speed –','מהירות לשיר הזה':'Speed for this song','חישוב לפי אורך השיר':'Calculate from song length',
+'כתוב כמה זמן השיר נמשך, והגלילה תסתיים בדיוק בסוף השיר.':'Enter how long the song lasts, and scrolling will end exactly at the end of the song.','חשב מהירות':'Calculate speed','בטל':'Clear','השתמש במהירות הכללית (':'Use the general speed (','×) לשיר הזה':'×) for this song','סגור':'Close',
+'כתוב אורך בפורמט דקות:שניות, למשל 3:40':'Enter the length as minutes:seconds, e.g. 3:40','במצב דפדוף ידני אין גלילה – עבור לגלילה אוטומטית':'Manual paging has no scrolling – switch to auto-scroll','המהירות חושבה לפי':'Speed calculated for','גודל טקסט:':'Text size:',
+'ידני':'Manual','דפדוף ידני: כל חלק בדף נפרד':'Manual paging: each section on its own page','גלילה אוטומטית':'Auto-scroll','הצג אקורדים':'Show chords','הסתר אקורדים':'Hide chords','האקורדים מוסתרים':'Chords hidden','האקורדים מוצגים':'Chords shown','שירי ההופעה':'Show songs',
+'קדימה':'Forward','חלק הבא, או גלילה למטה':'Next section, or scroll down','אחורה':'Back','חלק קודם, או גלילה למעלה':'Previous section, or scroll up','הפעל / עצור':'Play / stop','הפעלה ועצירה של הגלילה':'Start and stop scrolling','שיר הבא':'Next song','שיר קודם':'Previous song',
+'רווח':'Space','חץ למטה':'Arrow down','חץ למעלה':'Arrow up','חץ שמאלה':'Arrow left','חץ ימינה':'Arrow right','מדיה: הבא':'Media: next','מדיה: הקודם':'Media: previous','מדיה: נגן/עצור':'Media: play/pause','מדיה: קדימה':'Media: forward','מדיה: אחורה':'Media: rewind','עוצמה +':'Volume +','עוצמה −':'Volume −',
+'לחץ עכשיו על הדוושה…':'Press the pedal now…','לא מוגדר':'Not set','שנה':'Change','הגדר':'Set','זוהה:':'Detected:','(לא משויך)':'(not assigned)','לחץ על אחת מהדוושות כדי לבדוק שהיא מחוברת':'Press a pedal to check that it’s connected',
+'חבר את הדוושה לטאבלט ב-Bluetooth. לחץ על "הגדר" ליד כל פעולה, ואז על הדוושה שתבצע אותה. בלי הגדרה, הדוושה עובדת עם החיצים ו-Page Up/Down כרגיל.':'Pair the pedal with the tablet over Bluetooth. Tap "Set" next to each action, then press the pedal that should do it. Without setup, the pedal works with the arrows and Page Up/Down as usual.',
+'חבר את הדוושה לטאבלט ב-Bluetooth. אחר כך לחץ על "הגדר" ליד כל פעולה, ולחץ על הדוושה שתבצע אותה. בלי הגדרה, הדוושה עובדת עם החיצים ו-Page Up/Down כרגיל.':'Pair the pedal with the tablet over Bluetooth. Tap "Set" next to each action, then press the pedal that should do it. Without setup, the pedal works with the arrows and Page Up/Down as usual.',
+'איפוס':'Reset','לא ניתן להפעיל שידור':'Can’t start casting','מסך שני (הדמיה)':'Second screen (preview)','קוד QR לכתובת':'QR code for the address','מתחבר…':'Connecting…','משדר ל-':'Casting to ','השידור הופסק':'Casting stopped','סורק…':'Scanning…','סרוק':'Scan',
+'· מתחבר…':'· connecting…','· משדר עכשיו':'· casting now','נתק':'Disconnect','שדר':'Cast',
+'לא נמצאו מכשירי Chromecast. ודא שהטאבלט וה-Chromecast מחוברים לאותה רשת Wi-Fi, ולחץ שוב על "סרוק".':'No Chromecast devices found. Make sure the tablet and the Chromecast are on the same Wi-Fi network, and tap "Scan" again.',
+'לחץ על "סרוק" כדי למצוא מכשירי Chromecast ו-Google TV ברשת. בחר מכשיר, ומסך ההופעה יוצג עליו ויעקוב אחרי הטאבלט.':'Tap "Scan" to find Chromecast and Google TV devices on the network. Pick a device and the show screen will appear on it and follow the tablet.',
+'מחובר ל-':'Connected to ','– המילים מוצגות עליו':'– lyrics are shown on it',
+'חבר טלוויזיה או מקרן בשידור מסך אלחוטי (Miracast / Smart View) או בכבל HDMI. כשהמסך מתחבר, המילים יופיעו עליו אוטומטית במסך מלא – בלי סרגל הכלים.':'Connect a TV or projector by wireless display (Miracast / Smart View) or HDMI cable. When it connects, the lyrics appear on it full-screen – without the toolbar.',
+'בכל מכשיר עם דפדפן שמחובר לאותה רשת Wi-Fi – טלוויזיה חכמה, טאבלט נוסף או מחשב – פתח את הכתובת או סרוק את הקוד:':'On any device with a browser on the same Wi-Fi network – smart TV, another tablet or a computer – open the address or scan the code:',
+'בתצוגה המקדימה הכתובת היא לדוגמה. החלון הקטן בפינה מדמה את המסך השני.':'In the preview the address is an example. The small window in the corner simulates the second screen.',
+'הטאבלט לא מחובר לרשת Wi-Fi. חבר אותו לרשת (או הפעל נקודה חמה) ופתח את החלון הזה שוב.':'The tablet isn’t on Wi-Fi. Connect it (or turn on a hotspot) and open this window again.',
+'שידור למסך נוסף':'Cast to another screen','השידור פעיל – המסך השני עוקב אחרי הטאבלט':'Casting is on – the second screen follows the tablet','מסך אלחוטי או HDMI':'Wireless display or HDMI','דרך רשת Wi-Fi':'Over Wi-Fi','עצור שידור':'Stop casting','מסך מחובר:':'Screen connected:','המסך החיצוני נותק':'External screen disconnected',
+'בדפדפן: בחר את הקובץ מהמחשב':'In the browser: choose the file from the computer','– עמוד':'– page','הקובץ לא נפתח. ודא שזה קובץ PDF תקין.':'The file didn’t open. Make sure it’s a valid PDF.','עמ׳':'p.','שיר אחד בקובץ':'1 song in the file','נמצאו':'Found','חלוקה':'Split',
+'כל הקובץ שיר אחד':'Whole file is one song','כל עמוד שיר נפרד':'Each page is a song','ייבא את השיר':'Import this song','שם השיר':'Song title','· כבר קיים בספרייה':'· already in the library','איך לייבא':'How to import','לא נמצא טקסט בקובץ — כנראה שהוא סרוק':'No text found – the file is probably scanned',
+'חלוקה לבתים ופזמונים, גלילה, צבעים וגופנים':'Verses and choruses, scrolling, colors and fonts','הצג את ה-PDF כמו שהוא':'Show the PDF as is','לסריקות ולקבצים עם אקורדים — גלילה על הקובץ המקורי':'For scans and files with chords – scrolls the original file','לשמור בתיקייה':'Save to folder',
+'ייבא שיר אחד':'Import 1 song','ייבא':'Import','קובץ סרוק — יוצג כמו שהוא':'Scanned file – will be shown as is','הטקסט זוהה':'Text detected','קורא את הקובץ…':'Reading the file…','מאיפה לייבא?':'Import from where?',
+'בחר קובץ PDF עם מילים לשירים. אפשר גם לשתף קובץ PDF אל StagePromt ישירות מוואטסאפ, מהמייל או מ-Google Drive.':'Choose a PDF with song lyrics. You can also share a PDF to StagePromt directly from WhatsApp, email or Google Drive.',
+'מהמכשיר':'From device','טקסט שזוהה':'Detected text','לא נמצא טקסט בעמודים האלה':'No text found on these pages','אחרי הייבוא אפשר לתקן כל חלק בעורך.':'After importing you can fix any section in the editor.','לא ניתן לשמור את הקובץ — אין מספיק מקום':'Can’t save the file – not enough space','השיר יובא':'Song imported','יובאו':'Imported',
+'בתצוגה המקדימה אין גישה לאתרים. באפליקציה בטאבלט יופיעו כאן תוצאות אמיתיות מכל אתרי המילים.':'The preview has no web access. In the tablet app, real results from all lyric sites appear here.','לא נמצאה רשימת שירים עבור':'No song list found for','איטי':'slow','שגיאה':'error',
+'כתוב שם של שיר או של אמן':'Enter a song or artist name','חזרה לשירים של':'Back to songs by','מחפש בכל אתרי המילים…':'Searching all lyric sites…',
+'כתוב שם של שיר. כדי לקבל תוצאות מדויקות הוסף גם את שם האמן או הלהקה. אם תכתוב רק שם של אמן או להקה, תופיע רשימת השירים שלהם.':'Enter a song title. For accurate results add the artist or band too. If you enter only an artist or band, their song list appears.',
+'לא נמצאו תוצאות מתאימות. נסה ניסוח אחר, או חפש בגוגל בדפדפן והעתק את המילים ל"הדבק טקסט".':'No matching results. Try different wording, or search Google in the browser and copy the lyrics into "Paste text".','חפש בגוגל':'Search Google','השירים של':'Songs by','תוצאות נוספות':'More results','מחפש באתרים נוספים…':'Searching more sites…',
+'קורא את הדף ומזהה את המילים…':'Reading the page and detecting the lyrics…','חיפוש מילים ברשת':'Lyrics web search','בחר תוצאה כדי לראות את המילים שזוהו.':'Pick a result to see the detected lyrics.',
+'המילים נשלפות מהדף, מחולקות לבתים ולפזמונים לפי המרווחים והחזרות, ונשמרות בספרייה שלך. תמיד אפשר לתקן לפני השמירה.':'Lyrics are pulled from the page, split into verses and choruses by spacing and repeats, and saved to your library. You can always fix them before saving.',
+'פתח את הדף':'Open the page','לא זוהו מילים בדף הזה':'No lyrics detected on this page','ייתכן שהאתר חוסם גישה או שהמילים לא נמצאות בדף. נסה תוצאה אחרת.':'The site may be blocking access, or the lyrics aren’t on the page. Try another result.',
+'שורה ריקה מפרידה בין חלקים. אחרי התיקון לחץ "חלק מחדש".':'An empty line separates sections. After fixing, tap "Re-split".','שם הזמר':'Singer','החלוקה שזוהתה':'Detected sections','עריכת טקסט':'Edit text','חלק מחדש':'Re-split','פתח בעורך':'Open in editor','נשמר':'Saved','שמור לספרייה':'Save to library',
+'הוסף שם אמן כדי לחפש תמונה':'Add an artist name to find a photo','חיפוש תמונה זמין באפליקציה בטאבלט':'Photo search is available in the tablet app','מחפש תמונה של':'Looking for a photo of','התמונה עודכנה':'Photo updated','לא נמצאה תמונה של':'No photo found for','אין מילים לשמירה':'No lyrics to save','השיר נשמר בספרייה':'Song saved to the library','חולק מחדש':'Re-split done','בספרייה':'In library',
+'עכשיו':'now','אתמול':'yesterday','הגיבוי נשמר':'Backup saved','הגיבוי נכשל:':'Backup failed:',
+'כל השירים, התיקיות וקובצי ה-PDF נשמרים בקובץ אחד. בחלון שייפתח בחר':'All songs, folders and PDF files are saved in one file. In the window that opens choose','ותיקייה. גם אם תסיר את האפליקציה או תחליף טאבלט, תוכל לשחזר מהקובץ.':'and a folder. Even if you remove the app or switch tablets, you can restore from the file.',
+'הגיבוי האחרון':'Last backup','עדיין לא גיבית':'No backup yet','גיבוי אוטומטי לאותו קובץ אחרי כל שינוי':'Automatic backup to the same file after every change','(זמין אחרי הגיבוי הראשון)':'(available after the first backup)','גבה עכשיו':'Back up now','גבה ל-Google Drive':'Back up to Google Drive','שחזר מגיבוי':'Restore from backup',
+'גיבוי אוטומטי מופעל':'Automatic backup on','גיבוי אוטומטי כבוי':'Automatic backup off','זה לא קובץ גיבוי של StagePromt':'This isn’t a StagePromt backup file','שחזור מגיבוי':'Restore from backup','בקובץ יש':'The file has','שירים, מתאריך':'songs, from',
+'הוסף לספרייה הקיימת':'Add to the existing library','שירים שכבר קיימים לא ישוכפלו':'Songs you already have won’t be duplicated','החלף את כל הספרייה':'Replace the whole library','השירים הנוכחיים יימחקו ויוחלפו בגיבוי':'Current songs will be deleted and replaced by the backup','שחזר':'Restore','נוספו':'Added','הספרייה שוחזרה':'Library restored',
+'שיתוף עם הלהקה':'Band sharing','הגדרות':'Settings','שתף הופעה':'Share show','שולח את השירים של':'Sends the songs of','לחבר להקה, בקוד QR או כקובץ.':'to a bandmate, by QR code or as a file.','קבלת סט מחבר להקה':'Receive a set from a bandmate',
+'סורקים את הקוד שמופיע אצל חבר הלהקה, או פותחים קובץ סט ששלח לך.':'Scan the code on your bandmate’s tablet, or open a set file they sent you.','קבל סט':'Receive set','כדי לשתף הופעה אחרת, בחר קודם את התיקייה שלה בספרייה.':'To share another show, first select its folder in the library.','שחזור':'Restore',
+'פתח קובץ גיבוי כדי להוסיף את השירים שבו או להחליף את כל הספרייה.':'Open a backup file to add its songs or replace the whole library.','אין שירים בסט':'No songs in the set','שיתוף ההופעה עם הלהקה':'Share the show with the band',
+'חבר הלהקה מחובר לאותה רשת Wi‑Fi (או לנקודה החמה של הטאבלט שלך).':'Your bandmate is on the same Wi‑Fi (or your tablet’s hotspot).','אצלו ב-StagePromt:':'In their StagePromt:','סרוק קוד':'Scan code','הסט נכנס אצלו לתיקייה חדשה, באותו סדר.':'The set goes into a new folder on their tablet, in the same order.',
+'הקוד פעיל כל עוד החלון הזה פתוח.':'The code works while this window is open.','בתצוגה המקדימה הכתובת היא לדוגמה.':'In the preview the address is an example.','הטאבלט לא מחובר לרשת Wi‑Fi. חבר אותו לרשת או הפעל נקודה חמה, או שלח את הסט כקובץ.':'The tablet isn’t on Wi‑Fi. Connect it or turn on a hotspot, or send the set as a file.',
+'שמור כקובץ לשליחה':'Save as a file to send','הקובץ נשמר – אפשר לשלוח אותו בוואטסאפ':'File saved – you can send it on WhatsApp','בטאבלט של חבר הלהקה: פתח את הסט ולחץ':'On your bandmate’s tablet: open the set and tap','. יופיע קוד QR. שניכם צריכים להיות מחוברים לאותה רשת Wi‑Fi.':'. A QR code appears. You both need to be on the same Wi‑Fi.',
+'מקובץ':'From file','סריקת קוד זמינה באפליקציה בטאבלט.':'Code scanning is available in the tablet app.','סריקת קוד זמינה באפליקציה בטאבלט':'Code scanning is available in the tablet app','הסריקה נכשלה':'Scan failed','זה לא קוד של סט מ-StagePromt':'This isn’t a StagePromt set code','מוריד את הסט…':'Downloading the set…',
+'לא ניתן להוריד את הסט. ודא ששניכם באותה רשת והחלון פתוח אצל חבר הלהקה':'Can’t download the set. Make sure you’re both on the same network and the window is open on your bandmate’s tablet','זה לא קובץ סט של StagePromt':'This isn’t a StagePromt set file','זה קובץ גיבוי – משחזר דרך מסך הגיבוי':'This is a backup file – restoring from the backup screen','זה לא סט של StagePromt':'This isn’t a StagePromt set',
+'סט חדש':'New set','שירים. הם ייכנסו לתיקייה חדשה בשם הסט, באותו סדר.':'songs. They go into a new folder named after the set, in the same order.','כבר קיים אצלך':'already in your library','הוסף את הסט':'Add the set','הסט':'The set','נוסף':'added','קריאת הקובץ נכשלה':'Reading the file failed',
+'הדבק טקסט וחלק אוטומטית':'Paste text and auto-split','מצב הופעה':'Show mode','גלילה ידנית':'Manual scroll','א-':'A-','א+':'A+','ייבוא מ-PDF':'Import from PDF','חפש':'Search','טוען את StagePromt':'Loading StagePromt','חיפוש שיר, אמן או שורה…':'Search song, artist or line…','חיפוש':'Search','חזרה לספרייה':'Back to library',
+'שם האמן':'Artist','תיקייה':'Folder','יציאה ממצב הופעה':'Exit show mode','חלק קודם':'Previous section','חלק הבא':'Next section','האט גלילה':'Slow down','האץ גלילה':'Speed up','הקטן טקסט':'Smaller text','הגדל טקסט':'Larger text','היפוך צבעים':'Invert colors','מראה':'Mirror',
+'רשימת שירי ההופעה':'Show song list','הסתר סרגל כלים':'Hide toolbar','הצג סרגל כלים':'Show toolbar','שם השיר…':'Song title…','אמן או להקה (לא חובה)':'Artist or band (optional)','אמן או להקה':'Artist or band',
+'שידור':'Cast','ייבוא':'Import','לפי':'by','שיר':'Song','סט':'Set','מילים':'Lyrics','שורה':'line','שפת הממשק':'Interface language','מחפש…':'Searching…','אין דוגמה':'No sample','שירונט':'Shironet','זמרשת':'Zemereshet','נגנו':'Nagnu'
+};
+const I18N_RE=[
+ [/שיר (\d+) מתוך (\d+)/g,'Song $1 of $2'],[/(\d+) מתוך (\d+)/g,'$1 of $2'],
+ [/לפני (\d+) דק׳/g,'$1 min ago'],[/לפני (\d+) שע׳/g,'$1 h ago'],[/לפני (\d+) ימים/g,'$1 days ago'],
+ [/חולק ל-(\d+) חלקים/g,'Split into $1 sections'],[/נמצאו (\d+) שירים/g,'Found $1 songs'],[/ייבא (\d+) שירים/g,'Import $1 songs'],[/(\d+) שירים יובאו/g,'$1 songs imported'],[/יובאו (\d+) שירים/g,'$1 songs imported'],[/נוספו (\d+) שירים/g,'Added $1 songs'],
+ [/(\d+) שירים בסט/g,'$1 songs in the set'],[/שיר אחד בסט/g,'1 song in the set'],[/(\d+) שירים/g,'$1 songs'],[/(\d+) שורות/g,'$1 lines'],[/(\d+) בתים/g,'$1 verses'],[/(\d+) פזמונים/g,'$1 choruses'],[/(\d+) גשרים/g,'$1 bridges'],
+ [/עמודים (\d+)–(\d+)/g,'Pages $1–$2'],[/עמוד (\d+)/g,'Page $1'],[/עמ׳ (\d+)–(\d+)/g,'p. $1–$2'],[/עמ׳ (\d+)/g,'p. $1'],[/(בית|פזמון|גשר) (\d+)/g,(m,a,n)=>({'בית':'Verse','פזמון':'Chorus','גשר':'Bridge'})[a]+' '+n],
+ [/קאפו (\d+)/g,'Capo $1'],[/גודל טקסט: (\d+)/g,'Text size: $1'],[/דוגמה של 30 שניות/g,'30-second sample']
+];
+
+const LANG=S.ui.lang==='en'?'en':'he';
+const HEL=/[א-ת]/;
+const I18X=Object.keys(I18N_EN).filter(k=>k.replace(/[^א-ת]/g,'').length>=2).sort((a,b)=>b.length-a.length).map(k=>[new RegExp('(?<![\\u05D0-\\u05EA])'+k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?![\\u05D0-\\u05EA])','g'),I18N_EN[k]]);
+function T(t){
+ if(LANG!=='en'||!t||!HEL.test(t))return t;
+ const tr=t.trim();if(I18N_EN[tr]!=null){const e=I18N_EN[tr];return t.replace(tr,e.charAt(0).toUpperCase()+e.slice(1))}
+ let r=t;for(const [re,v] of I18N_RE)r=r.replace(re,v);
+ for(const [re,v] of I18X){if(!HEL.test(r))break;r=r.replace(re,v)}
+ return r;
+}
+const I18N_SKIP='textarea,input,script,style,.ln,.cl,.rl,.reptext,.tvTxt,.lTitle,.lArt,#pTitle,.psT,.pNext b,.wItem b,.wItem .sn,.wSugI,.setPrev b,.setPrev .sa,.fold .nm,#mhead h1,.sbTxt span,.uc,.ch,#edFolder,#wFolder,#impFolder,.shareHead b,.ccDev b,.castUrl,.pvL~div';
+function i18nTree(root){
+ if(LANG!=='en'||!root)return;
+ if(root.nodeType===3){const pe=root.parentElement;if(pe&&!pe.closest(I18N_SKIP)&&HEL.test(root.data)){const v=T(root.data);if(v!==root.data)root.data=v}return}
+ if(root.nodeType!==1||root.closest(I18N_SKIP))return;
+ const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let n;const L=[];
+ while((n=w.nextNode()))if(HEL.test(n.data))L.push(n);
+ L.forEach(n=>{if(!n.parentElement.closest(I18N_SKIP)){const v=T(n.data);if(v!==n.data)n.data=v}});
+ [root].concat([...root.querySelectorAll('[placeholder],[aria-label],[title]')]).forEach(el=>{if(el.closest&&el.closest(I18N_SKIP)&&!/^(INPUT|TEXTAREA)$/.test(el.tagName))return;['placeholder','aria-label','title'].forEach(a=>{const v=el.getAttribute&&el.getAttribute(a);if(v&&HEL.test(v))el.setAttribute(a,T(v))})});
+}
+function setLang(l){S.ui.lang=l;save(true);try{sessionStorage.setItem('skipSplash','1')}catch(e){}location.reload()}
+if(LANG==='en'){document.documentElement.lang='en';document.documentElement.dir='ltr';document.title='StagePromt'}
 let saveT=null;
 function persist(){clearTimeout(saveT);saveT=null;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('השמירה נכשלה — אין מספיק מקום במכשיר')}try{scheduleAutoBackup()}catch(e){}}
 function save(now){clearTimeout(saveT);if(now)persist();else saveT=setTimeout(persist,400)}
@@ -827,12 +957,12 @@ const IDB={db:null,
 
 /* ========= ui helpers ========= */
 let toastT;
-function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2800)}
+function toast(m){const t=$('#toast');t.textContent=T(m);t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2800)}
 function show(id){SCREEN=id;$$('.screen').forEach(s=>s.classList.toggle('active',s.id===id))}
 function openModal(html,wide){const m=$('#modal');m.className='modal'+(wide?' wide':'');m.innerHTML=html;$('#modalWrap').hidden=false;setTimeout(()=>{const f=$('#modal [autofocus]');if(f){f.focus();if(f.select&&f.value)f.select()}},60)}
 function closeModal(){$('#modalWrap').hidden=true;$('#modal').innerHTML=''}
-function menu(title,items){
- openModal('<h2>'+esc(title)+'</h2>'+items.map((it,i)=>'<button class="mItem'+(it.danger?' danger':'')+(it.cur?' cur':'')+'" data-mi="'+i+'">'+ic(it.icon,20)+'<span>'+esc(it.label)+'</span></button>').join(''));
+function menu(title,items,uc){
+ openModal('<h2'+(uc?' class="uc"':'')+'>'+esc(title)+'</h2>'+items.map((it,i)=>'<button class="mItem'+(it.danger?' danger':'')+(it.cur?' cur':'')+'" data-mi="'+i+'">'+ic(it.icon,20)+'<span'+(it.uc?' class="uc"':'')+'>'+esc(it.label)+'</span></button>').join(''));
  $$('#modal [data-mi]').forEach(b=>b.onclick=()=>{closeModal();items[+b.dataset.mi].fn()});
 }
 function ask(title,value,ok,cb){
@@ -925,7 +1055,7 @@ function autoSplit(raw){
 
 /* ========= library ========= */
 const LIB={reorder:false};
-function folderName(id){if(id==='all')return 'כל השירים';if(id==='fav')return 'מועדפים';if(id==='none')return 'ללא תיקייה';const f=S.folders.find(f=>f.id===id);return f?f.name:'כל השירים'}
+function folderName(id){if(id==='all')return T('כל השירים');if(id==='fav')return T('מועדפים');if(id==='none')return T('ללא תיקייה');const f=S.folders.find(f=>f.id===id);return f?f.name:'כל השירים'}
 function songsIn(fid){
  let a=S.songs;
  if(fid==='fav')a=a.filter(s=>s.fav);
@@ -946,7 +1076,7 @@ function renderLib(){
  if(!['all','fav'].includes(S.ui.folder)&&!S.folders.some(f=>f.id===S.ui.folder))S.ui.folder='all';
  const cnt=id=>songsIn(id).length;
  const row=(id,icon,name,user)=>'<div class="foldRow'+(S.ui.folder===id?' on':'')+'"><button class="fold" data-f="'+id+'">'+ic(icon,18)+'<span class="nm">'+esc(name)+'</span><span class="ct">'+cnt(id)+'</span></button>'+(user?'<button class="fmore" data-fm="'+id+'" aria-label="אפשרויות תיקייה">'+ic('dots',18)+'</button>':'')+'</div>';
- let h='<div class="navTop"><button class="btn sm ghost" id="navHide">'+ic('side',18)+'הסתר</button></div>'+row('all','music','כל השירים')+row('fav','star','מועדפים');
+ let h='<div class="navTop"><button class="btn sm ghost" id="navHide">'+ic('side',18)+'הסתר</button></div>'+row('all','music',T('כל השירים'))+row('fav','star',T('מועדפים'));
  h+='<div class="lbl navLbl">תיקיות</div>'+S.folders.map(f=>row(f.id,'folder',f.name,true)).join('');
  h+='<button class="btn dash newFold" id="newFold">'+ic('plus',16)+'תיקייה חדשה</button><div class="flex1"></div>';
  
@@ -1010,7 +1140,7 @@ function deleteSong(id){
  save(true);
 }
 function chooseFolder(title,curId,cb){
- menu(title,[{icon:'folder',label:'ללא תיקייה',cur:!curId,fn:()=>cb(null)}].concat(S.folders.map(f=>({icon:'folder',label:f.name,cur:f.id===curId,fn:()=>cb(f.id)}))));
+ menu(title,[{icon:'folder',label:'ללא תיקייה',cur:!curId,fn:()=>cb(null)}].concat(S.folders.map(f=>({icon:'folder',label:f.name,uc:true,cur:f.id===curId,fn:()=>cb(f.id)}))));
 }
 function songMenu(id){
  const s=S.songs.find(x=>x.id===id);if(!s)return;
@@ -1021,14 +1151,14 @@ function songMenu(id){
   {icon:'move',label:'העבר לתיקייה',fn:()=>chooseFolder('העבר לתיקייה',s.folderId,f=>{s.folderId=f;touch(s);renderLib();toast('השיר הועבר')})},
   {icon:'copy',label:'שכפל',fn:()=>{S.songs.push(cloneSong(s));save();renderLib();toast('נוצר עותק')}},
   {icon:'trash',label:'מחק שיר',danger:true,fn:()=>confirmBox('למחוק את "'+s.title+'"?','השיר יימחק מהמכשיר ואי אפשר לשחזר אותו.','מחק',()=>{deleteSong(id);renderLib();toast('השיר נמחק')})}
- ]);
+ ],true);
 }
 function folderMenu(fid){
  const f=S.folders.find(x=>x.id===fid);if(!f)return;
  menu(f.name,[
   {icon:'edit',label:'שנה שם',fn:()=>ask('שם התיקייה',f.name,'שמור',v=>{f.name=v;save();renderLib()})},
   {icon:'trash',label:'מחק תיקייה',danger:true,fn:()=>confirmBox('למחוק את התיקייה "'+f.name+'"?','השירים שבתוכה יישארו בספרייה, בלי תיקייה.','מחק תיקייה',()=>{S.folders=S.folders.filter(x=>x.id!==fid);S.songs.forEach(s=>{if(s.folderId===fid)s.folderId=null});S.ui.folder='all';save(true);renderLib()})}
- ]);
+ ],true);
 }
 $('#lib').addEventListener('click',e=>{
  const t=e.target.closest('button');if(!t)return;const d=t.dataset;
@@ -1065,7 +1195,7 @@ function renderEditor(){
  $('#edAv').innerHTML=avatarHtml(s.img,s.artist||s.title,'edAvI');
  $('#edTitle').value=s.title;$('#edArtist').value=s.artist||'';
  $('#edKey').innerHTML='<option value="">סולם</option>'+KEYS.map(k=>'<option value="'+k+'"'+(s.key===k?' selected':'')+'>'+k+'</option>').join('');
- $('#edFolder').innerHTML='<option value="">ללא תיקייה</option>'+S.folders.map(f=>'<option value="'+f.id+'">'+esc(f.name)+'</option>').join('');
+ $('#edFolder').innerHTML='<option value="">'+T('ללא תיקייה')+'</option>'+S.folders.map(f=>'<option value="'+f.id+'">'+esc(f.name)+'</option>').join('');
  $('#edFolder').value=s.folderId&&S.folders.some(f=>f.id===s.folderId)?s.folderId:'';
  $('#edPaste').hidden=s.kind==='pdf';$('#edChords').hidden=s.kind==='pdf';
  renderStruct();renderBlocks();renderStyle();
@@ -1775,7 +1905,7 @@ function castState(){
  const base={title:s.title,artist:s.artist||'',idx:P.i,count:P.list.length,manual:!!S.ui.manual,mirror:false};
  if(s.kind==='pdf')return Object.assign(base,{kind:'pdf',page:curPart(),pages:P.parts.length});
  const st=s.style,f=font(st.font),L=labelMap(s),parts=[];
- s.parts.forEach(p=>{const src=srcOf(s,p);if(!src||!src.text.trim())return;const cm=S.ui.hideChords?{}:partChordMap(src),ch=[];Object.keys(cm).forEach(l=>cm[l].forEach(c=>ch.push({l:+l,i:c.i,n:c.n,c:shownChord(s,c.c)})));parts.push({n:L[p.id]+(p.ref?' ↺':''),t:src.type,c:st.colors[src.type]||'#fff',x:src.text,ch})});
+ s.parts.forEach(p=>{const src=srcOf(s,p);if(!src||!src.text.trim())return;const cm=S.ui.hideChords?{}:partChordMap(src),ch=[];Object.keys(cm).forEach(l=>cm[l].forEach(c=>ch.push({l:+l,i:c.i,n:c.n,c:shownChord(s,c.c)})));parts.push({n:T(L[p.id])+(p.ref?' ↺':''),t:src.type,c:st.colors[src.type]||'#fff',x:src.text,ch})});
  return Object.assign(base,{kind:'text',cc:chordColor(s),stk:strokeOf(st),font:f.css,w:f.w,align:st.align,lh:st.lh,labels:!!st.labels,size:st.size,parts,part:curPart(),line:Math.max(0,P.cur)});
 }
 function castSend(){
@@ -2543,9 +2673,9 @@ const SET_CATS=[['share','qr','שיתוף עם הלהקה'],['drive','','Google 
 let SETCAT='share';
 function settingsModal(cat){
  if(cat)SETCAT=cat;PEDAL.learn=null;PEDAL.last='';
- openModal('<div class="stWrap"><div class="stMain" id="stMain"></div><aside class="stNav"><h2>'+ic('gear',20)+' הגדרות</h2>'+SET_CATS.map(([k,i,n])=>'<button class="stCat'+(SETCAT===k?' on':'')+'" data-cat="'+k+'">'+(k==='drive'?gdriveIcon(18):ic(i,18))+'<span'+(k!=='share'?' dir="ltr"':'')+'>'+n+'</span></button>').join('')+'<div class="flex1"></div><button class="btn sm stClose" id="stClose">סגור</button></aside></div>','settings');
+ openModal('<div class="stWrap"><div class="stMain" id="stMain"></div><aside class="stNav"><h2>'+ic('gear',20)+' הגדרות</h2><div class="langRow" role="group" aria-label="שפת הממשק"><button class="langB he'+(LANG==='he'?' on':'')+'" data-lang="he" aria-label="עברית">HE</button><button class="langB us'+(LANG==='en'?' on':'')+'" data-lang="en" aria-label="English">US</button></div>'+SET_CATS.map(([k,i,n])=>'<button class="stCat'+(SETCAT===k?' on':'')+'" data-cat="'+k+'">'+(k==='drive'?gdriveIcon(18):ic(i,18))+'<span'+(k!=='share'?' dir="ltr"':'')+'>'+n+'</span></button>').join('')+'<div class="flex1"></div><button class="btn sm stClose" id="stClose">סגור</button></aside></div>','settings');
  $('#modal').classList.add('stModal');
- $('#modal .stNav').onclick=e=>{const b=e.target.closest('[data-cat]');if(b){SETCAT=b.dataset.cat;PEDAL.learn=null;$$('#modal .stCat').forEach(x=>x.classList.toggle('on',x===b));renderSetCat()}else if(e.target.closest('#stClose')){PEDAL.learn=null;closeModal();renderLib()}};
+ $('#modal .stNav').onclick=e=>{const lb=e.target.closest('[data-lang]');if(lb){if(lb.dataset.lang!==LANG)setLang(lb.dataset.lang);return}const b=e.target.closest('[data-cat]');if(b){SETCAT=b.dataset.cat;PEDAL.learn=null;$$('#modal .stCat').forEach(x=>x.classList.toggle('on',x===b));renderSetCat()}else if(e.target.closest('#stClose')){PEDAL.learn=null;closeModal();renderLib()}};
  renderSetCat();
 }
 function renderSetCat(){
@@ -2654,12 +2784,15 @@ window.appBack=function(){
 /* ========= init ========= */
 $$('i[data-ic]').forEach(e=>{e.outerHTML=ic(e.dataset.ic,+e.dataset.s||20)});
 $('#srcSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(b)pickSource(b.dataset.src)});
+if(LANG==='en'){i18nTree(document.body);new MutationObserver(ms=>{ms.forEach(m=>{if(m.type==='characterData')i18nTree(m.target);else m.addedNodes.forEach(n=>i18nTree(n))})}).observe(document.body,{childList:true,subtree:true,characterData:true})}
 renderLib();
 if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
 
 /* ========= splash ========= */
 (function(){
  const sp=$('#splash');if(!sp)return;
+ let skip=false;try{skip=sessionStorage.getItem('skipSplash')==='1';sessionStorage.removeItem('skipSplash')}catch(e){}
+ if(skip){sp.remove();return}
  const DUR=5000,bar=$('#spFillBar'),pct=$('#spPct'),t0=performance.now();
  function frame(now){
   const p=Math.min(1,(now-t0)/DUR),e=p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
