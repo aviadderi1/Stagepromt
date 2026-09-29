@@ -1741,7 +1741,7 @@ function renderPedal(){
 }
 function pedalModal(){
  PEDAL.learn=null;PEDAL.last='';
- openModal('<h2>'+ic('pedal',22)+' דוושת דפדוף</h2><p class="mTxt">חבר את הדוושה לטאבלט ב-Bluetooth. אחר כך לחץ על "הגדר" ליד כל פעולה, ולחץ על הדוושה שתבצע אותה. בלי הגדרה, הדוושה עובדת עם החיצים ו-Page Up/Down כרגיל.</p><div id="pedalBox" class="pdBox"></div>'+
+ openModal('<h2>'+ic('pedal',22)+' <span dir="ltr">Bluetooth pedal</span></h2><p class="mTxt">חבר את הדוושה לטאבלט ב-Bluetooth. אחר כך לחץ על "הגדר" ליד כל פעולה, ולחץ על הדוושה שתבצע אותה. בלי הגדרה, הדוושה עובדת עם החיצים ו-Page Up/Down כרגיל.</p><div id="pedalBox" class="pdBox"></div>'+
   '<div class="acts"><button class="btn" id="pdReset">איפוס</button><span class="flex1"></span><button class="btn pri" id="mCancel">סיום</button></div>',true);
  renderPedal();
  $('#pedalBox').onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.learn){PEDAL.learn=PEDAL.learn===b.dataset.learn?null:b.dataset.learn;renderPedal()}else if(b.dataset.unmap){delete S.pedal[b.dataset.unmap];save();renderPedal()}};
@@ -2539,11 +2539,11 @@ async function restoreBackup(){
  };
 }
 /* ---- settings ---- */
-const SET_CATS=[['share','qr','שיתוף עם הלהקה'],['drive','','Google Drive'],['pedal','pedal','דוושת דפדוף']];
+const SET_CATS=[['share','qr','שיתוף עם הלהקה'],['drive','','Google Drive'],['pedal','pedal','Bluetooth pedal']];
 let SETCAT='share';
 function settingsModal(cat){
  if(cat)SETCAT=cat;PEDAL.learn=null;PEDAL.last='';
- openModal('<div class="stWrap"><div class="stMain" id="stMain"></div><aside class="stNav"><h2>'+ic('gear',20)+' הגדרות</h2>'+SET_CATS.map(([k,i,n])=>'<button class="stCat'+(SETCAT===k?' on':'')+'" data-cat="'+k+'">'+(k==='drive'?gdriveIcon(18):ic(i,18))+'<span'+(k==='drive'?' dir="ltr"':'')+'>'+n+'</span></button>').join('')+'<div class="flex1"></div><button class="btn sm stClose" id="stClose">סגור</button></aside></div>','settings');
+ openModal('<div class="stWrap"><div class="stMain" id="stMain"></div><aside class="stNav"><h2>'+ic('gear',20)+' הגדרות</h2>'+SET_CATS.map(([k,i,n])=>'<button class="stCat'+(SETCAT===k?' on':'')+'" data-cat="'+k+'">'+(k==='drive'?gdriveIcon(18):ic(i,18))+'<span'+(k!=='share'?' dir="ltr"':'')+'>'+n+'</span></button>').join('')+'<div class="flex1"></div><button class="btn sm stClose" id="stClose">סגור</button></aside></div>','settings');
  $('#modal').classList.add('stModal');
  $('#modal .stNav').onclick=e=>{const b=e.target.closest('[data-cat]');if(b){SETCAT=b.dataset.cat;PEDAL.learn=null;$$('#modal .stCat').forEach(x=>x.classList.toggle('on',x===b));renderSetCat()}else if(e.target.closest('#stClose')){PEDAL.learn=null;closeModal();renderLib()}};
  renderSetCat();
@@ -2551,7 +2551,7 @@ function settingsModal(cat){
 function renderSetCat(){
  const M=$('#stMain');if(!M)return;
  if(SETCAT==='pedal'){
-  M.innerHTML='<h3>'+ic('pedal',20)+' דוושת דפדוף</h3><p class="mTxt">חבר את הדוושה לטאבלט ב-Bluetooth. לחץ על "הגדר" ליד כל פעולה, ואז על הדוושה שתבצע אותה. בלי הגדרה, הדוושה עובדת עם החיצים ו-Page Up/Down כרגיל.</p><div id="pedalBox" class="pdBox"></div><div class="acts"><button class="btn sm" id="pdReset">איפוס</button></div>';
+  M.innerHTML='<h3>'+ic('pedal',20)+' <span dir="ltr">Bluetooth pedal</span></h3><p class="mTxt">חבר את הדוושה לטאבלט ב-Bluetooth. לחץ על "הגדר" ליד כל פעולה, ואז על הדוושה שתבצע אותה. בלי הגדרה, הדוושה עובדת עם החיצים ו-Page Up/Down כרגיל.</p><div id="pedalBox" class="pdBox"></div><div class="acts"><button class="btn sm" id="pdReset">איפוס</button></div>';
   renderPedal();
   $('#pedalBox').onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.learn){PEDAL.learn=PEDAL.learn===b.dataset.learn?null:b.dataset.learn;renderPedal()}else if(b.dataset.unmap){delete S.pedal[b.dataset.unmap];save();renderPedal()}};
   $('#pdReset').onclick=()=>{S.pedal={};PEDAL.learn=null;save();renderPedal()};
