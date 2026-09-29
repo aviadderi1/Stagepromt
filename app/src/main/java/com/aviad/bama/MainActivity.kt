@@ -7,6 +7,7 @@ import android.content.Context
 import android.graphics.Color
 import android.hardware.display.DisplayManager
 import android.view.Display
+import android.view.KeyEvent
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
@@ -336,6 +337,24 @@ class MainActivity : ComponentActivity() {
     private fun streamUri(intent: Intent): Uri? =
         if (Build.VERSION.SDK_INT >= 33) intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
         else intent.getParcelableExtra(Intent.EXTRA_STREAM) as? Uri
+
+    /** Bluetooth page-turner pedals that send media keys: forward them to the page. */
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val name = when (event.keyCode) {
+            KeyEvent.KEYCODE_MEDIA_NEXT -> "MediaTrackNext"
+            KeyEvent.KEYCODE_MEDIA_PREVIOUS -> "MediaTrackPrevious"
+            KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_MEDIA_PLAY,
+            KeyEvent.KEYCODE_MEDIA_PAUSE, KeyEvent.KEYCODE_HEADSETHOOK -> "MediaPlayPause"
+            KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> "MediaFastForward"
+            KeyEvent.KEYCODE_MEDIA_REWIND -> "MediaRewind"
+            else -> null
+        }
+        if (name != null) {
+            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) js("window.__hwKey&&window.__hwKey('$name')")
+            return true
+        }
+        return super.dispatchKeyEvent(event)
+    }
 
     private fun js(code: String) {
         if (::web.isInitialized) web.evaluateJavascript(code, null)
