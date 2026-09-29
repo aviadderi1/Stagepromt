@@ -428,7 +428,7 @@ class MainActivity : ComponentActivity() {
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
 
     /** Fetch a web page natively (no CORS) and hand the HTML back to the page. */
-    private fun fetchPage(id: String, url: String, binary: Boolean = false) {
+    private fun fetchPage(id: String, url: String, binary: Boolean = false, body: String? = null) {
         try {
             var u = URL(url)
             var conn: HttpURLConnection
@@ -441,6 +441,13 @@ class MainActivity : ComponentActivity() {
                 conn.setRequestProperty("User-Agent", userAgent)
                 conn.setRequestProperty("Accept", "text/html,application/xhtml+xml,*/*;q=0.8")
                 conn.setRequestProperty("Accept-Language", "he-IL,he;q=0.9,en;q=0.8")
+                if (body != null) {
+                    conn.requestMethod = "POST"
+                    conn.doOutput = true
+                    conn.setRequestProperty("Content-Type", "application/json;charset=UTF-8")
+                    conn.setRequestProperty("Accept", "application/json, text/plain, */*")
+                    conn.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
+                }
                 val code = conn.responseCode
                 if (code in 300..399 && hops < 8) {
                     val loc = conn.getHeaderField("Location")
@@ -496,6 +503,11 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun httpGetData(id: String, url: String) {
             thread { fetchPage(id, url, true) }
+        }
+
+        @JavascriptInterface
+        fun httpPost(id: String, url: String, body: String) {
+            thread { fetchPage(id, url, false, body) }
         }
 
         @JavascriptInterface

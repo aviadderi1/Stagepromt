@@ -56,7 +56,7 @@ function hdrH(){return $('#hdr').hidden?0:$('#hdr').offsetHeight}
 function scale(){return Math.min(innerWidth/1180,innerHeight/760)}
 function lineHtml(text,chs){
  if(!chs||!chs.length)return esc(text);
- chs=chs.slice().sort((a,b)=>a.i-b.i);const arr=Array.from(text);let h='',pos=0;
+ chs=chs.slice().sort((a,b)=>a.i-b.i);const arr=String(text).match(/\P{M}\p{M}*|\p{M}+/gu)||[];let h='',pos=0;
  chs.forEach(c=>{if(c.i<pos)return;h+=esc(arr.slice(pos,c.i).join(''));h+='<span class="cw">'+esc(arr.slice(c.i,c.i+c.n).join('')||' ')+'<b class="ch" dir="ltr">'+esc(c.c)+'</b></span>';pos=c.i+c.n});
  return h+esc(arr.slice(pos).join(''));
 }

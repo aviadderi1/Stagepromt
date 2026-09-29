@@ -579,6 +579,8 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
 .imgC.on{border-color:var(--am);box-shadow:0 0 0 3px rgba(232,163,61,.3)}
 .imgOk{position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:50%;background:var(--am);color:#111214;display:flex;align-items:center;justify-content:center}
 @media (max-width:700px){.imgGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+#edNik.busy{opacity:.6}
+.pb#pNik.off span{text-decoration:line-through;opacity:.7}
 </style>
 </head>
 <body>
@@ -617,6 +619,7 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
       <div class="edSub"><input id="edArtist" placeholder="שם האמן" aria-label="שם האמן"><span>·</span><select id="edKey" aria-label="סולם" dir="ltr"></select><span>·</span><select id="edFolder" aria-label="תיקייה"></select></div>
     </div>
     <div class="flex1"></div>
+    <button class="btn" id="edNik" aria-pressed="false"><i data-ic="nikud" data-s="18"></i><span>ניקוד</span></button>
     <button class="btn" id="edChords" aria-pressed="false"><i data-ic="chord" data-s="18"></i>אקורדים</button>
     <button class="btn" id="edPaste"><i data-ic="clip" data-s="18"></i><span class="hideS">הדבק טקסט וחלק אוטומטית</span></button>
     <button class="btn" id="edSave">שמור</button>
@@ -660,6 +663,7 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
       <button class="pb" id="pLg" aria-label="הגדל טקסט" style="font-size:21px">א+</button>
       <button class="pb" id="pInv" aria-label="היפוך צבעים" hidden><i data-ic="invert" data-s="22"></i></button>
       <button class="pb wide" id="pChords" aria-pressed="true"><i data-ic="chord" data-s="18"></i><span>אקורדים</span></button>
+      <button class="pb wide" id="pNik" hidden><i data-ic="nikud" data-s="18"></i><span>הסתר ניקוד</span></button>
       <button class="pb" id="pMir" aria-label="מראה"><i data-ic="mirror" data-s="22"></i></button>
       <button class="pb cast" id="pCast" aria-label="שידור למסך נוסף"><i data-ic="cast" data-s="22"></i></button>
       <div class="vsep"></div>
@@ -766,6 +770,7 @@ const ICON={
  pedal:SV+'<path d="M5 20h14"/><path d="M7 20l3-12 8-3 1 3-7 4-1 8"/><circle cx="17.5" cy="4.5" r="1"/></svg>',
  gauge:SV+'<path d="M12 14l4-4"/><path d="M3.5 17a9 9 0 1 1 17 0"/></svg>',
  gear:SV+'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
+ nikud:SV+'<path d="M5 5h11a3 3 0 0 1 3 3v8"/><path d="M8 5v11"/><circle cx="8" cy="20.5" r=".9" fill="currentColor"/><circle cx="13" cy="20.5" r=".9" fill="currentColor"/><circle cx="18.5" cy="20.5" r=".9" fill="currentColor"/></svg>',
  move:SV+'<path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M10 13h6"/><path d="M13 10l3 3-3 3"/></svg>'
 };
 const FLIP_IC={play:1,prev:1,next:1,back:1};
@@ -913,7 +918,7 @@ const I18N_EN={
 'הדבק טקסט וחלק אוטומטית':'Paste text and auto-split','מצב הופעה':'Show mode','גלילה ידנית':'Manual scroll','א-':'A-','א+':'A+','ייבוא מ-PDF':'Import from PDF','חפש':'Search','טוען את StagePromt':'Loading StagePromt','חיפוש שיר, אמן או שורה…':'Search song, artist or line…','חיפוש':'Search','חזרה לספרייה':'Back to library',
 'שם האמן':'Artist','תיקייה':'Folder','יציאה ממצב הופעה':'Exit show mode','חלק קודם':'Previous section','חלק הבא':'Next section','האט גלילה':'Slow down','האץ גלילה':'Speed up','הקטן טקסט':'Smaller text','הגדל טקסט':'Larger text','היפוך צבעים':'Invert colors','מראה':'Mirror',
 'רשימת שירי ההופעה':'Show song list','הסתר סרגל כלים':'Hide toolbar','הצג סרגל כלים':'Show toolbar','שם השיר…':'Song title…','אמן או להקה (לא חובה)':'Artist or band (optional)','אמן או להקה':'Artist or band',
-'שידור':'Cast','ייבוא':'Import','לפי':'by','שיר':'Song','סט':'Set','מילים':'Lyrics','שורה':'line','שפת הממשק':'Interface language','מחפש…':'Searching…','תמונות של':'Photos of','תמונות אחרות':'Other photos','בחר תמונה':'Choose photo','לא נמצאו תמונות של':'No photos found of','תמונה':'Photo','אין דוגמה':'No sample','שירונט':'Shironet','זמרשת':'Zemereshet','נגנו':'Nagnu'
+'שידור':'Cast','ייבוא':'Import','לפי':'by','שיר':'Song','סט':'Set','מילים':'Lyrics','שורה':'line','שפת הממשק':'Interface language','מחפש…':'Searching…','ניקוד':'Vowels','הסר ניקוד':'Remove vowels','הסתר ניקוד':'Hide vowels','הצג ניקוד':'Show vowels','הניקוד הוסר':'Vowels removed','מנקד את השיר…':'Adding vowels…','השיר נוקד':'Vowels added','השיר נוקד (חלק מהקטעים לא נוקדו)':'Vowels added (some sections failed)','הניקוד נכשל – בדוק חיבור לאינטרנט ונסה שוב':'Adding vowels failed – check the internet connection and try again','ניקוד אוטומטי זמין באפליקציה בטאבלט':'Automatic vowels are available in the tablet app','הניקוד מוסתר':'Vowels hidden','הניקוד מוצג':'Vowels shown','תמונות של':'Photos of','תמונות אחרות':'Other photos','בחר תמונה':'Choose photo','לא נמצאו תמונות של':'No photos found of','תמונה':'Photo','אין דוגמה':'No sample','שירונט':'Shironet','זמרשת':'Zemereshet','נגנו':'Nagnu'
 };
 const I18N_RE=[
  [/שיר (\d+) מתוך (\d+)/g,'Song $1 of $2'],[/(\d+) מתוך (\d+)/g,'$1 of $2'],
@@ -1072,7 +1077,7 @@ function songsIn(fid){
 function visibleSongs(){
  let a=songsIn(S.ui.folder).slice();
  const q=($('#q').value||'').trim().toLowerCase();
- if(q)a=a.filter(s=>(s.title+' '+(s.artist||'')+' '+s.parts.map(p=>p.text).join(' ')).toLowerCase().includes(q));
+ if(q)a=a.filter(s=>stripNik(s.title+' '+(s.artist||'')+' '+s.parts.map(p=>p.text).join(' ')).toLowerCase().includes(stripNik(q)));
  if(S.ui.sort==='az')a.sort((x,y)=>x.title.localeCompare(y.title,'he'));
  else if(S.ui.sort==='recent')a.sort((x,y)=>(y.updated||0)-(x.updated||0));
  else a.sort((x,y)=>(x.order||0)-(y.order||0));
@@ -1203,7 +1208,7 @@ function renderEditor(){
  $('#edKey').innerHTML='<option value="">סולם</option>'+KEYS.map(k=>'<option value="'+k+'"'+(s.key===k?' selected':'')+'>'+k+'</option>').join('');
  $('#edFolder').innerHTML='<option value="">'+T('ללא תיקייה')+'</option>'+S.folders.map(f=>'<option value="'+f.id+'">'+esc(f.name)+'</option>').join('');
  $('#edFolder').value=s.folderId&&S.folders.some(f=>f.id===s.folderId)?s.folderId:'';
- $('#edPaste').hidden=s.kind==='pdf';$('#edChords').hidden=s.kind==='pdf';
+ $('#edPaste').hidden=s.kind==='pdf';$('#edNik').hidden=s.kind==='pdf';updNikBtn();$('#edChords').hidden=s.kind==='pdf';
  renderStruct();renderBlocks();renderStyle();
 }
 function renderStruct(){
@@ -1406,23 +1411,27 @@ function chordSvg(n,w){
  return s+'</svg>';
 }
 /* chords are stored on the source part: p.chords=[{l,i,n,c,t}]  l=line index, i=char index, n=chars spanned, t=line text */
+const NIK_RE=/[\u0591-\u05BD\u05BF\u05C1\u05C2\u05C4\u05C5\u05C7]/g;
+const stripNik=t=>String(t||'').replace(NIK_RE,'');
+const hasNik=t=>/[\u05B0-\u05BC\u05C1\u05C2\u05C7]/.test(t||'');
+const clusters=t=>String(t||'').match(/\P{M}\p{M}*|\p{M}+/gu)||[];
 function partChordMap(p){
  const out={};if(!p||!p.chords||!p.chords.length)return out;
  const lines=String(p.text||'').split('\n');
  p.chords=p.chords.filter(ch=>{
-  if(lines[ch.l]!==ch.t){
-   let best=-1,bd=1e9;lines.forEach((l,j)=>{if(l===ch.t&&Math.abs(j-ch.l)<bd){bd=Math.abs(j-ch.l);best=j}});
+  if(stripNik(lines[ch.l])!==stripNik(ch.t)){
+   let best=-1,bd=1e9;const tt=stripNik(ch.t);lines.forEach((l,j)=>{if(stripNik(l)===tt&&Math.abs(j-ch.l)<bd){bd=Math.abs(j-ch.l);best=j}});
    if(best>=0)ch.l=best;else if(lines[ch.l]&&lines[ch.l].trim())ch.t=lines[ch.l];else return false;
   }
   return true;
  });
- p.chords.forEach((ch,k)=>{const len=lines[ch.l].length;ch.i=clamp(ch.i,0,Math.max(0,len-1));if(ch.i+(ch.n||1)>len)ch.n=1;(out[ch.l]=out[ch.l]||[]).push({i:ch.i,n:ch.n||1,c:ch.c,k})});
+ p.chords.forEach((ch,k)=>{const len=clusters(lines[ch.l]).length;ch.i=clamp(ch.i,0,Math.max(0,len-1));if(ch.i+(ch.n||1)>len)ch.n=1;(out[ch.l]=out[ch.l]||[]).push({i:ch.i,n:ch.n||1,c:ch.c,k})});
  return out;
 }
 function lineHtml(text,chs){
  if(!chs||!chs.length)return esc(text);
  chs=chs.slice().sort((a,b)=>a.i-b.i);
- const arr=Array.from(text);let h='',pos=0;
+ const arr=clusters(text);let h='',pos=0;
  chs.forEach(ch=>{if(ch.i<pos)return;h+=esc(arr.slice(pos,ch.i).join(''));const seg=arr.slice(ch.i,ch.i+ch.n).join('')||' ';h+='<span class="cw">'+esc(seg)+'<b class="ch" dir="ltr"'+(ch.k!=null?' data-k="'+ch.k+'"':'')+'>'+esc(ch.c)+'</b></span>';pos=ch.i+ch.n});
  return h+esc(arr.slice(pos).join(''));
 }
@@ -1488,12 +1497,13 @@ function charAtPoint(el,x,y){
  const w=document.createTreeWalker(el,NodeFilter.SHOW_TEXT);let n,g=0,best=-1,bd=1e12,rect=null;const r=document.createRange();
  while((n=w.nextNode())){
   if(n.parentElement.closest('.ch'))continue;
-  for(let i=0;i<n.data.length;i++){
-   r.setStart(n,i);r.setEnd(n,i+1);const q=r.getBoundingClientRect();if(!q.width&&!q.height){continue}
+  const cl=clusters(n.data);let off=0;
+  for(let i=0;i<cl.length;i++){
+   r.setStart(n,off);r.setEnd(n,off+cl[i].length);off+=cl[i].length;const q=r.getBoundingClientRect();if(!q.width&&!q.height){continue}
    const dy=y<q.top?q.top-y:y>q.bottom?y-q.bottom:0,d=dy*4+Math.abs(x-(q.left+q.width/2));
    if(d<bd){bd=d;best=g+i;rect=q}
   }
-  g+=n.data.length;
+  g+=cl.length;
  }
  return best<0?null:{i:best,rect};
 }
@@ -1509,10 +1519,10 @@ function placeChord(pid,l,i,n,c){
 function refreshChords(){const B=$('#blocks'),top=B.scrollTop;B.innerHTML=chordBlocks(curSong());B.scrollTop=top}
 function onChordDouble(el,x,y){
  const hit=charAtPoint(el,x,y);if(!hit)return;
- const text=lineText(el);let i=hit.i;
+ const text=clusters(lineText(el));let i=hit.i;
  if(/\s/.test(text[i]||' ')){let a=i,b=i;while(a>0&&/\s/.test(text[a]))a--;while(b<text.length-1&&/\s/.test(text[b]))b++;i=Math.abs(a-i)<=Math.abs(b-i)&&!/\s/.test(text[a])?a:b}
  let a=i,b=i;while(a>0&&!/\s/.test(text[a-1]))a--;while(b<text.length-1&&!/\s/.test(text[b+1]))b++;
- const len=b-a+1,ci=len%2?a+(len-1)/2:a+len/2-1,n=len%2?1:2;
+ const len=b-a+1,ci=len%2?a+(len-1)/2:a+len/2-1,n=len%2?1:2;/*clusters*/
  const s=curSong();
  el.classList.add('pick');setTimeout(()=>{el.classList.remove('pick');chordPicker('',songChords(s),c=>placeChord(el.dataset.p,+el.dataset.l,ci,n,c))},320);
 }
@@ -1575,6 +1585,55 @@ function setChordMode(on){
  renderBlocks();
 }
 $('#edChords').onclick=()=>{const s=curSong();if(!s||s.kind==='pdf')return;if(!resolve(s).some(p=>p.text.trim()))return toast('הוסף קודם מילים לשיר');setChordMode(!ED.chords)};
+
+/* ========= nikud (Dicta Nakdan) ========= */
+function parseNakdan(j){
+ const arr=Array.isArray(j)?j:(j&&Array.isArray(j.data)?j.data:null);if(!arr)throw new Error('format');
+ return arr.map(it=>{
+  if(it&&it.nakdan){const o=it.nakdan.options||[];const pick=o.find(x=>x&&x.levelChoice===1)||o[0];const w=pick?(typeof pick==='string'?pick:pick.w):null;return String(w!=null?w:(it.nakdan.word!=null?it.nakdan.word:(it.str||''))).replace(/\|/g,'')}
+  if(it&&it.sep)return it.word!=null?it.word:(it.str||'');
+  if(it&&Array.isArray(it.options)&&it.options.length){const o=it.options[0];return String(typeof o==='string'?o:(o.w||o[0]||it.word||'')).replace(/\|/g,'')}
+  return (it&&(it.word!=null?it.word:it.str))||'';
+ }).join('');
+}
+async function nakdan(text){
+ const body=JSON.stringify({addmorph:true,keepmetagim:true,keepqq:false,nodageshdefmem:false,patachma:false,task:'nakdan',data:text,useTokenization:true,genre:'modern'});
+ let err;
+ for(const u of ['https://nakdan-u1-0.loadbalancer.dicta.org.il/api','https://nakdan-2-0.loadbalancer.dicta.org.il/api','https://nakdan-3-0.loadbalancer.dicta.org.il/api']){
+  try{const r=await httpPost(u,body,25000);const out=parseNakdan(JSON.parse(r.text));if(out&&stripNik(out).replace(/\s+/g,'')===stripNik(text).replace(/\s+/g,''))return out;if(out)return out}catch(e){err=e}
+ }
+ throw err||new Error('nakdan');
+}
+function mergeNik(orig,vox){
+ // keep the original letters, spacing and line breaks; copy the vowel marks from the vocalized text
+ const A=orig.split('\n'),B=vox.split('\n');
+ if(A.length!==B.length)return alignNik(orig,vox);
+ return A.map((l,i)=>alignNik(l,B[i])).join('\n');
+}
+function alignNik(orig,vox){
+ const out=[],v=clusters(vox);let j=0;
+ clusters(orig).forEach(c=>{
+  const base=stripNik(c);if(!/[א-ת]/.test(base)){out.push(c);return}
+  let k=j;while(k<v.length&&k<j+8&&stripNik(v[k])!==base)k++;
+  if(k<v.length&&stripNik(v[k])===base){out.push(v[k]);j=k+1}else out.push(c);
+ });
+ return out.join('');
+}
+async function toggleNikud(){
+ const s=curSong();if(!s||s.kind==='pdf')return;
+ const own=s.parts.filter(p=>!p.ref&&p.text.trim());
+ if(!own.length)return toast('הוסף קודם מילים לשיר');
+ if(own.some(p=>hasNik(p.text))){own.forEach(p=>p.text=stripNik(p.text));touch(s);refreshParts();updNikBtn();return toast('הניקוד הוסר')}
+ if(!(window.Android&&window.Android.httpPost))return toast('ניקוד אוטומטי זמין באפליקציה בטאבלט');
+ const b=$('#edNik');b.disabled=true;b.classList.add('busy');toast('מנקד את השיר…');
+ let ok=0,fail=0;
+ await Promise.all(own.map(async p=>{try{const v=await nakdan(p.text);const m=mergeNik(p.text,v);if(m!==p.text&&hasNik(m)){p.text=m;ok++}else fail++}catch(e){fail++}}));
+ b.disabled=false;b.classList.remove('busy');
+ if(ok){touch(s);refreshParts();toast(fail?'השיר נוקד (חלק מהקטעים לא נוקדו)':'השיר נוקד')}else toast('הניקוד נכשל – בדוק חיבור לאינטרנט ונסה שוב');
+ updNikBtn();
+}
+function updNikBtn(){const b=$('#edNik');if(!b)return;const s=curSong();const on=!!(s&&s.parts.some(p=>!p.ref&&hasNik(p.text)));b.classList.toggle('pri',on);b.setAttribute('aria-pressed',on?'true':'false');b.querySelector('span').textContent=on?'הסר ניקוד':'ניקוד'}
+$('#edNik').onclick=toggleNikud;
 
 /* ========= pdf ========= */
 if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc='lib/pdf.worker.min.js';
@@ -1648,7 +1707,7 @@ async function loadPlay(){
  $('#pPrev').disabled=P.i===0;$('#pNext').disabled=P.i>=P.list.length-1;
  $('#pInv').hidden=!isPdf;$('#pSm').hidden=isPdf;$('#pLg').hidden=isPdf;$('#pMarker').hidden=isPdf;
  $('#pInv').classList.toggle('on',!!s.invert);$('#pMir').classList.toggle('on',!!S.ui.mirror);
- applyMode();updChordBtn();renderSetPanel();fitBar();
+ applyMode();updChordBtn();updNikShow();renderSetPanel();fitBar();
  sc.scrollTop=0;
  if(isPdf)await buildPdf(s);else buildText(s);
  applyMode();measure();
@@ -1667,7 +1726,7 @@ function buildText(s){
   h+='<div class="part" data-name="'+esc(L[p.id])+'">';
   if(st.labels)h+='<div class="sec" style="color:'+col+'">'+esc(L[p.id])+(p.ref?' ↺':'')+'</div>';
   const cm=partChordMap(src);
-  src.text.split('\n').forEach((l,li)=>{h+=l.trim()?'<div class="ln'+(src.type==='note'?' note':'')+(cm[li]?' hasCh':'')+'" dir="auto" style="color:'+col+'">'+lineHtml(l,(cm[li]||[]).map(c=>({i:c.i,n:c.n,c:shownChord(s,c.c)})))+'</div>':'<div class="gap"></div>'});
+  src.text.split('\n').forEach((l,li)=>{if(S.ui.hideNik)l=stripNik(l);h+=l.trim()?'<div class="ln'+(src.type==='note'?' note':'')+(cm[li]?' hasCh':'')+'" dir="auto" style="color:'+col+'">'+lineHtml(l,(cm[li]||[]).map(c=>({i:c.i,n:c.n,c:shownChord(s,c.c)})))+'</div>':'<div class="gap"></div>'});
   if(!st.labels)h+='<div class="gap"></div>';
   h+='</div>';
  });
@@ -1820,6 +1879,8 @@ $('#pHide').onclick=()=>{S.ui.barHidden=true;save();$('#play').classList.add('ba
 $('#pShow').onclick=()=>{S.ui.barHidden=false;save();$('#play').classList.remove('barHidden');if(S.ui.manual)fitPage(P.parts[P.pi])};
 $('#pExit').onclick=exitShow;
 $('#pMode').onclick=toggleMode;
+function updNikShow(){const b=$('#pNik');if(!b)return;const s=playSong(),has=!!(s&&s.kind!=='pdf'&&s.parts.some(p=>hasNik(p.text)));b.hidden=!has;b.classList.toggle('off',!!S.ui.hideNik);b.classList.toggle('on',!S.ui.hideNik);b.setAttribute('aria-label',S.ui.hideNik?'הצג ניקוד':'הסתר ניקוד');b.querySelector('span').textContent=S.ui.hideNik?'הצג ניקוד':'הסתר ניקוד'}
+$('#pNik').onclick=()=>{S.ui.hideNik=!S.ui.hideNik;save();const s=playSong(),sc=$('#pScroll'),r=sc.scrollHeight?sc.scrollTop/sc.scrollHeight:0;buildText(s);applyMode();measure();if(S.ui.manual)showPage(P.pi);else{sc.scrollTop=r*sc.scrollHeight;P.pos=sc.scrollTop;P.cur=-1;onPScroll()}updNikShow();fitBar();castPush();toast(S.ui.hideNik?'הניקוד מוסתר':'הניקוד מוצג')};
 function updChordBtn(){const b=$('#pChords');if(!b)return;const s=playSong(),has=!!(s&&s.kind!=='pdf'&&songChords(s).length),hid=!!S.ui.hideChords;b.hidden=!!(s&&s.kind==='pdf');b.classList.toggle('on',!hid&&has);b.setAttribute('aria-label',hid?'הצג אקורדים':'הסתר אקורדים');b.classList.toggle('off',hid);b.setAttribute('aria-pressed',hid?'false':'true')}
 $('#pChords').onclick=()=>{S.ui.hideChords=!S.ui.hideChords;save();$('#pInner').classList.toggle('noCh',S.ui.hideChords);updChordBtn();
  const sc=$('#pScroll');if(S.ui.manual)fitPage(P.parts[P.pi]);else{const r=sc.scrollHeight?sc.scrollTop/sc.scrollHeight:0;measure();sc.scrollTop=r*sc.scrollHeight;P.pos=sc.scrollTop;P.cur=-1;onPScroll()}
@@ -1911,7 +1972,7 @@ function castState(){
  const base={title:s.title,artist:s.artist||'',idx:P.i,count:P.list.length,manual:!!S.ui.manual,mirror:false};
  if(s.kind==='pdf')return Object.assign(base,{kind:'pdf',page:curPart(),pages:P.parts.length});
  const st=s.style,f=font(st.font),L=labelMap(s),parts=[];
- s.parts.forEach(p=>{const src=srcOf(s,p);if(!src||!src.text.trim())return;const cm=S.ui.hideChords?{}:partChordMap(src),ch=[];Object.keys(cm).forEach(l=>cm[l].forEach(c=>ch.push({l:+l,i:c.i,n:c.n,c:shownChord(s,c.c)})));parts.push({n:T(L[p.id])+(p.ref?' ↺':''),t:src.type,c:st.colors[src.type]||'#fff',x:src.text,ch})});
+ s.parts.forEach(p=>{const src=srcOf(s,p);if(!src||!src.text.trim())return;const cm=S.ui.hideChords?{}:partChordMap(src),ch=[];Object.keys(cm).forEach(l=>cm[l].forEach(c=>ch.push({l:+l,i:c.i,n:c.n,c:shownChord(s,c.c)})));parts.push({n:T(L[p.id])+(p.ref?' ↺':''),t:src.type,c:st.colors[src.type]||'#fff',x:S.ui.hideNik?stripNik(src.text):src.text,ch})});
  return Object.assign(base,{kind:'text',cc:chordColor(s),stk:strokeOf(st),font:f.css,w:f.w,align:st.align,lh:st.lh,labels:!!st.labels,size:st.size,parts,part:curPart(),line:Math.max(0,P.cur)});
 }
 function castSend(){
@@ -2129,6 +2190,14 @@ function httpGet(url,bin,ms){
   const id='h'+(++HTTP.n);HTTP.cb[id]={res,rej};
   try{if(bin){if(!window.Android.httpGetData)throw new Error('nobin');window.Android.httpGetData(id,url)}else window.Android.httpGet(id,url)}catch(e){delete HTTP.cb[id];return rej(e)}
   setTimeout(()=>{if(HTTP.cb[id]){delete HTTP.cb[id];rej(new Error('timeout'))}},ms||25000);
+ });
+}
+function httpPost(url,body,ms){
+ return new Promise((res,rej)=>{
+  if(!(window.Android&&window.Android.httpPost))return rej(new Error('nonative'));
+  const id='h'+(++HTTP.n);HTTP.cb[id]={res,rej};
+  try{window.Android.httpPost(id,url,body)}catch(e){delete HTTP.cb[id];return rej(e)}
+  setTimeout(()=>{if(HTTP.cb[id]){delete HTTP.cb[id];rej(new Error('timeout'))}},ms||30000);
  });
 }
 window.__httpDone=function(id,ok,text,finalUrl){const c=HTTP.cb[id];if(!c)return;delete HTTP.cb[id];if(ok)c.res({text:text,url:finalUrl});else c.rej(new Error(text))};
