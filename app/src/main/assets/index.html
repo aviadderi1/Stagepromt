@@ -936,7 +936,7 @@ const I18N_EN={
 'הדבק טקסט וחלק אוטומטית':'Paste text and auto-split','מצב הופעה':'Show mode','גלילה ידנית':'Manual scroll','א-':'A-','א+':'A+','ייבוא מ-PDF':'Import from PDF','חפש':'Search','טוען את StagePromt':'Loading StagePromt','חיפוש שיר, אמן או שורה…':'Search song, artist or line…','חיפוש':'Search','חזרה לספרייה':'Back to library',
 'שם האמן':'Artist','תיקייה':'Folder','יציאה ממצב הופעה':'Exit show mode','חלק קודם':'Previous section','חלק הבא':'Next section','האט גלילה':'Slow down','האץ גלילה':'Speed up','הקטן טקסט':'Smaller text','הגדל טקסט':'Larger text','היפוך צבעים':'Invert colors','מראה':'Mirror',
 'רשימת שירי ההופעה':'Show song list','הסתר סרגל כלים':'Hide toolbar','הצג סרגל כלים':'Show toolbar','שם השיר…':'Song title…','אמן או להקה (לא חובה)':'Artist or band (optional)','אמן או להקה':'Artist or band',
-'שידור':'Cast','ייבוא':'Import','לפי':'by','שיר':'Song','סט':'Set','מילים':'Lyrics','שורה':'line','שפת הממשק':'Interface language','מחפש…':'Searching…','רקע':'Background','רקע למסך ההופעה':'Show background','צבעים':'Colors','צבע אחר':'Other color','ברירת מחדל (שחור)':'Default (black)','הכהיית התמונה (כדי שהמילים יבלטו)':'Darken the image (so the lyrics stand out)','הסר תמונה':'Remove image','מהרשת':'From the web','חפש תמונה (למשל: stage lights) או הדבק קישור':'Search for an image (e.g. stage lights) or paste a link','לא ניתן לקרוא את התמונה':'Can’t read the image','לא ניתן לפתוח את התמונה':'Can’t open the image','לא ניתן להוריד את התמונה':'Can’t download the image','לא ניתן לשמור את התמונה — אין מספיק מקום':'Can’t save the image – not enough space','חיפוש תמונות זמין באפליקציה בטאבלט':'Image search is available in the tablet app','ניקוד':'Vowels','הסר ניקוד':'Remove vowels','הסתר ניקוד':'Hide vowels','הצג ניקוד':'Show vowels','הניקוד הוסר':'Vowels removed','מנקד את השיר…':'Adding vowels…','השיר נוקד':'Vowels added','השיר נוקד (חלק מהקטעים לא נוקדו)':'Vowels added (some sections failed)','הניקוד נכשל – בדוק חיבור לאינטרנט ונסה שוב':'Adding vowels failed – check the internet connection and try again','ניקוד אוטומטי זמין באפליקציה בטאבלט':'Automatic vowels are available in the tablet app','הניקוד מוסתר':'Vowels hidden','הניקוד מוצג':'Vowels shown','תמונות של':'Photos of','תמונות אחרות':'Other photos','בחר תמונה':'Choose photo','לא נמצאו תמונות של':'No photos found of','תמונה':'Photo','אין דוגמה':'No sample','שירונט':'Shironet','זמרשת':'Zemereshet','נגנו':'Nagnu'
+'שידור':'Cast','ייבוא':'Import','לפי':'by','שיר':'Song','סט':'Set','מילים':'Lyrics','שורה':'line','שפת הממשק':'Interface language','מחפש…':'Searching…','רקע':'Background','רקע למסך ההופעה':'Show background','רקע לשיר הזה':'Background for this song','צבעים':'Colors','צבע אחר':'Other color','ברירת מחדל (שחור)':'Default (black)','הכהיית התמונה (כדי שהמילים יבלטו)':'Darken the image (so the lyrics stand out)','הסר תמונה':'Remove image','מהרשת':'From the web','חפש תמונה (למשל: stage lights) או הדבק קישור':'Search for an image (e.g. stage lights) or paste a link','לא ניתן לקרוא את התמונה':'Can’t read the image','לא ניתן לפתוח את התמונה':'Can’t open the image','לא ניתן להוריד את התמונה':'Can’t download the image','לא ניתן לשמור את התמונה — אין מספיק מקום':'Can’t save the image – not enough space','חיפוש תמונות זמין באפליקציה בטאבלט':'Image search is available in the tablet app','ניקוד':'Vowels','הסר ניקוד':'Remove vowels','הסתר ניקוד':'Hide vowels','הצג ניקוד':'Show vowels','הניקוד הוסר':'Vowels removed','מנקד את השיר…':'Adding vowels…','השיר נוקד':'Vowels added','השיר נוקד (חלק מהקטעים לא נוקדו)':'Vowels added (some sections failed)','הניקוד נכשל – בדוק חיבור לאינטרנט ונסה שוב':'Adding vowels failed – check the internet connection and try again','ניקוד אוטומטי זמין באפליקציה בטאבלט':'Automatic vowels are available in the tablet app','הניקוד מוסתר':'Vowels hidden','הניקוד מוצג':'Vowels shown','תמונות של':'Photos of','תמונות אחרות':'Other photos','בחר תמונה':'Choose photo','לא נמצאו תמונות של':'No photos found of','תמונה':'Photo','אין דוגמה':'No sample','שירונט':'Shironet','זמרשת':'Zemereshet','נגנו':'Nagnu'
 };
 const I18N_RE=[
  [/שיר (\d+) מתוך (\d+)/g,'Song $1 of $2'],[/(\d+) מתוך (\d+)/g,'$1 of $2'],
@@ -1168,6 +1168,7 @@ function deleteSong(id){
  const s=S.songs.find(x=>x.id===id);if(!s)return;
  S.songs=S.songs.filter(x=>x.id!==id);
  if(s.pdfId&&!S.songs.some(x=>x.pdfId===s.pdfId)){IDB.del(s.pdfId);delete docCache[s.pdfId]}
+ if(s.bg&&s.bg.id)dropBgImg(s.bg.id);
  save(true);
 }
 function chooseFolder(title,curId,cb){
@@ -1900,21 +1901,23 @@ function updNikShow(){const b=$('#pNik');if(!b)return;const s=playSong(),has=!!(
 $('#pNik').onclick=()=>{S.ui.hideNik=!S.ui.hideNik;save();const s=playSong(),sc=$('#pScroll'),r=sc.scrollHeight?sc.scrollTop/sc.scrollHeight:0;buildText(s);applyMode();measure();if(S.ui.manual)showPage(P.pi);else{sc.scrollTop=r*sc.scrollHeight;P.pos=sc.scrollTop;P.cur=-1;onPScroll()}updNikShow();fitBar();castPush();toast(S.ui.hideNik?'הניקוד מוסתר':'הניקוד מוצג')};
 /* ---- stage background ---- */
 const BG_COLORS=['#000000','#0B0D12','#101826','#0E1A2B','#13233A','#1B1030','#2A0E1E','#2B0B0B','#2A1A0B','#1E2410','#0B2420','#0B2A2E','#1C1C1C','#2E2E2E','#3A2E1A','#FFFFFF'];
-const BG={data:null,loaded:false};
-async function bgData(){if(BG.loaded)return BG.data;BG.loaded=true;const b=S.ui.bg;if(b&&b.type==='img'){try{BG.data=await IDB.get('stage-bg')}catch(e){BG.data=null}}return BG.data}
+const BG={};
+async function bgData(id){if(!id)return null;if(BG[id]!==undefined)return BG[id];try{BG[id]=(await IDB.get(id))||null}catch(e){BG[id]=null}return BG[id]}
+const songBg=()=>{const s=playSong();return (s&&s.bg)||{}};
 async function applyBg(){
- const pl=$('#play .pStage'),b=S.ui.bg||{};
- if(b.type==='img'){const d=await bgData();if(d){const k=(b.dim==null?.45:b.dim);pl.style.background='linear-gradient(rgba(0,0,0,'+k+'),rgba(0,0,0,'+k+')),url("'+d+'") center/cover no-repeat #000';return}}
+ const pl=$('#play .pStage'),s=playSong(),b=songBg();
+ if(b.type==='img'){const d=await bgData(b.id);if(playSong()!==s)return;if(d){const k=(b.dim==null?.45:b.dim);pl.style.background='linear-gradient(rgba(0,0,0,'+k+'),rgba(0,0,0,'+k+')),url("'+d+'") center/cover no-repeat #000';return}}
  pl.style.background=b.type==='color'&&b.c?b.c:'';
 }
-function setBgColor(c){S.ui.bg={type:'color',c};save();applyBg();castPush();renderBgModal()}
+function setBgColor(c){const s=playSong();if(!s)return;const old=s.bg&&s.bg.type==='img'?s.bg.id:null;if(c==='#000000')delete s.bg;else s.bg={type:'color',c};touch(s);dropBgImg(old);applyBg();castPush();renderBgModal()}
 async function setBgImage(dataUrl){
  const img=await new Promise(res=>{const im=new Image();im.onload=()=>res(im);im.onerror=()=>res(null);im.src=dataUrl});
  if(!img)return toast('לא ניתן לקרוא את התמונה');
  const M=1920,r=Math.min(1,M/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*r);c.height=Math.round(img.height*r);c.getContext('2d').drawImage(img,0,0,c.width,c.height);
  const d=c.toDataURL('image/jpeg',.85);
- try{await IDB.put('stage-bg',d)}catch(e){return toast('לא ניתן לשמור את התמונה — אין מספיק מקום')}
- BG.data=d;BG.loaded=true;S.ui.bg={type:'img',dim:(S.ui.bg&&S.ui.bg.dim!=null)?S.ui.bg.dim:.45};save();applyBg();castPush();renderBgModal();
+ const s=playSong();if(!s)return;const id='bg-'+uid();
+ try{await IDB.put(id,d)}catch(e){return toast('לא ניתן לשמור את התמונה — אין מספיק מקום')}
+ const old=s.bg&&s.bg.type==='img'?s.bg.id:null;BG[id]=d;s.bg={type:'img',id,dim:(s.bg&&s.bg.dim!=null)?s.bg.dim:.45};touch(s);dropBgImg(old);applyBg();castPush();renderBgModal();
 }
 async function bgPick(src){
  if(!(window.Android&&window.Android.pickImage)){const i=document.createElement('input');i.type='file';i.accept='image/*';i.onchange=()=>{const f=i.files[0];if(!f)return;const r=new FileReader();r.onload=()=>setBgImage(r.result);r.readAsDataURL(f)};i.click();return}
@@ -1923,6 +1926,7 @@ async function bgPick(src){
  let b64;try{b64=await p}catch(e){if(!/cancel/i.test(e.message||''))toast('לא ניתן לפתוח את התמונה');return}
  setBgImage('data:image/jpeg;base64,'+b64);
 }
+function dropBgImg(id){if(id&&!S.songs.some(x=>x.bg&&x.bg.id===id)){IDB.del(id);delete BG[id]}}
 const BGW={tab:'color',q:'',res:[],busy:false};
 async function bgWebSearch(q){
  q=q.trim();if(!q)return;
@@ -1934,10 +1938,10 @@ async function bgWebSearch(q){
  BGW.busy=false;renderBgModal();
  const G=$('#bgGrid');if(G)BGW.res.forEach((r,i)=>httpGet(r.t,true,15000).then(x=>{const im=G.querySelector('[data-bgi="'+i+'"] img');if(im)im.src=x.text}).catch(()=>{}));
 }
-function bgModal(){BGW.tab=(S.ui.bg&&S.ui.bg.type==='img')?'image':'color';openModal('<div id="bgBox"></div>',true);$('#modal').classList.add('bgModal');renderBgModal()}
+function bgModal(){BGW.tab=songBg().type==='img'?'image':'color';openModal('<div id="bgBox"></div>',true);$('#modal').classList.add('bgModal');renderBgModal()}
 function renderBgModal(){
- const E=$('#bgBox');if(!E)return;const b=S.ui.bg||{},cur=b.type==='color'?b.c:(b.type==='img'?'img':'#000000');
- let h='<h2>'+ic('image',22)+' רקע למסך ההופעה</h2><div class="seg full"><button data-bgt="color" class="'+(BGW.tab==='color'?'on':'')+'">צבעים</button><button data-bgt="image" class="'+(BGW.tab==='image'?'on':'')+'">תמונה</button></div>';
+ const E=$('#bgBox');if(!E)return;const b=songBg(),cur=b.type==='color'?b.c:(b.type==='img'?'img':'#000000');
+ let h='<h2>'+ic('image',22)+' רקע לשיר הזה</h2><p class="mTxt bgFor uc">'+esc((playSong()||{}).title||'')+'</p><div class="seg full"><button data-bgt="color" class="'+(BGW.tab==='color'?'on':'')+'">צבעים</button><button data-bgt="image" class="'+(BGW.tab==='image'?'on':'')+'">תמונה</button></div>';
  if(BGW.tab==='color'){
   h+='<div class="bgFan">'+BG_COLORS.map((c,i)=>'<button class="bgSw'+(cur&&cur.toLowerCase()===c.toLowerCase()?' on':'')+'" style="--c:'+c+';--r:'+(-82+i*11)+'deg" data-bgc="'+c+'" aria-label="צבע '+c+'"></button>').join('')+'</div>'+
    '<div class="row bgCustom"><label for="bgCin">צבע אחר</label><input type="color" id="bgCin" value="'+(b.type==='color'&&b.c?b.c:'#000000')+'"><span class="flex1"></span><button class="btn sm" data-bgc="#000000">ברירת מחדל (שחור)</button></div>';
@@ -1960,7 +1964,7 @@ function renderBgModal(){
  };
  const ci=$('#bgCin');if(ci)ci.onchange=()=>setBgColor(ci.value);
  const q=$('#bgQ');if(q)q.onkeydown=e=>{if(e.key==='Enter'){BGW.q=q.value;bgWebSearch(q.value)}};
- const dm=$('#bgDim');if(dm)dm.oninput=()=>{S.ui.bg.dim=+dm.value;$('#bgDimV').textContent=Math.round(dm.value*100)+'%';save();applyBg()};
+ const dm=$('#bgDim');if(dm)dm.oninput=()=>{const s=playSong();s.bg.dim=+dm.value;$('#bgDimV').textContent=Math.round(dm.value*100)+'%';touch(s);applyBg()};
 }
 $('#pBg').onclick=()=>{P.playing=false;updPlayBtn();bgModal()};
 function updChordBtn(){const b=$('#pChords');if(!b)return;const s=playSong(),has=!!(s&&s.kind!=='pdf'&&songChords(s).length),hid=!!S.ui.hideChords;b.hidden=!!(s&&s.kind==='pdf');b.classList.toggle('on',!hid&&has);b.setAttribute('aria-label',hid?'הצג אקורדים':'הסתר אקורדים');b.classList.toggle('off',hid);b.setAttribute('aria-pressed',hid?'false':'true')}
@@ -2055,7 +2059,7 @@ function castState(){
  if(s.kind==='pdf')return Object.assign(base,{kind:'pdf',page:curPart(),pages:P.parts.length});
  const st=s.style,f=font(st.font),L=labelMap(s),parts=[];
  s.parts.forEach(p=>{const src=srcOf(s,p);if(!src||!src.text.trim())return;const cm=S.ui.hideChords?{}:partChordMap(src),ch=[];Object.keys(cm).forEach(l=>cm[l].forEach(c=>ch.push({l:+l,i:c.i,n:c.n,c:shownChord(s,c.c)})));parts.push({n:T(L[p.id])+(p.ref?' ↺':''),t:src.type,c:st.colors[src.type]||'#fff',x:S.ui.hideNik?stripNik(src.text):src.text,ch})});
- return Object.assign(base,{kind:'text',bgc:(S.ui.bg&&S.ui.bg.type==='color')?S.ui.bg.c:'',cc:chordColor(s),stk:strokeOf(st),font:f.css,w:f.w,align:st.align,lh:st.lh,labels:!!st.labels,size:st.size,parts,part:curPart(),line:Math.max(0,P.cur)});
+ return Object.assign(base,{kind:'text',bgc:(s.bg&&s.bg.type==='color')?s.bg.c:'',cc:chordColor(s),stk:strokeOf(st),font:f.css,w:f.w,align:st.align,lh:st.lh,labels:!!st.labels,size:st.size,parts,part:curPart(),line:Math.max(0,P.cur)});
 }
 function castSend(){
  CAST.t=0;if(!CAST.on)return;
@@ -2975,6 +2979,7 @@ window.appBack=function(){
 $$('i[data-ic]').forEach(e=>{e.outerHTML=ic(e.dataset.ic,+e.dataset.s||20)});
 $('#srcSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(b)pickSource(b.dataset.src)});
 if(LANG==='en'){i18nTree(document.body);new MutationObserver(ms=>{ms.forEach(m=>{if(m.type==='characterData')i18nTree(m.target);else m.addedNodes.forEach(n=>i18nTree(n))})}).observe(document.body,{childList:true,subtree:true,characterData:true})}
+if(S.ui.bg){delete S.ui.bg;save();IDB.del('stage-bg')}
 renderLib();
 if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
 
