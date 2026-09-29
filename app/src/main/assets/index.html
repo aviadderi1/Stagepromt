@@ -573,6 +573,12 @@ html[dir=ltr] svg.fl{transform:scaleX(-1)}
 html[dir=ltr] .lOpen,html[dir=ltr] .stCat,html[dir=ltr] .psRow,html[dir=ltr] .wSugI,html[dir=ltr] .fontOpt,html[dir=ltr] .mItem,html[dir=ltr] .wItem,html[dir=ltr] .sName,html[dir=ltr] .radio,html[dir=ltr] .navTool,html[dir=ltr] .fold{text-align:left}
 html[dir=ltr] .fontOpt .foS{text-align:right}
 html[dir=ltr] .stWrap{flex-direction:row-reverse}
+.imgGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.imgC{position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;background:#17181C;border:2px solid #2A2D33;padding:0;display:flex;align-items:center;justify-content:center;color:var(--mu2)}
+.imgC img{width:100%;height:100%;object-fit:cover;display:block}
+.imgC.on{border-color:var(--am);box-shadow:0 0 0 3px rgba(232,163,61,.3)}
+.imgOk{position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:50%;background:var(--am);color:#111214;display:flex;align-items:center;justify-content:center}
+@media (max-width:700px){.imgGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 </head>
 <body>
@@ -907,7 +913,7 @@ const I18N_EN={
 'הדבק טקסט וחלק אוטומטית':'Paste text and auto-split','מצב הופעה':'Show mode','גלילה ידנית':'Manual scroll','א-':'A-','א+':'A+','ייבוא מ-PDF':'Import from PDF','חפש':'Search','טוען את StagePromt':'Loading StagePromt','חיפוש שיר, אמן או שורה…':'Search song, artist or line…','חיפוש':'Search','חזרה לספרייה':'Back to library',
 'שם האמן':'Artist','תיקייה':'Folder','יציאה ממצב הופעה':'Exit show mode','חלק קודם':'Previous section','חלק הבא':'Next section','האט גלילה':'Slow down','האץ גלילה':'Speed up','הקטן טקסט':'Smaller text','הגדל טקסט':'Larger text','היפוך צבעים':'Invert colors','מראה':'Mirror',
 'רשימת שירי ההופעה':'Show song list','הסתר סרגל כלים':'Hide toolbar','הצג סרגל כלים':'Show toolbar','שם השיר…':'Song title…','אמן או להקה (לא חובה)':'Artist or band (optional)','אמן או להקה':'Artist or band',
-'שידור':'Cast','ייבוא':'Import','לפי':'by','שיר':'Song','סט':'Set','מילים':'Lyrics','שורה':'line','שפת הממשק':'Interface language','מחפש…':'Searching…','אין דוגמה':'No sample','שירונט':'Shironet','זמרשת':'Zemereshet','נגנו':'Nagnu'
+'שידור':'Cast','ייבוא':'Import','לפי':'by','שיר':'Song','סט':'Set','מילים':'Lyrics','שורה':'line','שפת הממשק':'Interface language','מחפש…':'Searching…','תמונות של':'Photos of','תמונות אחרות':'Other photos','בחר תמונה':'Choose photo','לא נמצאו תמונות של':'No photos found of','תמונה':'Photo','אין דוגמה':'No sample','שירונט':'Shironet','זמרשת':'Zemereshet','נגנו':'Nagnu'
 };
 const I18N_RE=[
  [/שיר (\d+) מתוך (\d+)/g,'Song $1 of $2'],[/(\d+) מתוך (\d+)/g,'$1 of $2'],
@@ -1280,7 +1286,7 @@ $('#edKey').addEventListener('change',e=>{const s=curSong();s.key=e.target.value
 $('#edArtist').addEventListener('input',e=>{const s=curSong();s.artist=e.target.value;touch(s)});
 $('#edFolder').addEventListener('change',e=>{const s=curSong();s.folderId=e.target.value||null;touch(s)});
 $('#edBack').onclick=closeEditor;
-$('#edAv').onclick=()=>{const s=curSong();menu('תמונת האמן',[{icon:'search',label:'חפש תמונה לפי שם האמן',fn:()=>refreshSongImage(s)}].concat(s.img?[{icon:'trash',label:'הסר תמונה',danger:true,fn:()=>{delete s.img;touch(s);renderEditor();renderLib()}}]:[]))};
+$('#edAv').onclick=()=>{const s=curSong();menu('תמונת האמן',[{icon:'search',label:'חפש תמונה לפי שם האמן',fn:()=>imgPickModal(s)}].concat(s.img?[{icon:'trash',label:'הסר תמונה',danger:true,fn:()=>{delete s.img;touch(s);renderEditor();renderLib()}}]:[]))};
 $('#edSave').onclick=()=>{save(true);toast('השיר נשמר')};
 $('#edPlay').onclick=()=>{const s=curSong();save(true);if(s.kind!=='pdf'&&!resolve(s).some(p=>p.text.trim()))return toast('הוסף מילים לפני מצב הופעה');startShow([s.id],0)};
 $('#edPaste').onclick=pasteModal;
@@ -2502,7 +2508,7 @@ function shrinkImage(src){
  return new Promise(res=>{
   if(!src||!/^data:image\//.test(src))return res('');
   const im=new Image();im.onload=()=>{const S0=200,c=document.createElement('canvas');c.width=c.height=S0;const x=c.getContext('2d');
-   const r=Math.max(S0/im.width,S0/im.height),w=im.width*r,h=im.height*r;x.drawImage(im,(S0-w)/2,(S0-h)/2,w,h);
+   const r=Math.max(S0/im.width,S0/im.height),w=im.width*r,h=im.height*r;x.drawImage(im,(S0-w)/2,h>w*1.05?(S0-h)*.2:(S0-h)/2,w,h);
    try{res(c.toDataURL('image/jpeg',.82))}catch(e){res('')}};
   im.onerror=()=>res('');im.src=src;
  });
@@ -2516,6 +2522,39 @@ async function webArtistImage(tok){
 }
 function avatarHtml(img,name,cls){return img?'<img class="'+cls+'" src="'+img+'" alt="">':'<span class="'+cls+' ph">'+esc((name||'♪').trim().charAt(0)||'♪')+'</span>'}
 function renderWebImg(){const b=$('#wImg');if(!b||!WEB.cur)return;const c=WEB.cur;b.innerHTML=c.imgBusy?'<span class="wAv ph"><span class="spin"></span></span>':avatarHtml(c.img,c.artist||c.title,'wAv')+(c.img?'<button class="wAvX" id="wImgX" aria-label="הסר תמונה">'+ic('close',12)+'</button>':'')}
+async function artistImageUrls(artist){
+ const E=encodeURIComponent,out=[],add=u=>{if(u&&/^https?:/.test(u)&&!/\/artist\/\/|default|placeholder|\.svg($|\?)/i.test(u)&&!out.includes(u))out.push(u)};
+ const jobs=[];
+ jobs.push((async()=>{const j=await jget('https://api.deezer.com/search/artist?q='+E(artist),7000);const a=(j.data||[]).find(x=>sameName(x.name,artist));if(!a)return [];
+  const r=[a.picture_xl||a.picture_big];try{const al=await jget('https://api.deezer.com/artist/'+a.id+'/albums?limit=12',7000);(al.data||[]).forEach(x=>r.push('ALB:'+(x.cover_xl||x.cover_big)))}catch(e){}return r})().catch(()=>[]));
+ jobs.push(jget('https://www.theaudiodb.com/api/v1/json/2/search.php?s='+E(artist),7000).then(j=>{const a=(j.artists||[])[0];if(!a||!sameName(a.strArtist,artist))return [];return [a.strArtistThumb,a.strArtistFanart,a.strArtistFanart2,a.strArtistFanart3,a.strArtistWideThumb,a.strArtistCutout]}).catch(()=>[]));
+ for(const lang of (HEB.test(artist)?['he','en']:['en','he'])){
+  jobs.push(jget('https://'+lang+'.wikipedia.org/w/api.php?action=query&format=json&redirects=1&titles='+E(artist)+'&generator=images&gimlimit=30&prop=imageinfo&iiprop=url|size&iiurlwidth=500',7000).then(j=>{const pg=Object.values((j.query&&j.query.pages)||{});return pg.filter(p=>p.imageinfo&&/\.(jpe?g|png|webp)$/i.test(p.title)&&!/logo|flag|icon|symbol|map|sign|commons|wiki|disambig|album|cover|poster/i.test(p.title)&&p.imageinfo[0].width>=200).map(p=>p.imageinfo[0].thumburl||p.imageinfo[0].url)}).catch(()=>[]));
+  jobs.push(jget('https://'+lang+'.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages&piprop=thumbnail&pithumbsize=500&redirects=1&titles='+E(artist),7000).then(j=>{const pg=Object.values((j.query&&j.query.pages)||{})[0];return pg&&pg.thumbnail?[pg.thumbnail.source]:[]}).catch(()=>[]));
+ }
+ const got=await Promise.all(jobs);
+ // artist photos first (Deezer photo, TheAudioDB, Wikipedia), album covers last
+ const [dz,adb,w1,w1p,w2,w2p]=got;
+ [dz[0],w1p[0],...adb,w2p[0],...w1,...w2].forEach(add);
+ dz.slice(1).forEach(u=>add(String(u).replace(/^ALB:/,'')));
+ return out;
+}
+function imgPickModal(s){
+ if(!s.artist)return toast('הוסף שם אמן כדי לחפש תמונה');
+ if(!CAN_HTTP)return toast('חיפוש תמונה זמין באפליקציה בטאבלט');
+ const tok=uid();let urls=[],shown=0,sel=-1;const data=[];
+ openModal('<h2>תמונות של <span class="uc">'+esc(s.artist)+'</span></h2><div class="imgGrid" id="imgGrid">'+'<div class="imgC load"><span class="spin"></span></div>'.repeat(4)+'</div><div class="acts"><button class="btn" id="imgMore" hidden>'+ic('repeat',16)+'תמונות אחרות</button><span class="flex1"></span><button class="btn" id="mCancel">ביטול</button><button class="btn pri" id="imgOk" disabled>'+ic('check',18)+'בחר תמונה</button></div>',true);
+ $('#modal').dataset.tok=tok;
+ const alive=()=>$('#modal').dataset.tok===tok&&!$('#modalWrap').hidden;
+ const paint=()=>{if(!alive())return;const G=$('#imgGrid');G.innerHTML=data.slice(shown,shown+4).map((d,k)=>{const i=shown+k;return d===undefined?'<div class="imgC load"><span class="spin"></span></div>':d?'<button class="imgC'+(sel===i?' on':'')+'" data-pick="'+i+'" aria-label="תמונה '+(k+1)+'"><img src="'+d+'" alt="">'+(sel===i?'<span class="imgOk">'+ic('check',18)+'</span>':'')+'</button>':'<div class="imgC none">'+ic('close',18)+'</div>'}).join('')||'<p class="mTxt">לא נמצאו תמונות של '+esc(s.artist)+'</p>';
+  $('#imgOk').disabled=sel<0;$('#imgMore').hidden=urls.length<=shown+4&&shown===0;};
+ const loadPage=()=>{const need=urls.slice(shown,shown+4);need.forEach((u,k)=>{const i=shown+k;if(data[i]!==undefined)return;httpGet(u,true,9000).then(r=>shrinkImage(r.text)).catch(()=>'').then(d=>{data[i]=d;paint()})});paint()};
+ $('#mCancel').onclick=closeModal;
+ $('#imgGrid').onclick=e=>{const b=e.target.closest('[data-pick]');if(!b)return;sel=+b.dataset.pick;paint()};
+ $('#imgMore').onclick=()=>{shown=shown+4>=urls.length?0:shown+4;loadPage()};
+ $('#imgOk').onclick=()=>{if(sel<0||!data[sel])return;s.img=data[sel];touch(s);closeModal();renderEditor();toast('התמונה עודכנה')};
+ artistImageUrls(s.artist).then(u=>{if(!alive())return;urls=u.slice(0,16);if(!urls.length){$('#imgGrid').innerHTML='<p class="mTxt">לא נמצאו תמונות של '+esc(s.artist)+'</p>';return}loadPage()});
+}
 async function refreshSongImage(s){
  if(!s.artist)return toast('הוסף שם אמן כדי לחפש תמונה');
  if(!CAN_HTTP)return toast('חיפוש תמונה זמין באפליקציה בטאבלט');
