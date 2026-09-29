@@ -616,7 +616,7 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
     <button class="edAv" id="edAv" aria-label="תמונת האמן"></button>
     <div class="edTitles">
       <input id="edTitle" dir="auto" class="titleIn" aria-label="שם השיר">
-      <div class="edSub"><input id="edArtist" placeholder="שם האמן" aria-label="שם האמן"><span>·</span><select id="edKey" aria-label="סולם" dir="ltr"></select><span>·</span><select id="edFolder" aria-label="תיקייה"></select></div>
+      <div class="edSub"><input id="edArtist" placeholder="שם האמן" aria-label="שם האמן"><span>·</span><select id="edKey" aria-label="סולם" dir="ltr"></select></div>
     </div>
     <div class="flex1"></div>
     <button class="btn" id="edNik" aria-pressed="false"><i data-ic="nikud" data-s="18"></i><span>ניקוד</span></button>
@@ -1206,8 +1206,6 @@ function renderEditor(){
  $('#edAv').innerHTML=avatarHtml(s.img,s.artist||s.title,'edAvI');
  $('#edTitle').value=s.title;$('#edArtist').value=s.artist||'';
  $('#edKey').innerHTML='<option value="">סולם</option>'+KEYS.map(k=>'<option value="'+k+'"'+(s.key===k?' selected':'')+'>'+k+'</option>').join('');
- $('#edFolder').innerHTML='<option value="">'+T('ללא תיקייה')+'</option>'+S.folders.map(f=>'<option value="'+f.id+'">'+esc(f.name)+'</option>').join('');
- $('#edFolder').value=s.folderId&&S.folders.some(f=>f.id===s.folderId)?s.folderId:'';
  $('#edPaste').hidden=s.kind==='pdf';$('#edNik').hidden=s.kind==='pdf';updNikBtn();$('#edChords').hidden=s.kind==='pdf';
  renderStruct();renderBlocks();renderStyle();
 }
@@ -1289,7 +1287,6 @@ $('#struct').addEventListener('click',e=>{
 $('#edTitle').addEventListener('input',e=>{const s=curSong();s.title=e.target.value;touch(s)});
 $('#edKey').addEventListener('change',e=>{const s=curSong();s.key=e.target.value||'';touch(s)});
 $('#edArtist').addEventListener('input',e=>{const s=curSong();s.artist=e.target.value;touch(s)});
-$('#edFolder').addEventListener('change',e=>{const s=curSong();s.folderId=e.target.value||null;touch(s)});
 $('#edBack').onclick=closeEditor;
 $('#edAv').onclick=()=>{const s=curSong();menu('תמונת האמן',[{icon:'search',label:'חפש תמונה לפי שם האמן',fn:()=>imgPickModal(s)}].concat(s.img?[{icon:'trash',label:'הסר תמונה',danger:true,fn:()=>{delete s.img;touch(s);renderEditor();renderLib()}}]:[]))};
 $('#edSave').onclick=()=>{save(true);toast('השיר נשמר')};
