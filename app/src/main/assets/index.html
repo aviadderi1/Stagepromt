@@ -420,6 +420,7 @@ select.chip{cursor:pointer}
 .pBar.tighter .spd{width:44px}
 .pBar.tighter .pPart{min-width:70px}
 .hdr .btn.act{background:transparent;border:1.5px solid #F2C14E;color:#F7D57A;box-shadow:none}
+.pasteCh{margin-top:12px;height:38px;padding:0 14px;font-size:14px;gap:6px;border:1px solid var(--ln2);background:transparent;color:#ddd}.pasteCh:active{border-color:#FFD34D;color:#FFD34D}
 .chTools{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;padding:12px 16px;background:#17181B;border:1px solid var(--ln2);border-radius:14px;margin-bottom:14px}
 .chHint{flex:1;min-width:280px;display:flex;align-items:center;gap:10px;color:var(--mu);font-size:14px;line-height:1.55}
 .chHint svg{flex-shrink:0;color:#FFC870}
@@ -1495,6 +1496,18 @@ function chordPicker(cur,songList,cb){
 }
 
 /* ---- chord editing view (editor) ---- */
+function firstOfType(s,t){return s.parts.find(p=>!p.ref&&p.type===t&&String(p.text||'').trim())}
+function pasteChords(s,pid){
+ const p=s.parts.find(x=>x.id===pid);if(!p||p.ref)return;const src=firstOfType(s,p.type);if(!src||src===p)return;
+ partChordMap(src);if(!src.chords||!src.chords.length)return toast('אין עדיין אקורדים ב'+(p.type==='verse'?'בית הראשון':'פזמון הראשון'));
+ const nz=t=>String(t||'').split('\n').map((l,i)=>[l,i]).filter(x=>x[0].trim());
+ const sl=nz(src.text),tl=nz(p.text),out=[];
+ src.chords.forEach(ch=>{const k=sl.findIndex(x=>x[1]===ch.l);if(k<0||k>=tl.length)return;const [tt,ti]=tl[k];
+  const sn=clusters(sl[k][0]).length,tn=clusters(tt).length;if(!tn)return;
+  const i=clamp(Math.round(ch.i*(tn-1)/Math.max(1,sn-1)),0,tn-1);out.push({l:ti,i,n:1,c:ch.c,t:tt})});
+ if(!out.length)return toast('אין שורות מתאימות להדבקה');
+ p.chords=out;touch(s);refreshChords();
+}
 function chordBlocks(s){
  const st=s.style,f=font(st.font),L=labelMap(s);
  const cols=CH_COL.map(c=>'<button class="sw'+(chordColor(s).toLowerCase()===c.toLowerCase()?' on':'')+'" style="background:'+c+'" data-chcol="'+c+'" aria-label="צבע אקורדים '+c+'"></button>').join('')+'<input type="color" data-chcolin="1" value="'+chordColor(s)+'" aria-label="צבע אקורדים מותאם">';
@@ -1506,7 +1519,10 @@ function chordBlocks(s){
   h+='<div class="block chv'+(p.ref?' ref':'')+'"><div class="bHead"><span class="chip t-'+src.type+'">'+TYPES[src.type].name+'</span><span class="cnt">'+esc(L[p.id])+(p.ref?' · חוזר – האקורדים משותפים למקור':'')+'</span></div>';
   if(!src.text.trim()){h+='<div class="hint">אין עדיין מילים בחלק הזה</div></div>';return}
   const map=partChordMap(src);
-  h+='<div class="chLines" style="font-family:'+f.css+';font-weight:'+f.w+';text-align:'+st.align+';--chc:'+chordColor(s)+strokeCss(st)+'">'+src.text.split('\n').map((l,li)=>l.trim()?'<div class="cl'+(map[li]?' hasCh':'')+(src.type==='note'?' note':'')+'" dir="auto" data-p="'+p.id+'" data-l="'+li+'" style="color:'+col+'">'+lineHtml(l,map[li])+'</div>':'<div class="gap"></div>').join('')+'</div></div>';
+  h+='<div class="chLines" style="font-family:'+f.css+';font-weight:'+f.w+';text-align:'+st.align+';--chc:'+chordColor(s)+strokeCss(st)+'">'+src.text.split('\n').map((l,li)=>l.trim()?'<div class="cl'+(map[li]?' hasCh':'')+(src.type==='note'?' note':'')+'" dir="auto" data-p="'+p.id+'" data-l="'+li+'" style="color:'+col+'">'+lineHtml(l,map[li])+'</div>':'<div class="gap"></div>').join('')+'</div>';
+  const first=firstOfType(s,src.type);
+  if(!p.ref&&(src.type==='verse'||src.type==='chorus')&&first&&first.id!==src.id)h+='<button class="btn pasteCh" data-pastech="'+p.id+'">'+ic('copy',16)+'הדבק אקורדים</button>';
+  h+='</div>';
  });
  return h;
 }
@@ -1592,6 +1608,7 @@ function chordMenu(pid,k){
  });
  B.addEventListener('click',e=>{
   const tr=e.target.closest('[data-tr]');if(tr){const s=curSong();if(!songChords(s).length&&!s.key)return toast('אין עדיין אקורדים או סולם בשיר');transposeSong(s,+tr.dataset.tr);refreshChords();$('#edKey').innerHTML='<option value="">סולם</option>'+KEYS.concat(s.key&&!KEYS.includes(s.key)?[s.key]:[]).map(k=>'<option value="'+k+'"'+(s.key===k?' selected':'')+'>'+k+'</option>').join('');return toast('הסולם הועבר '+(tr.dataset.tr>0?'חצי טון למעלה':'חצי טון למטה')+(s.key?' · '+s.key:''))}
+  const pc=e.target.closest('[data-pastech]');if(pc)return pasteChords(curSong(),pc.dataset.pastech);
   const t=e.target.closest('[data-chcol]');if(t){const s=curSong();s.style.chordColor=t.dataset.chcol;touch(s);refreshChords();renderStyle()}
  });
  B.addEventListener('change',e=>{if(e.target.id==='chCapo'){const s=curSong();s.capo=+e.target.value||0;if(!s.capo)delete s.capo;touch(s);return toast(s.capo?'קאפו '+s.capo+' – במסך ההופעה יוצגו תנוחות האקורדים עם קאפו':'ללא קאפו')}
