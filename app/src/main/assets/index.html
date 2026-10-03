@@ -546,8 +546,8 @@ select.chip{cursor:pointer}
 .stCard{display:flex;align-items:center;gap:16px;padding:16px 18px;background:#17181C;border:1px solid #2A2D33;border-radius:14px}
 .stCard b{display:block;font-size:16px}
 .stCard p{margin:4px 0 0;color:var(--mu);font-size:14px;line-height:1.5}
-.fontRow{display:flex;gap:8px;align-items:flex-start}
-.fontDD{flex:1;min-width:0;position:relative}
+.fontRow{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start}.fontRow .strokeBtn{flex:1;justify-content:center}
+.fontDD{flex:1 1 100%;min-width:0;position:relative}
 .fontCur{width:100%;height:48px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 14px;background:var(--fld);color:var(--tx);border:1px solid var(--ln2);border-radius:10px;font-size:18px}
 .fontDD.open .fontCur{border-color:var(--am);border-radius:10px 10px 0 0}
 .fontList{display:flex;flex-direction:column;background:#17181C;border:1px solid var(--am);border-top:0;border-radius:0 0 10px 10px;overflow:hidden}
@@ -560,7 +560,9 @@ select.chip{cursor:pointer}
 .stkOpts .swRow{gap:6px}
 .stkOpts .sw{width:30px;height:30px}
 .stkOpts input[type=color]{width:30px;height:30px}
-.pInner .sec,.endHint,.pvL,.ch{-webkit-text-stroke:0}
+.pInner .sec,.endHint,.pvL{-webkit-text-stroke:0;text-shadow:none}
+.ch{-webkit-text-stroke:var(--chsk,0px transparent);paint-order:stroke fill;text-shadow:none}
+.chStkRow{display:flex;margin:8px 0 4px}.strokeBtn.sm{height:42px;font-size:13.5px}.strokeBtn.sm .stkDemo{font-size:17px}
 .fontList{max-height:420px;overflow-y:auto}
 .fontG{padding:8px 14px 4px;font-size:11.5px;font-weight:700;color:var(--mu2);letter-spacing:.5px;background:#141518}
 .fontOpt{flex-shrink:0;gap:10px;justify-content:flex-start}
@@ -823,7 +825,10 @@ const FONT_G={sans:'ללא תגים',serif:'עם תגים (קלאסי)',hand:'כ
 const font=id=>FONTS.find(f=>f.id===id)||FONTS[0];
 const STK_COL=['#000000','#FFFFFF','#E8A33D','#1D3557','#7A1E1E'];
 function strokeOf(st){const k=st&&st.stroke;return k&&k.on?{c:k.c||'#000000',w:k.w||3}:null}
-function strokeCss(st){const k=strokeOf(st);return k?';-webkit-text-stroke:calc('+k.w+' * .03em) '+k.c+';paint-order:stroke fill':''}
+function shadowOf(st){const k=st&&st.shadow;return k&&k.on?{c:k.c||'#000000',k:k.k||5}:null}
+function chStrokeOf(st){const k=st&&st.chStroke;return k&&k.on?{c:k.c||'#000000',w:k.w||3}:null}
+function shadowVal(h){const k=h.k;return (k*.006).toFixed(3)+'em '+(k*.012).toFixed(3)+'em '+(k*.022).toFixed(3)+'em '+h.c+', 0 0 '+(k*.03).toFixed(3)+'em '+h.c}
+function strokeCss(st){const k=strokeOf(st),h=shadowOf(st),c=chStrokeOf(st);return (k?';-webkit-text-stroke:calc('+k.w+' * .03em) '+k.c+';paint-order:stroke fill':'')+(h?';text-shadow:'+shadowVal(h):'')+(c?';--chsk:calc('+c.w+' * .04em) '+c.c:'')}
 const STY={fdd:false};
 const DEF_STYLE={font:'Assistant',size:64,lh:1.35,align:'center',labels:true,colors:{verse:'#F3D9A8',chorus:'#A9D2FA',bridge:'#D8C2F5',note:'#9A958C'}};
 const SW={verse:['#F3D9A8','#FFFFFF','#FFD166','#9BE3B5'],chorus:['#A9D2FA','#FFFFFF','#7FE0E6','#FF9E7A'],bridge:['#D8C2F5','#FFFFFF','#F5A3C0','#FFD166'],note:['#9A958C','#FFFFFF','#E8A33D','#7FE0E6']};
@@ -1334,16 +1339,22 @@ function renderStyle(){
  const s=curSong(),st=s.style,E=$('#style');
  if(s.kind==='pdf'){E.innerHTML='<div class="grp"><div class="lbl">תצוגה בהופעה</div><label class="tgl"><input type="checkbox" id="stInv"'+(s.invert?' checked':'')+'><span>היפוך צבעים: רקע כהה וטקסט בהיר</span></label><div class="hint">מומלץ על במה חשוכה — דף לבן מסנוור.</div></div>';return}
  const cn={verse:'בית',chorus:'פזמון',bridge:'גשר',note:'הערה'};
- const cf=font(st.font),sk=st.stroke||{};
+ const cf=font(st.font),sk=st.stroke||{},sh=st.shadow||{},ck=st.chStroke||{};
  E.innerHTML='<div class="grp"><div class="lbl">גופן</div><div class="fontRow"><div class="fontDD'+(STY.fdd?' open':'')+'"><button class="fontCur" data-fdd="1" aria-expanded="'+STY.fdd+'" style="font-family:'+cf.css+';font-weight:'+cf.w+'"><span>'+cf.label+'</span>'+ic(STY.fdd?'up':'down',16)+'</button>'+
   (STY.fdd?'<div class="fontList" role="listbox">'+FONTS.map((f,i)=>(i===0||FONTS[i-1].g!==f.g?'<div class="fontG">'+FONT_G[f.g]+'</div>':'')+'<button class="fontOpt'+(st.font===f.id?' on':'')+'" role="option" data-font="'+f.id+'" style="font-family:'+f.css+';font-weight:'+f.w+'"><span class="foN">'+f.label+'</span><span class="foS">שיר</span>'+(st.font===f.id?ic('check',16):'')+'</button>').join('')+'</div>':'')+'</div>'+
-  '<button class="strokeBtn'+(sk.on?' on':'')+'" data-stroke="1" aria-pressed="'+!!sk.on+'"><span class="stkDemo" style="-webkit-text-stroke:1.2px '+(sk.on?(sk.c||'#000'):'#F2EEE6')+';paint-order:stroke fill;color:'+(sk.on?'#F2EEE6':'transparent')+'">A</span>Stroke</button></div>'+
+  '<button class="strokeBtn'+(sk.on?' on':'')+'" data-stroke="1" aria-pressed="'+!!sk.on+'"><span class="stkDemo" style="-webkit-text-stroke:1.2px '+(sk.on?(sk.c||'#000'):'#F2EEE6')+';paint-order:stroke fill;color:'+(sk.on?'#F2EEE6':'transparent')+'">A</span>Stroke</button>'+
+  '<button class="strokeBtn'+(sh.on?' on':'')+'" data-shadow="1" aria-pressed="'+!!sh.on+'"><span class="stkDemo" style="color:#F2EEE6;text-shadow:2px 3px 4px '+(sh.on?(sh.c||'#000'):'rgba(0,0,0,.9)')+'">A</span>Shadow</button></div>'+
   (sk.on?'<div class="stkOpts"><div class="lbl">צבע</div><div class="swRow">'+STK_COL.map(c=>'<button class="sw'+((sk.c||'#000000').toLowerCase()===c.toLowerCase()?' on':'')+'" style="background:'+c+'" data-stc="'+c+'" aria-label="צבע קו מתאר '+c+'"></button>').join('')+'<input type="color" data-stcin="1" value="'+(sk.c||'#000000')+'" aria-label="צבע קו מתאר מותאם"></div>'+
-   '<div class="row"><label class="lbl flex1" for="stkW">עובי</label><b id="stkWV">'+(sk.w||3)+'</b></div><input id="stkW" type="range" min="1" max="10" step="1" value="'+(sk.w||3)+'"></div>':'')+'</div>'+
+   '<div class="row"><label class="lbl flex1" for="stkW">עובי</label><b id="stkWV">'+(sk.w||3)+'</b></div><input id="stkW" type="range" min="1" max="10" step="1" value="'+(sk.w||3)+'"></div>':'')+
+  (sh.on?'<div class="stkOpts"><div class="lbl">צבע הצל</div><div class="swRow">'+STK_COL.map(c=>'<button class="sw'+((sh.c||'#000000').toLowerCase()===c.toLowerCase()?' on':'')+'" style="background:'+c+'" data-shc="'+c+'" aria-label="צבע צל '+c+'"></button>').join('')+'<input type="color" data-shcin="1" value="'+(sh.c||'#000000')+'" aria-label="צבע צל מותאם"></div>'+
+   '<div class="row"><label class="lbl flex1" for="shK">עוצמה</label><b id="shKV">'+(sh.k||5)+'</b></div><input id="shK" type="range" min="1" max="10" step="1" value="'+(sh.k||5)+'"></div>':'')+'</div>'+
  '<div class="grp"><div class="row"><label class="lbl flex1" for="stSize">גודל טקסט בהופעה</label><b id="stSizeV">'+st.size+'</b></div><input id="stSize" type="range" min="28" max="160" step="2" value="'+st.size+'"></div>'+
  '<div class="grp"><div class="row"><label class="lbl flex1" for="stLh">ריווח שורות</label><b id="stLhV">'+st.lh.toFixed(2)+'</b></div><input id="stLh" type="range" min="1.05" max="1.9" step="0.05" value="'+st.lh+'"></div>'+
  '<div class="grp"><div class="lbl">צבע לפי חלק</div>'+Object.keys(SW).map(t=>'<div class="swRow"><span class="nm">'+cn[t]+'</span>'+SW[t].map(c=>'<button class="sw'+(st.colors[t].toLowerCase()===c.toLowerCase()?' on':'')+'" style="background:'+c+'" data-col="'+t+'" data-c="'+c+'" aria-label="צבע '+c+'"></button>').join('')+'<input type="color" data-colin="'+t+'" value="'+st.colors[t]+'" aria-label="צבע מותאם ל'+cn[t]+'"></div>').join('')+'</div>'+
  '<div class="swRow chRow"><span class="nm">אקורדים</span>'+CH_COL.slice(0,4).map(c=>'<button class="sw'+(chordColor(s).toLowerCase()===c.toLowerCase()?' on':'')+'" style="background:'+c+'" data-chc="'+c+'" aria-label="צבע אקורדים '+c+'"></button>').join('')+'<input type="color" data-chcin="1" value="'+chordColor(s)+'" aria-label="צבע אקורדים מותאם"></div>'+
+ '<div class="chStkRow"><button class="strokeBtn sm'+(ck.on?' on':'')+'" data-chstk="1" aria-pressed="'+!!ck.on+'"><span class="stkDemo" style="-webkit-text-stroke:1.2px '+(ck.on?(ck.c||'#000'):chordColor(s))+';paint-order:stroke fill;color:'+(ck.on?chordColor(s):'transparent')+'">Am</span>Stroke לאקורדים</button></div>'+
+ (ck.on?'<div class="stkOpts"><div class="lbl">צבע</div><div class="swRow">'+STK_COL.map(c=>'<button class="sw'+((ck.c||'#000000').toLowerCase()===c.toLowerCase()?' on':'')+'" style="background:'+c+'" data-cksc="'+c+'" aria-label="צבע קו מתאר לאקורדים '+c+'"></button>').join('')+'<input type="color" data-ckscin="1" value="'+(ck.c||'#000000')+'" aria-label="צבע מותאם"></div>'+
+   '<div class="row"><label class="lbl flex1" for="ckW">עובי</label><b id="ckWV">'+(ck.w||3)+'</b></div><input id="ckW" type="range" min="1" max="10" step="1" value="'+(ck.w||3)+'"></div>':'')+
  '<div class="grp"><div class="lbl">יישור</div><div class="seg full"><button data-al="center" class="'+(st.align==='center'?'on':'')+'">מרכז</button><button data-al="right" class="'+(st.align==='right'?'on':'')+'">ימין</button></div></div>'+
  '<label class="tgl"><input type="checkbox" id="stLabels"'+(st.labels?' checked':'')+'><span>הצג שמות חלקים בהופעה</span></label>'+
  '<div class="preview" id="stPrev"></div>'+
@@ -1364,6 +1375,10 @@ $('#style').addEventListener('click',e=>{
  if(d.font){st.font=d.font;STY.fdd=false;touch(s);renderBlocks();renderStyle();return}
  if(d.stroke){st.stroke=Object.assign({c:'#000000',w:3},st.stroke||{});st.stroke.on=!st.stroke.on;touch(s);renderBlocks();renderStyle();return}
  if(d.stc){st.stroke.c=d.stc;touch(s);renderBlocks();renderStyle();return}
+ if(d.shadow){st.shadow=Object.assign({c:'#000000',k:5},st.shadow||{});st.shadow.on=!st.shadow.on;touch(s);renderBlocks();renderStyle();return}
+ if(d.shc){st.shadow.c=d.shc;touch(s);renderBlocks();renderStyle();return}
+ if(d.chstk){st.chStroke=Object.assign({c:'#000000',w:3},st.chStroke||{});st.chStroke.on=!st.chStroke.on;touch(s);renderBlocks();renderStyle();return}
+ if(d.cksc){st.chStroke.c=d.cksc;touch(s);renderBlocks();renderStyle();return}
  if(d.col){st.colors[d.col]=d.c;touch(s);renderBlocks();renderStyle();return}
  if(d.al){st.align=d.al;touch(s);renderStyle();return}
  if(d.chc){st.chordColor=d.chc;touch(s);renderStyle();if(ED.chords)refreshChords();return}
@@ -1371,6 +1386,8 @@ $('#style').addEventListener('click',e=>{
 });
 $('#style').addEventListener('input',e=>{
  const t=e.target,s=curSong(),st=s.style;
+ if(t.id==='shK'){st.shadow.k=+t.value;$('#shKV').textContent=t.value;touch(s);renderBlocks();updatePreview();return}
+ if(t.id==='ckW'){st.chStroke.w=+t.value;$('#ckWV').textContent=t.value;touch(s);renderBlocks();updatePreview();return}
  if(t.id==='stkW'){st.stroke.w=+t.value;$('#stkWV').textContent=t.value;touch(s);renderBlocks();updatePreview();return}
  if(t.id==='stSize'){st.size=+t.value;$('#stSizeV').textContent=st.size;touch(s);updatePreview()}
  else if(t.id==='stLh'){st.lh=+t.value;$('#stLhV').textContent=st.lh.toFixed(2);touch(s);updatePreview()}
@@ -1379,6 +1396,8 @@ $('#style').addEventListener('change',e=>{
  const t=e.target,s=curSong();
  if(t.dataset.colin){s.style.colors[t.dataset.colin]=t.value;touch(s);renderBlocks();renderStyle()}
  else if(t.dataset.stcin){s.style.stroke.c=t.value;touch(s);renderBlocks();renderStyle()}
+ else if(t.dataset.shcin){s.style.shadow.c=t.value;touch(s);renderBlocks();renderStyle()}
+ else if(t.dataset.ckscin){s.style.chStroke.c=t.value;touch(s);renderBlocks();renderStyle()}
  else if(t.dataset.chcin){s.style.chordColor=t.value;touch(s);renderStyle();if(ED.chords)refreshChords()}
  else if(t.id==='stLabels'){s.style.labels=t.checked;touch(s)}
  else if(t.id==='stInv'){s.invert=t.checked;touch(s)}
@@ -2086,7 +2105,7 @@ function castState(){
  const st=s.style,f=font(st.font),L=labelMap(s),parts=[];
  s.parts.forEach(p=>{const src=srcOf(s,p);if(!src||!src.text.trim())return;const cm=S.ui.hideChords?{}:partChordMap(src),ch=[];Object.keys(cm).forEach(l=>cm[l].forEach(c=>ch.push({l:+l,i:c.i,n:c.n,c:shownChord(s,c.c)})));parts.push({n:T(L[p.id])+(p.ref?' ↺':''),t:src.type,c:st.colors[src.type]||'#fff',x:S.ui.hideNik?stripNik(src.text):src.text,ch})});
  const bi=s.bg&&s.bg.type==='img'&&s.bg.id&&BG[s.bg.id]?s.bg:null;
- return Object.assign(base,{kind:'text',bgc:(s.bg&&s.bg.type==='color')?s.bg.c:'',bgi:bi?bi.id:'',bgd:bi?(bi.dim==null?.45:bi.dim):null,bgsrc:bi&&!CAN_CAST?BG[bi.id]:'',cc:chordColor(s),stk:strokeOf(st),font:f.css,w:f.w,align:st.align,lh:st.lh,labels:!!st.labels,size:st.size,parts,part:curPart(),line:Math.max(0,P.cur)});
+ return Object.assign(base,{kind:'text',bgc:(s.bg&&s.bg.type==='color')?s.bg.c:'',bgi:bi?bi.id:'',bgd:bi?(bi.dim==null?.45:bi.dim):null,bgsrc:bi&&!CAN_CAST?BG[bi.id]:'',cc:chordColor(s),stk:strokeOf(st),shd:shadowOf(st),chsk:chStrokeOf(st),font:f.css,w:f.w,align:st.align,lh:st.lh,labels:!!st.labels,size:st.size,parts,part:curPart(),line:Math.max(0,P.cur)});
 }
 function castSend(){
  CAST.t=0;if(!CAST.on)return;
