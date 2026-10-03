@@ -42,16 +42,13 @@ html,body{margin:0;height:100%;background:#000;color:#F2EEE6;overflow:hidden;fon
 .ln{text-shadow:var(--sh,none)}
 .sec{-webkit-text-stroke:0;text-shadow:none}.ch{-webkit-text-stroke:0;text-shadow:var(--chsh,none)}
 #dot{position:fixed;left:14px;bottom:14px;width:10px;height:10px;border-radius:50%;background:#E0675C;display:none;z-index:3}
-.bgImg{position:absolute;inset:-7%;background:center/cover no-repeat;animation:bgKb 38s ease-in-out infinite alternate;will-change:transform}
-@keyframes bgKb{0%{transform:scale(1) translate3d(0,0,0)}50%{transform:scale(1.07) translate3d(-2.2%,1.2%,0)}100%{transform:scale(1.12) translate3d(2%,-1.6%,0)}}
-.bgFx{position:absolute;inset:-50% 0 0 0;opacity:.55;background-image:radial-gradient(2px 2px at 20% 30%,rgba(255,255,255,.9),transparent),radial-gradient(1.5px 1.5px at 70% 60%,rgba(255,240,200,.8),transparent),radial-gradient(2.5px 2.5px at 40% 80%,rgba(255,255,255,.6),transparent),radial-gradient(1.5px 1.5px at 85% 15%,rgba(200,230,255,.8),transparent),radial-gradient(2px 2px at 10% 65%,rgba(255,220,180,.7),transparent);background-size:340px 340px;animation:bgFloat 26s linear infinite;will-change:transform}
-@keyframes bgFloat{from{transform:translate3d(0,0,0)}to{transform:translate3d(-40px,-340px,0)}}
-.bgSweep{position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.07) 50%,transparent 65%);background-size:250% 100%;animation:bgSweep 14s ease-in-out infinite}
-@keyframes bgSweep{0%{background-position:120% 0}100%{background-position:-120% 0}}
+.bgImg{position:absolute;inset:0;background:center/cover no-repeat;animation:bgKb 70s ease-in-out infinite alternate;backface-visibility:hidden}
+@keyframes bgKb{from{transform:scale(1.0)}to{transform:scale(1.09)}}
 .bgDim{position:absolute;inset:0}
 /*x*/.bglA{position:absolute;top:5px;right:5px;width:30px;height:30px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#BDB6AA;display:flex;align-items:center;justify-content:center}.bglA.on{background:#E8A33D;color:#1A1205;box-shadow:0 0 10px rgba(232,163,61,.7)}
 #bgAnimT svg{margin-inline-end:6px}
 </style>
+<script src="scenes.js"></script>
 </head>
 <body>
 <div id="bg"></div><div id="sc"><div id="in"></div></div>
@@ -101,8 +98,9 @@ function loop(){
 }
 function setBg(s){const b=$('#bg');let css='';
  if(s&&s.bgi&&s.bga){const k=s.bgd==null?.45:s.bgd,src=s.bgsrc||('bg?'+encodeURIComponent(s.bgi));const key='a|'+src.slice(0,80)+'|'+k;
-  if(b.dataset.css!==key){b.dataset.css=key;b.style.background='#000';b.innerHTML='<div class="bgImg"></div><div class="bgFx"></div><div class="bgSweep"></div><div class="bgDim"></div>';b.querySelector('.bgImg').style.backgroundImage='url("'+src+'")';b.querySelector('.bgDim').style.background='rgba(0,0,0,'+k+')'}return}
- if(b.innerHTML)b.innerHTML='';
+  const live=!!(s.bgsc&&window.Scene&&Scene.has(s.bgsc));const key2=key+'|'+(live?s.bgsc:'');
+  if(b.dataset.css!==key2){b.dataset.css=key2;if(window._scn){_scn.stop();_scn=null}b.style.background='#000';b.innerHTML=(live?'':'<div class="bgImg"></div>')+'<div class="bgDim"></div>';if(live){window._scn=Scene.start(b,s.bgsc,{q:.5});b.appendChild(b.querySelector('.bgDim'))}else b.querySelector('.bgImg').style.backgroundImage='url("'+src+'")';b.querySelector('.bgDim').style.background='rgba(0,0,0,'+k+')'}return}
+ if(window._scn){_scn.stop();_scn=null}if(b.innerHTML)b.innerHTML='';
  if(s&&s.bgi){const k=s.bgd==null?.45:s.bgd;css='linear-gradient(rgba(0,0,0,'+k+'),rgba(0,0,0,'+k+')),url("'+(s.bgsrc||('bg?'+encodeURIComponent(s.bgi)))+'") center/cover no-repeat #000'}
  else if(s&&s.bgc)css=s.bgc;
  if(b.dataset.css!==css){b.dataset.css=css;b.style.background=css}}

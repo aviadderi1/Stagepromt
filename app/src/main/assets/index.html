@@ -185,12 +185,8 @@ select.chip{cursor:pointer}
 .prog.last i{background:#FF4D4D;box-shadow:0 0 8px rgba(255,77,77,.6)}
 .pStage{flex:1;position:relative;min-height:0}
 .pBgA{position:absolute;inset:0;overflow:hidden;pointer-events:none}.pBgA[hidden]{display:none}
-.bgImg{position:absolute;inset:-7%;background:center/cover no-repeat;animation:bgKb 38s ease-in-out infinite alternate;will-change:transform}
-@keyframes bgKb{0%{transform:scale(1) translate3d(0,0,0)}50%{transform:scale(1.07) translate3d(-2.2%,1.2%,0)}100%{transform:scale(1.12) translate3d(2%,-1.6%,0)}}
-.bgFx{position:absolute;inset:-50% 0 0 0;opacity:.55;background-image:radial-gradient(2px 2px at 20% 30%,rgba(255,255,255,.9),transparent),radial-gradient(1.5px 1.5px at 70% 60%,rgba(255,240,200,.8),transparent),radial-gradient(2.5px 2.5px at 40% 80%,rgba(255,255,255,.6),transparent),radial-gradient(1.5px 1.5px at 85% 15%,rgba(200,230,255,.8),transparent),radial-gradient(2px 2px at 10% 65%,rgba(255,220,180,.7),transparent);background-size:340px 340px;animation:bgFloat 26s linear infinite;will-change:transform}
-@keyframes bgFloat{from{transform:translate3d(0,0,0)}to{transform:translate3d(-40px,-340px,0)}}
-.bgSweep{position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.07) 50%,transparent 65%);background-size:250% 100%;animation:bgSweep 14s ease-in-out infinite}
-@keyframes bgSweep{0%{background-position:120% 0}100%{background-position:-120% 0}}
+.bgImg{position:absolute;inset:0;background:center/cover no-repeat;animation:bgKb 70s ease-in-out infinite alternate;transform-origin:50% 50%;backface-visibility:hidden}
+@keyframes bgKb{from{transform:scale(1.0)}to{transform:scale(1.09)}}
 .bgDim{position:absolute;inset:0}
 .bglA{position:absolute;top:5px;right:5px;width:30px;height:30px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#BDB6AA;display:flex;align-items:center;justify-content:center}.bglA.on{background:#E8A33D;color:#1A1205;box-shadow:0 0 10px rgba(232,163,61,.7)}
 #bgAnimT svg{margin-inline-end:6px}
@@ -750,6 +746,7 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
 <input type="file" id="fileIn" accept="application/pdf,.pdf" hidden>
 <script src="lib/pdf.min.js"></script>
 <script src="lib/qrcode.js"></script>
+<script src="scenes.js"></script>
 <script>
 'use strict';
 /* ========= core ========= */
@@ -2141,23 +2138,26 @@ const BG_COLORS=['#000000','#0B0D12','#101826','#0E1A2B','#13233A','#1B1030','#2
 const BG={};
 async function bgData(id){if(!id)return null;if(BG[id]!==undefined)return BG[id];try{BG[id]=(await IDB.get(id))||null}catch(e){BG[id]=null}return BG[id]}
 const songBg=()=>{const s=playSong();return (s&&s.bg)||{}};
-const BGA_FX='<div class="bgFx"></div><div class="bgSweep"></div>';
+let SCN=null;
+function stopScene(){if(SCN){SCN.stop();SCN=null}}
 async function applyBg(){
  const pl=$('#play .pStage'),s=playSong(),b=songBg(),A=$('#pBgA');
- if(b.type==='img'&&b.anim){const d=await bgData(b.id);if(playSong()!==s)return;if(d){const k=(b.dim==null?.45:b.dim);pl.style.background='#000';if(A.dataset.k!==b.id){A.dataset.k=b.id;A.innerHTML='<div class="bgImg"></div>'+BGA_FX+'<div class="bgDim"></div>';$('.bgImg',A).style.backgroundImage='url("'+d+'")'}$('.bgDim',A).style.background='rgba(0,0,0,'+k+')';A.hidden=false;return}}
- A.hidden=true;A.innerHTML='';A.dataset.k='';
+ if(b.type==='img'&&b.anim){const d=await bgData(b.id);if(playSong()!==s)return;if(d){const k=(b.dim==null?.45:b.dim),live=!!(b.scene&&window.Scene&&Scene.has(b.scene)),key=b.id+'|'+(live?b.scene:'');pl.style.background='#000';A.hidden=false;
+   if(A.dataset.k!==key){stopScene();A.dataset.k=key;A.innerHTML=(live?'':'<div class="bgImg"></div>')+'<div class="bgDim"></div>';if(live)SCN=Scene.start(A,b.scene);else $('.bgImg',A).style.backgroundImage='url("'+d+'")';const dm=$('.bgDim',A);if(live)A.appendChild(dm)}
+   $('.bgDim',A).style.background='rgba(0,0,0,'+k+')';return}}
+ stopScene();A.hidden=true;A.innerHTML='';A.dataset.k='';
  if(b.type==='img'){const d=await bgData(b.id);if(playSong()!==s)return;if(d){const k=(b.dim==null?.45:b.dim);pl.style.background='linear-gradient(rgba(0,0,0,'+k+'),rgba(0,0,0,'+k+')),url("'+d+'") center/cover no-repeat #000';return}}
  pl.style.background=b.type==='color'&&b.c?b.c:'';
 }
 function setBgColor(c){const s=playSong();if(!s)return;const old=s.bg&&s.bg.type==='img'?s.bg.id:null;if(c==='#000000')delete s.bg;else s.bg={type:'color',c};touch(s);dropBgImg(old);applyBg();castPush();renderBgModal()}
-async function setBgImage(dataUrl,anim){
+async function setBgImage(dataUrl,anim,scene){
  const img=await new Promise(res=>{const im=new Image();im.onload=()=>res(im);im.onerror=()=>res(null);im.src=dataUrl});
  if(!img)return toast('לא ניתן לקרוא את התמונה');
  const M=1920,r=Math.min(1,M/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*r);c.height=Math.round(img.height*r);c.getContext('2d').drawImage(img,0,0,c.width,c.height);
  const d=c.toDataURL('image/jpeg',.85);
  const s=playSong();if(!s)return;const id='bg-'+uid();
  try{await IDB.put(id,d)}catch(e){return toast('לא ניתן לשמור את התמונה — אין מספיק מקום')}
- const old=s.bg&&s.bg.type==='img'?s.bg.id:null;BG[id]=d;s.bg={type:'img',id,dim:(s.bg&&s.bg.dim!=null)?s.bg.dim:.45};if(anim)s.bg.anim=1;touch(s);dropBgImg(old);applyBg();castPush();renderBgModal();
+ const old=s.bg&&s.bg.type==='img'?s.bg.id:null;BG[id]=d;s.bg={type:'img',id,dim:(s.bg&&s.bg.dim!=null)?s.bg.dim:.45};if(anim)s.bg.anim=1;if(scene)s.bg.scene=scene;touch(s);dropBgImg(old);applyBg();castPush();renderBgModal();
 }
 function pickImageData(src){
  if(!(window.Android&&window.Android.pickImage))return new Promise(res=>{const i=document.createElement('input');i.type='file';i.accept='image/*';i.onchange=()=>{const f=i.files[0];if(!f)return res(null);const r=new FileReader();r.onload=()=>res(r.result);r.readAsDataURL(f)};i.click()});
@@ -2184,7 +2184,7 @@ async function bglUse(kind,id){
  BGW.busy=true;renderBgModal();let d=null;
  try{if(kind==='b')d=await imgToData('bglib/'+id+'.jpg',1920,.9);else d=await IDB.get('lib-'+id)}catch(e){}
  BGW.busy=false;if(!d){renderBgModal();return toast('לא ניתן לטעון את התמונה')}
- BGL.open=false;setBgImage(d,bglAnimOn(kind,id));
+ BGL.open=false;setBgImage(d,bglAnimOn(kind,id),kind==='b'?id:((bglItems().find(x=>x.id===id)||{}).rid||''));
 }
 async function bglAddDevice(){const d=await pickImageData('device');if(!d)return;BGL.busy='מוסיף…';renderBgModal();await bglAdd(d,'','mine');BGL.busy='';renderBgModal()}
 async function bglUpdate(){
@@ -2461,7 +2461,7 @@ function castState(){
  const st=s.style,f=font(st.font),L=labelMap(s),parts=[];
  s.parts.forEach(p=>{const src=srcOf(s,p);if(!src||!src.text.trim())return;const cm=S.ui.hideChords?{}:partChordMap(src),ch=[];Object.keys(cm).forEach(l=>cm[l].forEach(c=>ch.push({l:+l,i:c.i,n:c.n,c:shownChord(s,c.c)})));parts.push({n:T(L[p.id])+(p.ref?' ↺':''),t:src.type,c:st.colors[src.type]||'#fff',x:S.ui.hideNik?stripNik(src.text):src.text,ch})});
  const bi=s.bg&&s.bg.type==='img'&&s.bg.id&&BG[s.bg.id]?s.bg:null;
- return Object.assign(base,{kind:'text',bgc:(s.bg&&s.bg.type==='color')?s.bg.c:'',bgi:bi?bi.id:'',bga:bi&&bi.anim?1:0,bgd:bi?(bi.dim==null?.45:bi.dim):null,bgsrc:bi&&!CAN_CAST?BG[bi.id]:'',cc:chordColor(s),stk:strokeOf(st),shd:shadowOf(st),chsk:chStrokeOf(st),font:f.css,w:f.w,align:st.align,lh:st.lh,labels:!!st.labels,size:st.size,parts,part:curPart(),line:Math.max(0,P.cur)});
+ return Object.assign(base,{kind:'text',bgc:(s.bg&&s.bg.type==='color')?s.bg.c:'',bgi:bi?bi.id:'',bga:bi&&bi.anim?1:0,bgsc:bi&&bi.anim&&bi.scene?bi.scene:'',bgd:bi?(bi.dim==null?.45:bi.dim):null,bgsrc:bi&&!CAN_CAST?BG[bi.id]:'',cc:chordColor(s),stk:strokeOf(st),shd:shadowOf(st),chsk:chStrokeOf(st),font:f.css,w:f.w,align:st.align,lh:st.lh,labels:!!st.labels,size:st.size,parts,part:curPart(),line:Math.max(0,P.cur)});
 }
 const PDFC={};
 function castPdfPrep(){if(Object.keys(PDFC).length>60){for(const k in PDFC)delete PDFC[k];CAST.imgs={}}
