@@ -623,6 +623,7 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
 .bgT img{width:100%;height:100%;object-fit:cover;display:block}
 #play .pTop,#play .prog{position:relative;z-index:1}
 
+#lib>.hdr .btn.newRound{width:48px;height:48px;min-width:48px;padding:0!important;border-radius:50%;justify-content:center;flex:none}
 /* ---- phone ---- */
 @media (max-width:600px){
  .hdr{padding:10px 12px!important;gap:6px!important}
@@ -631,7 +632,6 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
  #lib>.hdr .flex1{display:none}
  #lib>.hdr .brand{flex:1 1 100%;justify-content:space-between}
  #lib>.hdr .btn{height:40px}
- #lib>.hdr #libNew{flex:1;justify-content:center}
  .main{padding:14px 12px 12px;gap:12px}
  .mhead h1{font-size:24px}
  #lib.navOver .nav{display:flex;position:fixed;top:0;bottom:0;right:0;width:78vw;max-width:300px;z-index:40;background:var(--bg,#111214);box-shadow:-20px 0 60px rgba(0,0,0,.6);padding-top:28px}
@@ -696,7 +696,7 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
     <label class="search"><i data-ic="search" data-s="18"></i><input id="q" type="search" placeholder="חיפוש שיר, אמן או שורה…" aria-label="חיפוש"></label>
     <button class="btn" id="libWeb"><i data-ic="globe" data-s="18"></i><span class="hideS">חיפוש ברשת</span></button>
     <button class="btn" id="libImport"><i data-ic="upload" data-s="18"></i><span class="hideS">ייבוא PDF</span></button>
-    <button class="btn pri" id="libNew"><i data-ic="plus" data-s="18"></i>שיר חדש</button>
+    <button class="btn pri newRound" id="libNew" aria-label="שיר חדש" title="שיר חדש"><i data-ic="plus" data-s="26"></i></button>
   </header>
   <div class="libBody">
     <nav class="nav scroll" id="nav"></nav>
