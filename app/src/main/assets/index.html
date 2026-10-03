@@ -484,6 +484,9 @@ select.chip{cursor:pointer}
 .psHead b{font-family:var(--ti);font-size:18px;font-weight:600;flex:1}
 .psHead span{font-size:13px;color:var(--mu2)}
 .psX{width:40px;height:40px}
+.psSearch{flex:1;min-width:0;height:42px;display:flex;align-items:center;gap:8px;padding:0 12px;background:#1A1C20;border:1px solid #2A2D33;border-radius:12px;color:var(--mu)}
+.psSearch input{flex:1;min-width:0;background:transparent;border:0;outline:none;color:var(--tx);font:inherit;font-size:15px}
+.psCap{font-size:12px;color:var(--mu2);padding:8px 8px 6px;font-weight:600}
 .psList{flex:1;overflow-y:auto;padding:8px}
 .psRow{width:100%;display:flex;align-items:center;gap:10px;padding:10px 10px;border:0;border-radius:12px;background:transparent;color:var(--tx);text-align:right;margin-bottom:2px}
 .psRow:active{background:#1A1C20}
@@ -667,6 +670,11 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
  #play.setOpen .pBar .pb.big{width:44px!important;height:44px!important}
  #play.setOpen .pBar{gap:4px!important;padding:6px!important}
  #play.setOpen .pPart{min-width:60px}
+ .psHead{padding:10px 6px 8px 8px;gap:4px}
+ .psSearch{padding:0 8px;gap:4px}
+ .psSearch input{font-size:13px}
+ .psSearch svg{display:none}
+ .psX{width:34px!important;height:34px!important}
  #play.setOpen .pPart b{font-size:13px}
  .modal,.mBox{max-width:calc(100vw - 20px)!important}
  .modal-wrap{padding:10px}
@@ -2456,12 +2464,23 @@ function renderSetPanel(){
  const E=$('#pSet');if(!E)return;
  $('#play').classList.toggle('setOpen',!!S.ui.setOpen);$('#pList').classList.toggle('on',!!S.ui.setOpen);
  if(!S.ui.setOpen){E.innerHTML='';return}
- E.innerHTML='<div class="psHead"><b>שירי ההופעה</b><span>'+P.list.length+' שירים</span><button class="pb clear psX" id="psClose" aria-label="סגור רשימה">'+ic('close',20)+'</button></div><div class="psList scroll">'+P.list.map((id,j)=>{const x=S.songs.find(s=>s.id===id);if(!x)return '';return '<button class="psRow'+(j===P.i?' on':'')+(j<P.i?' done':'')+'" data-go="'+j+'"><span class="psN">'+(j+1)+'</span><span class="psT"><b>'+esc(x.title)+'</b>'+(x.artist?'<small>'+esc(x.artist)+'</small>':'')+'</span>'+(x.key?'<span class="keyB" dir="ltr">'+esc(x.key)+'</span>':'')+'</button>'}).join('')+'</div>';
+ const q=PSQ.q;
+ E.innerHTML='<div class="psHead"><label class="psSearch">'+ic('search',16)+'<input id="psQ" type="search" dir="auto" enterkeyhint="search" placeholder="חיפוש שיר…" value="'+esc(q)+'" aria-label="חיפוש בכל השירים"></label><button class="pb clear psX" id="psClose" aria-label="סגור רשימה">'+ic('close',20)+'</button></div><div class="psList scroll" id="psList"></div>';
+ renderPsList();
+ $('#psQ').oninput=e=>{PSQ.q=e.target.value;renderPsList()};
  const on=E.querySelector('.psRow.on');if(on)on.scrollIntoView({block:'center'});
+}
+const PSQ={q:''};
+function psRowHtml(x,attr,cls,n){return '<button class="psRow'+cls+'" '+attr+'><span class="psN">'+n+'</span><span class="psT"><b>'+esc(x.title||'ללא שם')+'</b>'+(x.artist?'<small>'+esc(x.artist)+'</small>':'')+'</span>'+(x.key?'<span class="keyB" dir="ltr">'+esc(x.key)+'</span>':'')+'</button>'}
+function renderPsList(){
+ const L=$('#psList');if(!L)return;const q=stripNik((PSQ.q||'').trim().toLowerCase());
+ if(!q){L.innerHTML='<div class="psCap">שירי ההופעה · '+P.list.length+'</div>'+P.list.map((id,j)=>{const x=S.songs.find(s=>s.id===id);return x?psRowHtml(x,'data-go="'+j+'"',(j===P.i?' on':'')+(j<P.i?' done':''),j+1):''}).join('');return}
+ const r=S.songs.filter(s=>stripNik((s.title||'')+' '+(s.artist||'')+' '+(s.parts||[]).map(p=>p.text||'').join(' ')).toLowerCase().includes(q)).sort((a,b)=>(a.title||'').localeCompare(b.title||'','he'));
+ L.innerHTML='<div class="psCap">'+(r.length?r.length+' תוצאות מכל השירים':'לא נמצאו שירים')+'</div>'+r.map(x=>{const j=P.list.indexOf(x.id);return psRowHtml(x,'data-song="'+x.id+'"',j===P.i?' on':'',j>=0?j+1:'+')}).join('');
 }
 function toggleSetPanel(v){S.ui.setOpen=v==null?!S.ui.setOpen:v;save();renderSetPanel();fitBar();setTimeout(()=>{if(S.ui.manual)fitPage(P.parts[P.pi]);else{measure();P.cur=-1;onPScroll()}},30)}
 $('#pList').onclick=()=>toggleSetPanel();
-$('#pSet').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.id==='psClose')return toggleSetPanel(false);if(b.dataset.go!=null){const j=+b.dataset.go;if(j!==P.i){P.i=j;loadPlay()}}});
+$('#pSet').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.id==='psClose')return toggleSetPanel(false);if(b.dataset.go!=null){const j=+b.dataset.go;if(j!==P.i){P.i=j;loadPlay()}}if(b.dataset.song){const id=b.dataset.song;let j=P.list.indexOf(id);if(j<0){P.list.splice(P.i+1,0,id);j=P.i+1}PSQ.q='';if(j!==P.i){P.i=j;loadPlay()}else renderSetPanel()}});
 $('#pPartPrev').onclick=()=>goPart(-1);$('#pPartNext').onclick=()=>goPart(1);
 (function(){
  const sc=$('#pScroll');
@@ -2520,6 +2539,7 @@ document.addEventListener('keydown',e=>{
  if(PEDAL.learn||$('#pedalBox')){if(PEDAL.learn||!/^(Tab|Escape)$/.test(kk)){if(hwKey(kk,e))return;if($('#pedalBox'))return}}
  if(!$('#modalWrap').hidden){if(e.key==='Escape')closeModal();return}
  if(SCREEN!=='play')return;
+ if(e.target&&e.target.matches&&e.target.matches('input,textarea')){if(e.key==='Escape')e.target.blur();return}
  if(hwKey(kk,e))return;
  const sc=$('#pScroll'),k=e.key;
  if(S.ui.manual&&(k===' '||k==='Enter'||k==='PageDown'||k==='ArrowDown')){e.preventDefault();goPart(1)}
