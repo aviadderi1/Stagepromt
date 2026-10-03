@@ -422,6 +422,7 @@ select.chip{cursor:pointer}
 .pBar.tighter .spd{width:44px}
 .pBar.tighter .pPart{min-width:70px}
 .hdr .btn.act{background:transparent;border:1.5px solid #F2C14E;color:#F7D57A;box-shadow:none}
+.chwBtn{border-color:#E8A33D;color:#F4C77A;gap:8px}.chwList{display:flex;flex-direction:column;max-height:46vh;overflow:auto;margin-top:6px}.chwItem{height:auto;min-height:56px;padding:8px 14px}.chwItem svg:last-child{transform:rotate(90deg);opacity:.5}.chwT{display:flex;flex-direction:column;flex:1;min-width:0;line-height:1.25}.chwT small{color:#8A847A;font-size:12.5px;text-align:right}
 .chActs{display:flex;gap:10px;justify-content:center;margin-top:12px}.chActs .pasteCh{margin-top:0}.delCh:active{border-color:#FF6B6B!important;color:#FF6B6B!important}
 .pasteCh{margin-top:12px;height:38px;padding:0 14px;font-size:14px;gap:6px;border:1px solid var(--ln2);background:transparent;color:#ddd}.pasteCh:active{border-color:#FFD34D;color:#FFD34D}
 .chTools{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;padding:12px 16px;background:#17181B;border:1px solid var(--ln2);border-radius:14px;margin-bottom:14px}
@@ -1545,13 +1546,133 @@ function pasteChords(s,pid){
  if(!out.length)return toast('אין שורות מתאימות להדבקה');
  p.chords=out;touch(s);refreshChords();
 }
+/* ========= chords from the web ========= */
+const CH_SITES=['tab4u.com','nagnu.co.il','ultimate-guitar.com','e-chords.com','chordie.com','guitartabsexplorer.com','chords-and-tabs.net','azchords.com'];
+const CHW={q:'',busy:false,res:[],err:'',diag:''};
+function chSiteName(u){const m=(u||'').match(/https?:\/\/(?:www\.|tabs\.|m\.)?([^/]+)/);return m?m[1]:''}
+async function chordSearch(title,artist){
+ const E=encodeURIComponent,q=(title+' '+(artist||'')).trim(),heb=HEB.test(q),kw=heb?' אקורדים':' chords';
+ const siteQ=q+kw+' ('+CH_SITES.map(x=>'site:'+x).join(' OR ')+')';
+ const okUrl=u=>/tab4u\.com\/tabs\/songs\//.test(u)||/nagnu\.co\.il\/[^?#]*(%D7|אקורדים|chords|[֐-׿])/i.test(u)&&!/search|login|register/.test(u)||/ultimate-guitar\.com\/tab\//.test(u)||/e-chords\.com\/chords\//.test(u)||/chordie\.com\/chord\.pere\//.test(u)||/(guitartabsexplorer|chords-and-tabs|azchords)\./.test(u);
+ const src=[
+  ['Tab4U','https://www.tab4u.com/resultsSimple?tab=songs&q='+E(q),h=>parseGeneric(h,'https://www.tab4u.com/')],
+  ['Bing','https://www.bing.com/search?q='+E(siteQ)+(heb?'&setlang=he&cc=IL':''),h=>{const r=parseBing(h);return r.length?r:parseGeneric(h,'https://www.bing.com/')}],
+  ['DuckDuckGo','https://html.duckduckgo.com/html/?q='+E(siteQ),h=>{const r=parseDDG(h);return r.length?r:parseGeneric(h,'https://html.duckduckgo.com/')}],
+  ['Yahoo','https://search.yahoo.com/search?p='+E(siteQ),h=>parseGeneric(h,'https://search.yahoo.com/')],
+  ['Bing 2','https://www.bing.com/search?q='+E(q+kw),h=>{const r=parseBing(h);return r.length?r:parseGeneric(h,'https://www.bing.com/')}]
+ ];
+ if(!heb)src.push(['Ultimate Guitar','https://www.ultimate-guitar.com/search.php?search_type=title&value='+E(q),h=>{const o=[];const m=h.match(/data-content="([^"]+)"/);if(m){try{const j=JSON.parse(m[1].replace(/&quot;/g,'"').replace(/&amp;/g,'&'));((j.store&&j.store.page&&j.store.page.data&&j.store.page.data.results)||[]).filter(r=>r.type==='Chords'&&r.tab_url).slice(0,8).forEach(r=>o.push({title:r.song_name+' – '+r.artist_name,url:r.tab_url}))}catch(e){}}return o}]);
+ const diag=[],all=[];
+ await Promise.all(src.map(async([n,u,p])=>{try{const r=await httpGet(u,false,9000);const l=p(r.text).filter(x=>okUrl(x.url));diag.push(n+': '+l.length);all.push(...l)}catch(e){diag.push(n+': שגיאה')}}));
+ const seen=new Set(),nq=normTxt(title);
+ const res=all.filter(r=>{const k=r.url.replace(/[?#].*$/,'').replace(/^https?:\/\/(www\.|m\.)?/,'');if(seen.has(k))return false;seen.add(k);return true});
+ res.forEach(r=>{r.site=chSiteName(r.url);r.sc=(normTxt(r.title||'').includes(nq)?2:0)+(/tab4u/.test(r.site)?1.5:/nagnu/.test(r.site)?1.2:/ultimate/.test(r.site)?1:0)});
+ res.sort((a,b)=>b.sc-a.sc);
+ CHW.diag=diag.join(' · ');
+ return res.slice(0,12);
+}
+const nb=s=>String(s||'').replace(/ /g,' ').replace(/\t/g,'    ');
+function decodeEnt(s){const t=document.createElement('textarea');t.innerHTML=s;return t.value}
+/* returns [{c:'  Am    F', l:'lyric line'}] */
+function chordPairs(html,url){
+ const d=new DOMParser().parseFromString(html,'text/html'),pairs=[];
+ if(/tab4u/.test(url)){
+  const box=d.querySelector('#songContentTPL')||d;let pend=null;
+  box.querySelectorAll('td').forEach(td=>{const cl=td.className||'';const t=nb(td.textContent).replace(/\s+$/,'');
+   if(/chords/.test(cl)){pend=t}else if(/song/.test(cl)){if(t.trim())pairs.push({c:pend||'',l:t.trim(),raw:t});pend=null}});
+  if(pairs.length)return pairs;
+ }
+ let text='';
+ const st=d.querySelector('.js-store[data-content]');
+ if(st){try{const j=JSON.parse(st.getAttribute('data-content'));const c=j.store.page.data.tab_view.wiki_tab.content;text=c.replace(/\[\/?(tab|ch)\]/g,'').replace(/\r/g,'')}catch(e){}}
+ if(!text){
+  const pre=[...d.querySelectorAll('pre')].sort((a,b)=>b.textContent.length-a.textContent.length)[0];
+  if(pre&&isChordish(pre.textContent))text=pre.textContent;
+ }
+ if(!text){
+  const main=d.querySelector('.song-lyrics,.song_text,#song_text,.lyrics,.entry-content,article,main')||d.body;
+  if(main){let h=main.innerHTML.replace(/<(script|style)[\s\S]*?<\/\1>/gi,'').replace(/<br\s*\/?>/gi,'\n').replace(/<\/(p|div|tr|li|h\d)>/gi,'\n').replace(/<[^>]+>/g,'');text=decodeEnt(h)}
+ }
+ const lines=nb(text).split('\n');
+ for(let i=0;i<lines.length;i++){
+  const L=lines[i];if(!L.trim())continue;
+  if(isChordLine(L)){const nx=lines[i+1];if(nx!=null&&nx.trim()&&!isChordLine(nx)){pairs.push({c:L.replace(/\s+$/,''),l:nx.trim(),raw:nx.replace(/\s+$/,'')});i++}continue}
+  pairs.push({c:'',l:L.trim(),raw:L});
+ }
+ return pairs;
+}
+function isChordish(t){return String(t||'').split('\n').filter(isChordLine).length>=3}
+function lineSim(a,b){a=normTxt(stripNik(a));b=normTxt(stripNik(b));if(!a||!b)return 0;if(a===b)return 1;const A=a.split(' '),B=new Set(b.split(' '));let n=0;A.forEach(w=>{if(B.has(w))n++});return 2*n/(A.length+b.split(' ').length)}
+/* place chords from source pairs onto the song; returns count */
+function applyWebChords(s,pairs){
+ const src=pairs.filter(p=>p.l);if(!src.some(p=>p.c.trim()))return {n:0,lines:0};
+ let ptr=0,n=0,ln=0;const touched=new Set();
+ s.parts.forEach(p=>{
+  if(p.ref||p.type==='note')return;const lines=String(p.text||'').split('\n');const out=[];
+  lines.forEach((line,li)=>{
+   if(!line.trim())return;
+   let best=-1,bs=.55;
+   for(let k=0;k<src.length;k++){const j=(ptr+k)%src.length;const sc=lineSim(line,src[j].l)-(k>12?.1:0);if(sc>bs){bs=sc;best=j;if(sc===1&&k<4)break}}
+   if(best<0)return;ptr=best+1;
+   const sp=src[best];if(!sp.c.trim())return;
+   const raw=sp.raw!=null?sp.raw:sp.l,lead=raw.length-raw.replace(/^\s+/,'').length;
+   const srcLen=Math.max(1,sp.l.length),cl=clusters(line),tl=cl.length;
+   const re=/\S+/g;let m;const used={};
+   while((m=re.exec(sp.c))){if(!isChord(m[0]))continue;let col=m.index-lead;col=Math.max(0,col);
+    let i=Math.round(col*(tl-1)/Math.max(1,srcLen-1));i=clamp(i,0,Math.max(0,tl-1));
+    while(cl[i]===' '&&i<tl-1)i++;while(used[i]&&i<tl-1)i++;used[i]=1;
+    out.push({l:li,i,n:1,c:m[0],t:line});n++}
+   ln++;
+  });
+  if(out.length){p.chords=out;touched.add(p.id)}
+ });
+ return {n,lines:ln};
+}
+function chordWebModal(){
+ const s=curSong();if(!s)return;if(CHW.sid!==s.id){CHW.res=[];CHW.done=false;CHW.err='';CHW.diag=''}CHW.q=CHW.q&&CHW.sid===s.id?CHW.q:(s.title.replace(/\([^)]*\)/g,'').trim()+(s.artist?' - '+s.artist:''));CHW.sid=s.id;
+ openModal('<div id="chwBox"></div>',true);renderChw();if(!CHW.res.length&&!CHW.busy)chwGo();
+}
+function renderChw(){
+ const E=$('#chwBox');if(!E)return;
+ E.innerHTML='<h2>'+ic('globe',22)+' חיפוש אקורדים ברשת</h2><div class="row" style="gap:8px"><input class="field" id="chwQ" dir="auto" value="'+esc(CHW.q)+'" placeholder="שם השיר ושם האמן"><button class="btn pri" id="chwGo"'+(CHW.busy?' disabled':'')+'>'+ic('search',18)+'חפש</button></div>'+
+  (CHW.busy?'<div class="wMsg aiWait"><span class="spin big"></span><span>'+esc(CHW.stat||'מחפש…')+'</span></div>':'')+
+  (CHW.err?'<p class="aiErr">'+esc(CHW.err)+'</p>':'')+
+  (!CHW.busy&&CHW.res.length?'<p class="hint">בחר גרסה – האקורדים יוצבו על המילים שכבר יש בשיר. אקורדים קיימים יוחלפו.</p><div class="chwList">'+CHW.res.map((r,i)=>'<button class="mItem chwItem" data-chw="'+i+'"><span class="chwT"><b dir="auto">'+esc(r.title||r.url)+'</b><small dir="ltr">'+esc(r.site)+'</small></span>'+ic('down',16)+'</button>').join('')+'</div>':'')+
+  (!CHW.busy&&!CHW.res.length&&CHW.done?'<p class="aiErr">לא נמצאו דפי אקורדים לשיר הזה</p>':'')+
+  (CHW.diag&&!CHW.busy?'<p class="aiDet" dir="auto">'+esc(CHW.diag)+'</p>':'')+
+  '<div class="acts"><span class="flex1"></span><button class="btn" id="mCancel">סגור</button></div>';
+ E.onclick=e=>{const t=e.target.closest('button');if(!t)return;
+  if(t.id==='mCancel')return closeModal();
+  if(t.id==='chwGo'){CHW.q=$('#chwQ').value.trim();return chwGo()}
+  if(t.dataset.chw!=null)return chwUse(CHW.res[+t.dataset.chw]);
+ };
+ const q=$('#chwQ');if(q)q.onkeydown=e=>{if(e.key==='Enter'){CHW.q=q.value.trim();chwGo()}};
+}
+async function chwGo(){
+ const s=curSong();if(!s||!CHW.q)return;CHW.busy=true;CHW.err='';CHW.res=[];CHW.stat='מחפש אקורדים ברשת…';renderChw();
+ try{const parts=CHW.q.split(/\s+[-–]\s+/);CHW.res=await chordSearch(parts[0],parts[1]||'')}catch(e){CHW.err=/nonative/.test(e.message)?'החיפוש עובד רק באפליקציה בטאבלט':'החיפוש נכשל'}
+ CHW.busy=false;CHW.done=true;renderChw();
+}
+async function chwUse(r){
+ const s=curSong();if(!s||!r)return;CHW.busy=true;CHW.err='';CHW.stat='טוען את '+r.site+'…';renderChw();
+ try{
+  const h=await httpGet(r.url,false,15000);const pairs=chordPairs(h.text,r.url);
+  const res=applyWebChords(s,pairs);
+  CHW.busy=false;
+  if(!res.n){CHW.err='לא הצלחתי להתאים אקורדים מהדף הזה למילים של השיר – נסה גרסה אחרת';return renderChw()}
+  if(!s.key){const f=s.parts.find(p=>p.chords&&p.chords.length);if(f){const c=f.chords.slice().sort((a,b)=>a.l-b.l||a.i-b.i)[0].c;const m=c.match(/^[A-G][#b]?m?/);if(m)s.key=m[0]}}
+  touch(s);closeModal();if(!ED.chords)setChordMode(true);else refreshChords();renderEditor();
+  toast('שובצו '+res.n+' אקורדים ב-'+res.lines+' שורות · '+r.site);
+ }catch(e){CHW.busy=false;CHW.err='לא ניתן לטעון את הדף ('+(e.message||'').slice(0,40)+')';renderChw()}
+}
+
 function chStkHtml(s){const ck=s.style.chStroke||{};
  return '<div class="chCols chStk"><button class="strokeBtn sm'+(ck.on?' on':'')+'" data-chstk="1" aria-pressed="'+!!ck.on+'">Stroke</button>'+
   (ck.on?STK_COL.map(c=>'<button class="sw'+((ck.c||'#000000').toLowerCase()===c.toLowerCase()?' on':'')+'" style="background:'+c+'" data-cksc="'+c+'" aria-label="צבע קו מתאר לאקורדים '+c+'"></button>').join('')+'<input type="color" data-ckscin="1" value="'+(ck.c||'#000000')+'" aria-label="צבע מותאם"><span class="ckWBox"><label class="ckWL" for="ckW">עובי <b id="ckWV">'+(ck.w||3)+'</b></label><input id="ckW" class="ckW" type="range" min="1" max="10" step="1" value="'+(ck.w||3)+'"></span>':'')+'</div>'}
 function chordBlocks(s){
  const st=s.style,f=font(st.font),L=labelMap(s);
  const cols=CH_COL.map(c=>'<button class="sw'+(chordColor(s).toLowerCase()===c.toLowerCase()?' on':'')+'" style="background:'+c+'" data-chcol="'+c+'" aria-label="צבע אקורדים '+c+'"></button>').join('')+'<input type="color" data-chcolin="1" value="'+chordColor(s)+'" aria-label="צבע אקורדים מותאם">';
- let h='<div class="chTools"><div class="chHint">'+ic('hand',18)+'<span><b>לחיצה כפולה על מילה</b> פותחת את מאגר האקורדים · <b>גרור</b> אקורד כדי להזיז אותו · <b>לחיצה</b> על אקורד לשינוי או מחיקה</span></div><div class="chCols"><span>צבע האקורדים</span>'+cols+'</div>'+chStkHtml(s)+
+ let h='<div class="chTools"><div class="chHint">'+ic('hand',18)+'<span><b>לחיצה כפולה על מילה</b> פותחת את מאגר האקורדים · <b>גרור</b> אקורד כדי להזיז אותו · <b>לחיצה</b> על אקורד לשינוי או מחיקה</span></div><button class="btn pri chwBtn" data-chweb="1">'+ic('globe',18)+'חפש אקורדים ברשת</button><div class="chCols"><span>צבע האקורדים</span>'+cols+'</div>'+chStkHtml(s)+
   '<div class="chTr"><span>החלפת סולם</span><button class="btn sm" data-tr="-1" aria-label="חצי טון למטה">−½</button><b dir="ltr" class="trKey">'+esc(s.key||'—')+'</b><button class="btn sm" data-tr="1" aria-label="חצי טון למעלה">+½</button><span class="trSep"></span><label for="chCapo">קאפו</label><select id="chCapo" class="field capoSel">'+[0,1,2,3,4,5,6,7].map(n=>'<option value="'+n+'"'+((s.capo||0)===n?' selected':'')+'>'+(n?n:'ללא')+'</option>').join('')+'</select></div></div>';
  s.parts.forEach(p=>{
   const src=srcOf(s,p);if(!src)return;
@@ -1650,6 +1771,7 @@ function chordMenu(pid,k){
  B.addEventListener('click',e=>{
   const tr=e.target.closest('[data-tr]');if(tr){const s=curSong();if(!songChords(s).length&&!s.key)return toast('אין עדיין אקורדים או סולם בשיר');transposeSong(s,+tr.dataset.tr);refreshChords();$('#edKey').innerHTML='<option value="">סולם</option>'+KEYS.concat(s.key&&!KEYS.includes(s.key)?[s.key]:[]).map(k=>'<option value="'+k+'"'+(s.key===k?' selected':'')+'>'+k+'</option>').join('');return toast('הסולם הועבר '+(tr.dataset.tr>0?'חצי טון למעלה':'חצי טון למטה')+(s.key?' · '+s.key:''))}
   const dc=e.target.closest('[data-delch]');if(dc){const s=curSong(),p=s.parts.find(x=>x.id===dc.dataset.delch);if(p&&!p.ref){p.chords=[];touch(s);refreshChords()}return}
+  if(e.target.closest('[data-chweb]'))return chordWebModal();
   const ks=e.target.closest('[data-chstk],[data-cksc]');if(ks){const s=curSong(),st=s.style;if(ks.dataset.chstk){st.chStroke=Object.assign({c:'#000000',w:3},st.chStroke||{});st.chStroke.on=!st.chStroke.on}else st.chStroke.c=ks.dataset.cksc;touch(s);refreshChords();return}
   const pc=e.target.closest('[data-pastech]');if(pc)return pasteChords(curSong(),pc.dataset.pastech);
   const t=e.target.closest('[data-chcol]');if(t){const s=curSong();s.style.chordColor=t.dataset.chcol;touch(s);refreshChords();renderStyle()}
