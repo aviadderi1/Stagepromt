@@ -637,6 +637,20 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
  #lib>.hdr .btn{height:40px}
  .main{padding:14px 12px 12px;gap:12px}
  .mhead h1{font-size:24px}
+ #lib>.hdr{display:grid!important;grid-template-columns:repeat(5,1fr);align-items:center;row-gap:10px!important}
+ #lib>.hdr .brand{display:contents}
+ #lib>.hdr .logoImg{grid-row:1;grid-column:1/4;justify-self:start}
+ #lib>.hdr .expBtn{grid-row:1;grid-column:4/6;justify-self:end}
+ #lib>.hdr #libWeb{grid-row:2;grid-column:1}
+ #lib>.hdr #libImport{grid-row:2;grid-column:2}
+ #lib>.hdr #libNew{grid-row:2;grid-column:3}
+ #lib>.hdr #gearBtn{grid-row:2;grid-column:5;justify-self:end}
+ #lib>.hdr .search{grid-row:3;grid-column:1/6;width:100%}
+ #lib>.hdr #libWeb,#lib>.hdr #libImport,#lib>.hdr #libNew{justify-self:center;width:50px;height:50px;min-width:50px;padding:0!important;border-radius:50%;justify-content:center;border:0;color:#fff}
+ #lib>.hdr #libWeb{background:#2E9E62}
+ #lib>.hdr #libImport{background:#2F7BE0}
+ #lib>.hdr #libWeb .hideS,#lib>.hdr #libImport .hideS{display:none}
+ #lib>.hdr #libNew{width:58px;height:58px;min-width:58px;color:#17120A}
  #lib.navOver .nav{display:flex;position:fixed;top:0;bottom:0;right:0;width:78vw;max-width:300px;z-index:40;background:var(--bg,#111214);box-shadow:-20px 0 60px rgba(0,0,0,.6);padding-top:28px}
  #lib.navOver::after{content:'';position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:39}
  .grid{grid-template-columns:1fr}
