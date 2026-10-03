@@ -1618,7 +1618,8 @@ function applyWebChords(s,pairs){
    const raw=sp.raw!=null?sp.raw:sp.l,lead=raw.length-raw.replace(/^\s+/,'').length;
    const srcLen=Math.max(1,sp.l.length),cl=clusters(line),tl=cl.length;
    const re=/\S+/g;let m;const used={};
-   while((m=re.exec(sp.c))){if(!isChord(m[0]))continue;let col=m.index-lead;col=Math.max(0,col);
+   const rtl=HEB.test(sp.l),cLen=sp.c.replace(/\s+$/,'').length;
+   while((m=re.exec(sp.c))){if(!isChord(m[0]))continue;let col=(rtl?cLen-(m.index+m[0].length):m.index)-lead;col=Math.max(0,col);
     let i=Math.round(col*(tl-1)/Math.max(1,srcLen-1));i=clamp(i,0,Math.max(0,tl-1));
     while(cl[i]===' '&&i<tl-1)i++;while(used[i]&&i<tl-1)i++;used[i]=1;
     out.push({l:li,i,n:1,c:m[0],t:line});n++}
