@@ -400,13 +400,16 @@ select.chip{cursor:pointer}
  #web .hdr{flex-wrap:wrap;height:auto;padding:12px 16px;row-gap:8px}
 }
 @media (max-width:1050px){.nav{width:214px}.search{width:210px}.brand span{display:none}.hideS{display:none}.struct{display:none}.style{width:260px}.pNext{display:none}.impSide{width:300px}.legend{display:none}}
-@media (max-width:760px){.thumbs{display:none}.nav{width:170px}.style{display:none}.pInner{padding-left:28px;padding-right:40px}.search{display:none}}
+@media (max-width:900px){#lib>.hdr{flex-wrap:wrap;height:auto;padding:12px 16px;row-gap:10px}#lib>.hdr .search{order:9;width:100%;flex-basis:100%}#lib>.hdr{gap:8px}#lib>.hdr .logoImg{height:36px}#lib>.hdr .btn{padding-left:12px;padding-right:12px}}
+@media (max-width:760px){.thumbs{display:none}.nav{width:170px}.style{display:none}.pInner{padding-left:28px;padding-right:40px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation-duration:.01s!important}}
 
 /* chords */
 .cw{position:relative;display:inline}
 .ch{position:absolute;bottom:92%;left:50%;transform:translateX(-50%);font-family:'Rubik','Assistant',sans-serif;font-style:normal;font-weight:700;font-size:.52em;line-height:1;color:var(--chc,#FFB547);white-space:nowrap;letter-spacing:.2px;unicode-bidi:isolate}
 .ln.hasCh,.cl.hasCh{padding-top:.62em}
+.ln.hasCh{padding-top:.31em;line-height:calc(var(--lh,1.35)*1em + .62em)}
+.pInner.noCh .ln.hasCh{line-height:var(--lh,1.35)}
 .pInner.noCh .ch{display:none}
 .pInner.noCh .ln.hasCh{padding-top:0}
 .ln.note .ch{font-size:.8em}
