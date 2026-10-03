@@ -180,7 +180,8 @@ select.chip{cursor:pointer}
 .pTop .n{font-size:15px;color:var(--mu2);white-space:nowrap}
 .pTop .tm{font-size:18px;font-weight:700;color:#CFC9BF;font-variant-numeric:tabular-nums}
 .prog{height:3px;background:#1C1C1C;margin:0 24px;flex-shrink:0}
-.prog i{display:block;height:3px;background:var(--am);width:0}
+.prog i{display:block;height:3px;background:var(--am);width:0;transition:background .25s}
+.prog.last i{background:#FF4D4D;box-shadow:0 0 8px rgba(255,77,77,.6)}
 .pStage{flex:1;position:relative;min-height:0}
 .pScroll{position:absolute;inset:0;overflow-y:auto;scrollbar-width:none}
 .pScroll::-webkit-scrollbar{display:none}
@@ -420,6 +421,7 @@ select.chip{cursor:pointer}
 .pBar.tighter .spd{width:44px}
 .pBar.tighter .pPart{min-width:70px}
 .hdr .btn.act{background:transparent;border:1.5px solid #F2C14E;color:#F7D57A;box-shadow:none}
+.chActs{display:flex;gap:10px;justify-content:center;margin-top:12px}.chActs .pasteCh{margin-top:0}.delCh:active{border-color:#FF6B6B!important;color:#FF6B6B!important}
 .pasteCh{margin-top:12px;height:38px;padding:0 14px;font-size:14px;gap:6px;border:1px solid var(--ln2);background:transparent;color:#ddd}.pasteCh:active{border-color:#FFD34D;color:#FFD34D}
 .chTools{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;padding:12px 16px;background:#17181B;border:1px solid var(--ln2);border-radius:14px;margin-bottom:14px}
 .chHint{flex:1;min-width:280px;display:flex;align-items:center;gap:10px;color:var(--mu);font-size:14px;line-height:1.55}
@@ -1499,7 +1501,7 @@ function chordPicker(cur,songList,cb){
 function firstOfType(s,t){return s.parts.find(p=>!p.ref&&p.type===t&&String(p.text||'').trim())}
 function pasteChords(s,pid){
  const p=s.parts.find(x=>x.id===pid);if(!p||p.ref)return;const src=firstOfType(s,p.type);if(!src||src===p)return;
- partChordMap(src);if(!src.chords||!src.chords.length)return toast('אין עדיין אקורדים ב'+(p.type==='verse'?'בית הראשון':'פזמון הראשון'));
+ partChordMap(src);if(!src.chords||!src.chords.length)return toast('אין עדיין אקורדים ב'+({verse:'בית הראשון',chorus:'פזמון הראשון',bridge:'גשר הראשון'}[p.type]));
  const nz=t=>String(t||'').split('\n').map((l,i)=>[l,i]).filter(x=>x[0].trim());
  const sl=nz(src.text),tl=nz(p.text),out=[];
  src.chords.forEach(ch=>{const k=sl.findIndex(x=>x[1]===ch.l);if(k<0||k>=tl.length)return;const [tt,ti]=tl[k];
@@ -1521,7 +1523,8 @@ function chordBlocks(s){
   const map=partChordMap(src);
   h+='<div class="chLines" style="font-family:'+f.css+';font-weight:'+f.w+';text-align:'+st.align+';--chc:'+chordColor(s)+strokeCss(st)+'">'+src.text.split('\n').map((l,li)=>l.trim()?'<div class="cl'+(map[li]?' hasCh':'')+(src.type==='note'?' note':'')+'" dir="auto" data-p="'+p.id+'" data-l="'+li+'" style="color:'+col+'">'+lineHtml(l,map[li])+'</div>':'<div class="gap"></div>').join('')+'</div>';
   const first=firstOfType(s,src.type);
-  if(!p.ref&&(src.type==='verse'||src.type==='chorus')&&first&&first.id!==src.id)h+='<button class="btn pasteCh" data-pastech="'+p.id+'">'+ic('copy',16)+'הדבק אקורדים</button>';
+  const canPaste=!p.ref&&['verse','chorus','bridge'].includes(src.type)&&first&&first.id!==src.id,canDel=!p.ref&&src.chords&&src.chords.length;
+  if(canPaste||canDel)h+='<div class="chActs">'+(canPaste?'<button class="btn pasteCh" data-pastech="'+p.id+'">'+ic('copy',16)+'הדבק אקורדים</button>':'')+(canDel?'<button class="btn pasteCh delCh" data-delch="'+p.id+'">'+ic('trash',16)+'מחק אקורדים</button>':'')+'</div>';
   h+='</div>';
  });
  return h;
@@ -1608,6 +1611,7 @@ function chordMenu(pid,k){
  });
  B.addEventListener('click',e=>{
   const tr=e.target.closest('[data-tr]');if(tr){const s=curSong();if(!songChords(s).length&&!s.key)return toast('אין עדיין אקורדים או סולם בשיר');transposeSong(s,+tr.dataset.tr);refreshChords();$('#edKey').innerHTML='<option value="">סולם</option>'+KEYS.concat(s.key&&!KEYS.includes(s.key)?[s.key]:[]).map(k=>'<option value="'+k+'"'+(s.key===k?' selected':'')+'>'+k+'</option>').join('');return toast('הסולם הועבר '+(tr.dataset.tr>0?'חצי טון למעלה':'חצי טון למטה')+(s.key?' · '+s.key:''))}
+  const dc=e.target.closest('[data-delch]');if(dc){const s=curSong(),p=s.parts.find(x=>x.id===dc.dataset.delch);if(p&&!p.ref){p.chords=[];touch(s);refreshChords()}return}
   const pc=e.target.closest('[data-pastech]');if(pc)return pasteChords(curSong(),pc.dataset.pastech);
   const t=e.target.closest('[data-chcol]');if(t){const s=curSong();s.style.chordColor=t.dataset.chcol;touch(s);refreshChords();renderStyle()}
  });
@@ -1870,6 +1874,7 @@ function updProg(){
  const sc=$('#pScroll'),n=P.parts.length;let r;
  if(S.ui.manual)r=n?(P.pi+1)/n:0;else{const max=sc.scrollHeight-sc.clientHeight;r=max>0?Math.min(1,sc.scrollTop/max):0}
  $('#pProg').style.width=(r*100)+'%';
+ const last=n>0&&(S.ui.manual?P.pi>=n-1:(autoPart()>=n-1||r>=0.995));$('#pProg').parentElement.classList.toggle('last',last);
 }
 function goPart(d){
  if(!P.parts.length)return;
