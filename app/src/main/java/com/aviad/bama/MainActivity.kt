@@ -713,6 +713,11 @@ class MainActivity : ComponentActivity() {
         }
 
         @JavascriptInterface
+        fun castImg(key: String, b64: String) {
+            try { if (cast.imgs.size > 60) cast.imgs.clear(); cast.imgs[key] = Base64.decode(b64, Base64.DEFAULT) } catch (_: Exception) { }
+        }
+
+        @JavascriptInterface
         fun castBg(id: String, b64: String) {
             try { cast.bg = Pair(id, Base64.decode(b64, Base64.DEFAULT)) } catch (_: Exception) { }
         }

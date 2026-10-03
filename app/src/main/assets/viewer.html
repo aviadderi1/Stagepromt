@@ -31,6 +31,7 @@ html,body{margin:0;height:100%;background:#000;color:#F2EEE6;overflow:hidden;fon
 .paged .part>.sec:first-child{margin-top:0}
 .paged .part>.gap:last-child{display:none}
 @keyframes pg{from{opacity:0;transform:translateY(1.2vh)}to{opacity:1;transform:none}}
+#pdfv{position:fixed;left:0;right:0;bottom:0;top:max(34px,7vh);overflow:hidden;display:none;z-index:1}#pdfin{width:min(100vw,1400px);margin:0 auto;will-change:transform}#pdfin img{display:block;width:100%;height:auto;margin:0 auto 1.2vh;background:#fff}#pdfv.inv img{filter:invert(1) hue-rotate(180deg)}#pdfv.man #pdfin{width:auto;height:100%;display:flex;align-items:center;justify-content:center}#pdfv.man img{display:none;width:auto;max-width:100vw;max-height:100%;margin:0}#pdfv.man img.on{display:block}
 #msg{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:2vh;text-align:center;padding:0 6vw}
 #msg b{font-family:'Rubik','Assistant',sans-serif;font-size:7vh;font-weight:600}
 #msg span{font-size:3vh;color:#8F897F}
@@ -46,7 +47,7 @@ html,body{margin:0;height:100%;background:#000;color:#F2EEE6;overflow:hidden;fon
 <body>
 <div id="bg"></div><div id="sc"><div id="in"></div></div>
 <div id="hdr" hidden><b id="t"></b><span class="fl"></span><span id="n"></span></div>
-<div id="msg"><b id="mt"></b><span id="ms"></span></div>
+<div id="pdfv"><div id="pdfin"></div></div><div id="msg"><b id="mt"></b><span id="ms"></span></div>
 <div id="idle"><img src="logo.svg" alt="StagePromt"></div>
 <div id="dot"></div>
 <script>
@@ -93,18 +94,31 @@ function setBg(s){const b=$('#bg');let css='';
  if(s&&s.bgi){const k=s.bgd==null?.45:s.bgd;css='linear-gradient(rgba(0,0,0,'+k+'),rgba(0,0,0,'+k+')),url("'+(s.bgsrc||('bg?'+encodeURIComponent(s.bgi)))+'") center/cover no-repeat #000'}
  else if(s&&s.bgc)css=s.bgc;
  if(b.dataset.css!==css){b.dataset.css=css;b.style.background=css}}
+function pdfPos(s){const pv=$('#pdfv'),pin=$('#pdfin'),imgs=[...pin.querySelectorAll('img')];
+ if(s.manual){imgs.forEach((im,i)=>im.classList.toggle('on',i===Math.min(s.page,imgs.length-1)));pin.style.transform=''}
+ else{const H=pin.scrollHeight-pv.clientHeight;pin.style.transform='translateY('+(-Math.max(0,H)*(s.frac||0))+'px)'}}
 function apply(s){
  st=s;
- if(!s||s.idle){setBg(null);$('#idle').classList.remove('off');$('#hdr').hidden=true;$('#msg').style.display='none';$('#in').innerHTML='';key='';return}
+ if(!s||s.idle){setBg(null);$('#pdfv').style.display='none';$('#idle').classList.remove('off');$('#hdr').hidden=true;$('#msg').style.display='none';$('#in').innerHTML='';key='';return}
  $('#idle').classList.add('off');setBg(s);
  $('#hdr').hidden=false;$('#t').textContent=s.title+(s.artist?' · '+s.artist:'');
  $('#n').textContent=s.count>1?(s.idx+1)+' / '+s.count:'';
  if(s.kind==='pdf'){
   $('#in').innerHTML='';key='';
-  $('#msg').style.display='flex';$('#mt').textContent=s.title;$('#ms').textContent='קובץ PDF – מוצג בטאבלט'+(s.pages?' · עמוד '+(s.page+1)+' מתוך '+s.pages:'');
+  const pv=$('#pdfv'),pin=$('#pdfin');
+  if(s.pk&&s.pk.length){
+   $('#msg').style.display='none';pv.style.display='block';pv.classList.toggle('inv',!!s.inv);pv.classList.toggle('man',!!s.manual);
+   const k=s.pk.join('|');if(pin.dataset.k!==k){pin.dataset.k=k;pin.innerHTML=s.pk.map((x,i)=>'<img alt="" src="'+(s.psrc&&s.psrc[i]?s.psrc[i]:'img?'+encodeURIComponent(x))+'">').join('')}
+   const imgs=[...pin.querySelectorAll('img')];
+   imgs.forEach(im=>{if(!im._ol){im._ol=1;im.addEventListener('load',()=>{if(st&&st.kind==='pdf')pdfPos(st)})}});
+   pdfPos(s);
+   return;
+  }
+  pv.style.display='none';
+  $('#msg').style.display='flex';$('#mt').textContent=s.title;$('#ms').textContent='טוען את קובץ ה-PDF…';
   return;
  }
- $('#msg').style.display='none';
+ $('#msg').style.display='none';$('#pdfv').style.display='none';
  const k=JSON.stringify([s.title,s.parts,s.font,s.size,s.lh,s.align,s.labels,s.cc,s.stk,s.shd,s.chsk,innerWidth,innerHeight]);
  const inn=$('#in');
  if(k!==key){key=k;build(s);cur=target=0}

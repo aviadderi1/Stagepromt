@@ -1849,7 +1849,7 @@ async function buildPdf(s){
   for(let n=s.from||1;n<=(s.to||doc.numPages);n++){
    const c=await renderPage(doc,n,w,!!s.pdfHideCh);if(tok!==P.tok)return;
    if(first){inner.innerHTML='';first=false}
-   c.className='pdfPage';c.dataset.w=c.style.width;inner.appendChild(c);P.parts=$$('.pdfPage',inner);
+   c.className='pdfPage';c.dataset.w=c.style.width;c._ck=s.id+'-'+n+'-'+(s.pdfHideCh?1:0)+'-'+Math.round(w);inner.appendChild(c);castPush();P.parts=$$('.pdfPage',inner);
    if(S.ui.manual&&P.parts.length===1){applyMode();showPage(0)}else updPart();
   }
   inner.insertAdjacentHTML('beforeend',endHint());
@@ -2251,14 +2251,21 @@ function castState(){
  const s=playSong();
  if(SCREEN!=='play'||!s)return {idle:true};
  const base={title:s.title,artist:s.artist||'',idx:P.i,count:P.list.length,manual:!!S.ui.manual,mirror:false};
- if(s.kind==='pdf')return Object.assign(base,{kind:'pdf',page:curPart(),pages:P.parts.length});
+ if(s.kind==='pdf'){const sc=$('#pScroll'),mx=sc.scrollHeight-sc.clientHeight,ready=P.parts.length&&P.parts.every(c=>c._ck&&PDFC[c._ck]);
+  return Object.assign(base,{kind:'pdf',page:curPart(),pages:P.parts.length,inv:!!s.invert,frac:mx>0?+(sc.scrollTop/mx).toFixed(4):0,pk:ready?P.parts.map(c=>c._ck):null,psrc:ready&&!CAN_CAST?P.parts.map(c=>PDFC[c._ck]):null})}
  const st=s.style,f=font(st.font),L=labelMap(s),parts=[];
  s.parts.forEach(p=>{const src=srcOf(s,p);if(!src||!src.text.trim())return;const cm=S.ui.hideChords?{}:partChordMap(src),ch=[];Object.keys(cm).forEach(l=>cm[l].forEach(c=>ch.push({l:+l,i:c.i,n:c.n,c:shownChord(s,c.c)})));parts.push({n:T(L[p.id])+(p.ref?' ↺':''),t:src.type,c:st.colors[src.type]||'#fff',x:S.ui.hideNik?stripNik(src.text):src.text,ch})});
  const bi=s.bg&&s.bg.type==='img'&&s.bg.id&&BG[s.bg.id]?s.bg:null;
  return Object.assign(base,{kind:'text',bgc:(s.bg&&s.bg.type==='color')?s.bg.c:'',bgi:bi?bi.id:'',bgd:bi?(bi.dim==null?.45:bi.dim):null,bgsrc:bi&&!CAN_CAST?BG[bi.id]:'',cc:chordColor(s),stk:strokeOf(st),shd:shadowOf(st),chsk:chStrokeOf(st),font:f.css,w:f.w,align:st.align,lh:st.lh,labels:!!st.labels,size:st.size,parts,part:curPart(),line:Math.max(0,P.cur)});
 }
+const PDFC={};
+function castPdfPrep(){if(Object.keys(PDFC).length>60){for(const k in PDFC)delete PDFC[k];CAST.imgs={}}
+ const ps=SCREEN==='play'&&playSong();if(!ps||ps.kind!=='pdf')return;
+ P.parts.forEach(c=>{if(!c._ck)return;if(!PDFC[c._ck]){try{PDFC[c._ck]=c.toDataURL('image/jpeg',.86)}catch(e){return}}
+  if(CAN_CAST&&window.Android.castImg&&!(CAST.imgs||(CAST.imgs={}))[c._ck]){try{window.Android.castImg(c._ck,PDFC[c._ck].split(',')[1]);CAST.imgs[c._ck]=1}catch(e){}}});
+}
 function castSend(){
- CAST.t=0;if(!CAST.on)return;
+ CAST.t=0;if(!CAST.on)return;castPdfPrep();
  const ps=SCREEN==='play'&&playSong(),b=ps&&ps.bg&&ps.bg.type==='img'?ps.bg:null;
  if(b&&b.id&&BG[b.id]===undefined){bgData(b.id).then(()=>castPush())}
  if(b&&BG[b.id]&&CAN_CAST&&CAST.bgSent!==b.id&&window.Android.castBg){try{window.Android.castBg(b.id,BG[b.id].split(',')[1]||'');CAST.bgSent=b.id}catch(e){}}
