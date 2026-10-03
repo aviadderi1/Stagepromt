@@ -517,6 +517,29 @@ class MainActivity : ComponentActivity() {
         }
 
         @JavascriptInterface
+        fun aiPost(id: String, url: String, body: String) {
+            thread {
+                try {
+                    val conn = URL(url).openConnection() as HttpURLConnection
+                    conn.connectTimeout = 15000
+                    conn.readTimeout = 140000
+                    conn.requestMethod = "POST"
+                    conn.doOutput = true
+                    conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                    conn.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
+                    val code = conn.responseCode
+                    val stream = if (code >= 400) conn.errorStream else conn.inputStream
+                    val text = stream?.use { String(it.readBytes(), Charsets.UTF_8) } ?: "{\"error\":{\"code\":$code,\"message\":\"HTTP $code\"}}"
+                    conn.disconnect()
+                    runOnUiThread { js("window.__httpDone(" + JSONObject.quote(id) + ",true," + JSONObject.quote(text) + ",'')") }
+                } catch (e: Exception) {
+                    val msg = e.message ?: "error"
+                    runOnUiThread { js("window.__httpDone(" + JSONObject.quote(id) + ",false," + JSONObject.quote(msg) + ",'')") }
+                }
+            }
+        }
+
+        @JavascriptInterface
         fun httpPost(id: String, url: String, body: String) {
             thread { fetchPage(id, url, false, body) }
         }

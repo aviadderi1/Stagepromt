@@ -601,6 +601,7 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
 .bgSrc{margin-top:0;flex-wrap:nowrap;gap:10px}
 .bgSrc .srcBig{width:auto;flex:1;height:110px;font-size:15px}
 .bgSrc .srcBig.on{border-color:var(--am)}
+.aiBox{display:flex;flex-direction:column;gap:10px;margin-top:12px;padding:14px;background:#15161A;border:1px solid #2A2D33;border-radius:14px}.aiKeyRow{display:flex;gap:8px;align-items:center}.aiKeyRow .field{flex:1}.aiP{resize:none;min-height:64px;font-size:16px}.aiRow{gap:8px;align-items:center}.aiRow .btn svg{margin-inline-end:6px}.aiWait{display:flex;align-items:center;gap:12px;justify-content:center;color:#BDB6AA}.aiErr{color:#FF9A8F;margin:0;font-size:14px}.aiPrev{display:flex;flex-direction:column;gap:10px;align-items:center}.aiPrev img{width:100%;max-height:24vh;object-fit:cover;border-radius:12px;border:1px solid #2A2D33}
 .bgGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-height:300px;overflow-y:auto}
 .bgT{aspect-ratio:16/10;border-radius:10px;overflow:hidden;border:1px solid #2A2D33;background:#17181C;padding:0}
 .bgT img{width:100%;height:100%;object-fit:cover;display:block}
@@ -1971,7 +1972,44 @@ async function bgPick(src){
  setBgImage('data:image/jpeg;base64,'+b64);
 }
 function dropBgImg(id){if(id&&!S.songs.some(x=>x.bg&&x.bg.id===id)){IDB.del(id);delete BG[id]}}
-const BGW={tab:'color',q:'',res:[],busy:false};
+const BGW={tab:'color',q:'',res:[],busy:false,ai:false,ap:'',aimg:'',aerr:''};
+const GEM_SPARK='<svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="gmG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4E8BF5"/><stop offset=".55" stop-color="#9B72CB"/><stop offset="1" stop-color="#D96570"/></linearGradient></defs><path fill="url(#gmG)" d="M12 2c.4 5.3 4.7 9.6 10 10-5.3.4-9.6 4.7-10 10-.4-5.3-4.7-9.6-10-10 5.3-.4 9.6-4.7 10-10z"/></svg>';
+const GEM_MODELS=['gemini-3.1-flash-image','gemini-2.5-flash-image','gemini-3.1-flash-lite-image','gemini-2.5-flash-image-preview'];
+function aiPost(url,body){return new Promise((res,rej)=>{
+ if(!(window.Android&&window.Android.aiPost))return rej(new Error('nonative'));
+ const id='h'+(++HTTP.n);HTTP.cb[id]={res,rej};
+ try{window.Android.aiPost(id,url,body)}catch(e){delete HTTP.cb[id];return rej(e)}
+ setTimeout(()=>{if(HTTP.cb[id]){delete HTTP.cb[id];rej(new Error('timeout'))}},150000)})}
+function gemImg(j){const c=(j.candidates||[])[0];const ps=(c&&c.content&&c.content.parts)||[];for(const p of ps){const d=p.inlineData||p.inline_data;if(d&&d.data)return 'data:'+(d.mimeType||d.mime_type||'image/png')+';base64,'+d.data}return ''}
+async function geminiImage(prompt){
+ const key=S.gemKey;if(!key)throw new Error('nokey');
+ const full=prompt+'\n\nCreate a wide landscape 16:9 background image for a stage lyrics screen. No text, no letters, no logos, no watermark. Leave calm space for big lyrics on top.';
+ let last='';
+ for(const m of GEM_MODELS){
+  for(const cfg of [{responseModalities:['IMAGE','TEXT'],imageConfig:{aspectRatio:'16:9'}},{responseModalities:['IMAGE','TEXT']}]){
+   const body=JSON.stringify({contents:[{parts:[{text:full}]}],generationConfig:cfg});
+   let r;try{r=await aiPost('https://generativelanguage.googleapis.com/v1beta/models/'+m+':generateContent?key='+encodeURIComponent(key),body)}catch(e){last=e.message;if(/timeout|timed out|nonative|Unable to resolve|UnknownHost/i.test(last))throw e;continue}
+   let j;try{j=JSON.parse(r.text)}catch(e){last='bad';continue}
+   if(j.error){last=(j.error.status||'')+' '+(j.error.message||'');if(/API_KEY|PERMISSION_DENIED|UNAUTHENTICATED|RESOURCE_EXHAUSTED|quota/i.test(last))throw new Error(last);if(j.error.code===404||/not found|not supported/i.test(last))break;continue}
+   const img=gemImg(j);if(img)return img;
+   const fb=j.promptFeedback&&j.promptFeedback.blockReason;last=fb?'blocked '+fb:'noimage';
+  }
+ }
+ throw new Error(last||'fail');
+}
+function gemErrTxt(m){m=String(m||'');if(m==='nokey')return 'צריך להזין מפתח API של Gemini';if(/API_KEY|INVALID_ARGUMENT.*key|UNAUTHENTICATED|PERMISSION_DENIED/i.test(m))return 'מפתח ה-API לא תקין או בלי הרשאה ליצירת תמונות';if(/RESOURCE_EXHAUSTED|quota/i.test(m))return 'נגמרה המכסה של החשבון ב-Gemini – נסה מאוחר יותר או הפעל חיוב ב-Google AI Studio';if(/blocked/i.test(m))return 'Gemini סירב ליצור את התמונה הזו – נסה תיאור אחר';if(/timeout/.test(m))return 'היצירה לקחה יותר מדי זמן – נסה שוב';if(/nonative/.test(m))return 'יצירת תמונות עובדת רק באפליקציה בטאבלט';return 'היצירה נכשלה'+(m?' ('+m.slice(0,90)+')':'')}
+async function gemKeyHelp(){
+ const url='https://aistudio.google.com/apikey';
+ openModal('<h2>מפתח API של Gemini</h2><ol class="shareSteps"><li>היכנס עם חשבון Google ל-<b dir="ltr">aistudio.google.com/apikey</b></li><li>לחץ <b dir="ltr">Create API key</b> והעתק את המפתח.</li><li>חזור לכאן, פתח שוב <b>רקע ← תמונה ← Gemini AI</b> והדבק את המפתח בשדה.</li></ol><p class="hint">המפתח נשמר רק בטאבלט שלך. יצירת תמונות עשויה לדרוש חשבון עם חיוב פעיל ב-Google.</p><div class="acts"><button class="btn pri" id="kOpen">פתח את Google AI Studio</button><span class="flex1"></span><button class="btn" id="mCancel">סגור</button></div>');
+ $('#kOpen').onclick=()=>{try{window.Android&&window.Android.openUrl?window.Android.openUrl(url):window.open(url,'_blank')}catch(e){}};$('#mCancel').onclick=closeModal;
+}
+async function bgAiGo(){
+ const t=$('#aiP');BGW.ap=t?t.value.trim():BGW.ap;if(!BGW.ap)return toast('כתוב מה ליצור');
+ const kf=$('#aiKey');if(kf&&kf.value.trim()){S.gemKey=kf.value.trim();save()}
+ BGW.busy=true;BGW.aerr='';BGW.aimg='';renderBgModal();
+ try{BGW.aimg=await geminiImage(BGW.ap)}catch(e){BGW.aerr=gemErrTxt(e.message)}
+ BGW.busy=false;renderBgModal();
+}
 async function bgWebSearch(q){
  q=q.trim();if(!q)return;
  if(/^https?:\/\//i.test(q)){BGW.busy=true;renderBgModal();try{const r=await httpGet(q,true,20000);BGW.busy=false;await setBgImage(r.text)}catch(e){BGW.busy=false;renderBgModal();toast('לא ניתן להוריד את התמונה')}return}
@@ -1990,7 +2028,15 @@ function renderBgModal(){
   h+='<div class="bgFan">'+BG_COLORS.map((c,i)=>'<button class="bgSw'+(cur&&cur.toLowerCase()===c.toLowerCase()?' on':'')+'" style="--c:'+c+';--r:'+(-82+i*11)+'deg" data-bgc="'+c+'" aria-label="צבע '+c+'"></button>').join('')+'</div>'+
    '<div class="row bgCustom"><label for="bgCin">צבע אחר</label><input type="color" id="bgCin" value="'+(b.type==='color'&&b.c?b.c:'#000000')+'"><span class="flex1"></span><button class="btn sm" data-bgc="#000000">ברירת מחדל (שחור)</button></div>';
  }else{
-  h+='<div class="srcRow bgSrc"><button class="srcBig" data-bgsrc="device">'+ic('phone',30)+'<span>מהמכשיר</span></button><button class="srcBig" data-bgsrc="drive">'+gdriveIcon(30)+'<span dir="ltr">Google Drive</span></button><button class="srcBig'+(BGW.web?' on':'')+'" data-bgweb="1">'+ic('globe',30)+'<span>מהרשת</span></button></div>';
+  h+='<div class="srcRow bgSrc"><button class="srcBig" data-bgsrc="device">'+ic('phone',30)+'<span>מהמכשיר</span></button><button class="srcBig" data-bgsrc="drive">'+gdriveIcon(30)+'<span dir="ltr">Google Drive</span></button><button class="srcBig'+(BGW.web?' on':'')+'" data-bgweb="1">'+ic('globe',30)+'<span>מהרשת</span></button><button class="srcBig'+(BGW.ai?' on':'')+'" data-bgai="1">'+GEM_SPARK+'<span dir="ltr">Gemini AI</span></button></div>';
+  if(BGW.ai){
+   h+='<div class="aiBox">'+(S.gemKey?'':'<div class="aiKeyRow"><input class="field" id="aiKey" dir="ltr" placeholder="Gemini API key" autocomplete="off"><button class="btn sm" id="aiKeyHelp">איך משיגים מפתח?</button></div>')+
+    '<textarea class="field aiP" id="aiP" dir="auto" rows="2" placeholder="תאר את התמונה, למשל: במה עם אורות כחולים ועשן, שקיעה על הים">'+esc(BGW.ap)+'</textarea>'+
+    '<div class="row aiRow"><button class="btn pri" id="aiGo"'+(BGW.busy?' disabled':'')+'>'+GEM_SPARK.replace(/30/g,'18')+(BGW.aimg?'צור שוב':'צור תמונה')+'</button>'+(S.gemKey?'<span class="flex1"></span><button class="btn sm ghost" id="aiKeyCh">החלף מפתח</button>':'')+'</div>'+
+    (BGW.busy?'<div class="wMsg aiWait"><span class="spin big"></span><span>Gemini יוצר את התמונה…</span></div>':'')+
+    (BGW.aerr?'<p class="aiErr">'+esc(BGW.aerr)+'</p>':'')+
+    (BGW.aimg&&!BGW.busy?'<div class="aiPrev"><img src="'+BGW.aimg+'" alt=""><button class="btn pri" id="aiUse">'+ic('check',18)+'הגדר כרקע</button></div>':'')+'</div>';
+  }
   if(BGW.web)h+='<div class="row" style="gap:8px"><input class="field" id="bgQ" dir="auto" placeholder="חפש תמונה (למשל: stage lights) או הדבק קישור" value="'+esc(BGW.q)+'"><button class="btn pri" id="bgGo">'+ic('search',18)+'חפש</button></div>'+
    (BGW.busy?'<div class="wMsg"><span class="spin big"></span></div>':BGW.res.length?'<div class="bgGrid" id="bgGrid">'+BGW.res.map((r,i)=>'<button class="bgT" data-bgi="'+i+'"><img alt=""></button>').join('')+'</div>':'');
   if(b.type==='img')h+='<div class="grp"><div class="row"><label class="lbl flex1" for="bgDim" dir="ltr" style="text-align:right">Image dimming</label><b id="bgDimV">'+Math.round((b.dim==null?.45:b.dim)*100)+'%</b></div><input id="bgDim" type="range" min="0" max="0.85" step="0.05" value="'+(b.dim==null?.45:b.dim)+'"></div><button class="btn sm" data-bgc="#000000">הסר תמונה</button>';
@@ -2002,7 +2048,12 @@ function renderBgModal(){
   if(d.bgt){BGW.tab=d.bgt;return renderBgModal()}
   if(d.bgc)return setBgColor(d.bgc);
   if(d.bgsrc)return bgPick(d.bgsrc);
-  if(d.bgweb){BGW.web=!BGW.web;renderBgModal();const q=$('#bgQ');if(q)q.focus();return}
+  if(d.bgai){BGW.ai=!BGW.ai;if(BGW.ai)BGW.web=false;renderBgModal();const p=$('#aiKey')||$('#aiP');if(p)p.focus();return}
+  if(t.id==='aiGo')return bgAiGo();
+  if(t.id==='aiUse'){const d=BGW.aimg;BGW.aimg='';BGW.ai=false;return setBgImage(d)}
+  if(t.id==='aiKeyCh'){delete S.gemKey;save();return renderBgModal()}
+  if(t.id==='aiKeyHelp')return gemKeyHelp();
+  if(d.bgweb){BGW.web=!BGW.web;if(BGW.web)BGW.ai=false;renderBgModal();const q=$('#bgQ');if(q)q.focus();return}
   if(t.id==='bgGo'){BGW.q=$('#bgQ').value;return bgWebSearch(BGW.q)}
   if(d.bgi!=null){const r=BGW.res[+d.bgi];if(!r)return;BGW.busy=true;renderBgModal();httpGet(r.f,true,25000).then(x=>{BGW.busy=false;BGW.res=[];return setBgImage(x.text)}).catch(()=>{BGW.busy=false;renderBgModal();toast('לא ניתן להוריד את התמונה')})}
  };
