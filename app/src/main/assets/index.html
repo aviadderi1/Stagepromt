@@ -562,7 +562,7 @@ select.chip{cursor:pointer}
 .stkOpts input[type=color]{width:30px;height:30px}
 .pInner .sec,.endHint,.pvL{-webkit-text-stroke:0;text-shadow:none}
 .ch{-webkit-text-stroke:var(--chsk,0px transparent);paint-order:stroke fill;text-shadow:none}
-.chStkRow{display:flex;margin:8px 0 4px}.strokeBtn.sm{height:42px;font-size:13.5px}.strokeBtn.sm .stkDemo{font-size:17px}
+.chStk{flex-basis:100%}.chStk .sw{width:30px;height:30px}.ckWL{font-size:14px;color:#BDB6AA;margin-inline-start:8px}.chStk input.ckW{width:180px;flex:0 0 180px}.chStk input[type=color]{width:30px;height:30px;padding:0;border:1px solid var(--ln2);border-radius:8px;background:none}.strokeBtn.sm{height:42px;font-size:13.5px}.strokeBtn.sm .stkDemo{font-size:17px}
 .fontList{max-height:420px;overflow-y:auto}
 .fontG{padding:8px 14px 4px;font-size:11.5px;font-weight:700;color:var(--mu2);letter-spacing:.5px;background:#141518}
 .fontOpt{flex-shrink:0;gap:10px;justify-content:flex-start}
@@ -1352,9 +1352,6 @@ function renderStyle(){
  '<div class="grp"><div class="row"><label class="lbl flex1" for="stLh">ריווח שורות</label><b id="stLhV">'+st.lh.toFixed(2)+'</b></div><input id="stLh" type="range" min="1.05" max="1.9" step="0.05" value="'+st.lh+'"></div>'+
  '<div class="grp"><div class="lbl">צבע לפי חלק</div>'+Object.keys(SW).map(t=>'<div class="swRow"><span class="nm">'+cn[t]+'</span>'+SW[t].map(c=>'<button class="sw'+(st.colors[t].toLowerCase()===c.toLowerCase()?' on':'')+'" style="background:'+c+'" data-col="'+t+'" data-c="'+c+'" aria-label="צבע '+c+'"></button>').join('')+'<input type="color" data-colin="'+t+'" value="'+st.colors[t]+'" aria-label="צבע מותאם ל'+cn[t]+'"></div>').join('')+'</div>'+
  '<div class="swRow chRow"><span class="nm">אקורדים</span>'+CH_COL.slice(0,4).map(c=>'<button class="sw'+(chordColor(s).toLowerCase()===c.toLowerCase()?' on':'')+'" style="background:'+c+'" data-chc="'+c+'" aria-label="צבע אקורדים '+c+'"></button>').join('')+'<input type="color" data-chcin="1" value="'+chordColor(s)+'" aria-label="צבע אקורדים מותאם"></div>'+
- '<div class="chStkRow"><button class="strokeBtn sm'+(ck.on?' on':'')+'" data-chstk="1" aria-pressed="'+!!ck.on+'"><span class="stkDemo" style="-webkit-text-stroke:1.2px '+(ck.on?(ck.c||'#000'):chordColor(s))+';paint-order:stroke fill;color:'+(ck.on?chordColor(s):'transparent')+'">Am</span>Stroke לאקורדים</button></div>'+
- (ck.on?'<div class="stkOpts"><div class="lbl">צבע</div><div class="swRow">'+STK_COL.map(c=>'<button class="sw'+((ck.c||'#000000').toLowerCase()===c.toLowerCase()?' on':'')+'" style="background:'+c+'" data-cksc="'+c+'" aria-label="צבע קו מתאר לאקורדים '+c+'"></button>').join('')+'<input type="color" data-ckscin="1" value="'+(ck.c||'#000000')+'" aria-label="צבע מותאם"></div>'+
-   '<div class="row"><label class="lbl flex1" for="ckW">עובי</label><b id="ckWV">'+(ck.w||3)+'</b></div><input id="ckW" type="range" min="1" max="10" step="1" value="'+(ck.w||3)+'"></div>':'')+
  '<div class="grp"><div class="lbl">יישור</div><div class="seg full"><button data-al="center" class="'+(st.align==='center'?'on':'')+'">מרכז</button><button data-al="right" class="'+(st.align==='right'?'on':'')+'">ימין</button></div></div>'+
  '<label class="tgl"><input type="checkbox" id="stLabels"'+(st.labels?' checked':'')+'><span>הצג שמות חלקים בהופעה</span></label>'+
  '<div class="preview" id="stPrev"></div>'+
@@ -1377,17 +1374,15 @@ $('#style').addEventListener('click',e=>{
  if(d.stc){st.stroke.c=d.stc;touch(s);renderBlocks();renderStyle();return}
  if(d.shadow){st.shadow=Object.assign({c:'#000000',k:5},st.shadow||{});st.shadow.on=!st.shadow.on;touch(s);renderBlocks();renderStyle();return}
  if(d.shc){st.shadow.c=d.shc;touch(s);renderBlocks();renderStyle();return}
- if(d.chstk){st.chStroke=Object.assign({c:'#000000',w:3},st.chStroke||{});st.chStroke.on=!st.chStroke.on;touch(s);renderBlocks();renderStyle();return}
- if(d.cksc){st.chStroke.c=d.cksc;touch(s);renderBlocks();renderStyle();return}
  if(d.col){st.colors[d.col]=d.c;touch(s);renderBlocks();renderStyle();return}
  if(d.al){st.align=d.al;touch(s);renderStyle();return}
  if(d.chc){st.chordColor=d.chc;touch(s);renderStyle();if(ED.chords)refreshChords();return}
  if(t.id==='stDefault'){S.defStyle=clone(st);save();toast('העיצוב הזה יחול על שירים חדשים')}
 });
+$('#blocks').addEventListener('input',e=>{if(e.target.id!=='ckW')return;const s=curSong();s.style.chStroke.w=+e.target.value;$('#ckWV').textContent=e.target.value;touch(s);const L=$('#blocks .chLines');$$('#blocks .chLines').forEach(x=>x.style.setProperty('--chsk','calc('+s.style.chStroke.w+' * .04em) '+s.style.chStroke.c))});
 $('#style').addEventListener('input',e=>{
  const t=e.target,s=curSong(),st=s.style;
  if(t.id==='shK'){st.shadow.k=+t.value;$('#shKV').textContent=t.value;touch(s);renderBlocks();updatePreview();return}
- if(t.id==='ckW'){st.chStroke.w=+t.value;$('#ckWV').textContent=t.value;touch(s);renderBlocks();updatePreview();return}
  if(t.id==='stkW'){st.stroke.w=+t.value;$('#stkWV').textContent=t.value;touch(s);renderBlocks();updatePreview();return}
  if(t.id==='stSize'){st.size=+t.value;$('#stSizeV').textContent=st.size;touch(s);updatePreview()}
  else if(t.id==='stLh'){st.lh=+t.value;$('#stLhV').textContent=st.lh.toFixed(2);touch(s);updatePreview()}
@@ -1397,7 +1392,6 @@ $('#style').addEventListener('change',e=>{
  if(t.dataset.colin){s.style.colors[t.dataset.colin]=t.value;touch(s);renderBlocks();renderStyle()}
  else if(t.dataset.stcin){s.style.stroke.c=t.value;touch(s);renderBlocks();renderStyle()}
  else if(t.dataset.shcin){s.style.shadow.c=t.value;touch(s);renderBlocks();renderStyle()}
- else if(t.dataset.ckscin){s.style.chStroke.c=t.value;touch(s);renderBlocks();renderStyle()}
  else if(t.dataset.chcin){s.style.chordColor=t.value;touch(s);renderStyle();if(ED.chords)refreshChords()}
  else if(t.id==='stLabels'){s.style.labels=t.checked;touch(s)}
  else if(t.id==='stInv'){s.invert=t.checked;touch(s)}
@@ -1533,10 +1527,13 @@ function pasteChords(s,pid){
  if(!out.length)return toast('אין שורות מתאימות להדבקה');
  p.chords=out;touch(s);refreshChords();
 }
+function chStkHtml(s){const ck=s.style.chStroke||{};
+ return '<div class="chCols chStk"><button class="strokeBtn sm'+(ck.on?' on':'')+'" data-chstk="1" aria-pressed="'+!!ck.on+'"><span class="stkDemo" style="-webkit-text-stroke:1.2px '+(ck.on?(ck.c||'#000'):chordColor(s))+';paint-order:stroke fill;color:'+(ck.on?chordColor(s):'transparent')+'">Am</span>Stroke</button>'+
+  (ck.on?STK_COL.map(c=>'<button class="sw'+((ck.c||'#000000').toLowerCase()===c.toLowerCase()?' on':'')+'" style="background:'+c+'" data-cksc="'+c+'" aria-label="צבע קו מתאר לאקורדים '+c+'"></button>').join('')+'<input type="color" data-ckscin="1" value="'+(ck.c||'#000000')+'" aria-label="צבע מותאם"><label class="ckWL" for="ckW">עובי <b id="ckWV">'+(ck.w||3)+'</b></label><input id="ckW" class="ckW" type="range" min="1" max="10" step="1" value="'+(ck.w||3)+'">':'')+'</div>'}
 function chordBlocks(s){
  const st=s.style,f=font(st.font),L=labelMap(s);
  const cols=CH_COL.map(c=>'<button class="sw'+(chordColor(s).toLowerCase()===c.toLowerCase()?' on':'')+'" style="background:'+c+'" data-chcol="'+c+'" aria-label="צבע אקורדים '+c+'"></button>').join('')+'<input type="color" data-chcolin="1" value="'+chordColor(s)+'" aria-label="צבע אקורדים מותאם">';
- let h='<div class="chTools"><div class="chHint">'+ic('hand',18)+'<span><b>לחיצה כפולה על מילה</b> פותחת את מאגר האקורדים · <b>גרור</b> אקורד כדי להזיז אותו · <b>לחיצה</b> על אקורד לשינוי או מחיקה</span></div><div class="chCols"><span>צבע האקורדים</span>'+cols+'</div>'+
+ let h='<div class="chTools"><div class="chHint">'+ic('hand',18)+'<span><b>לחיצה כפולה על מילה</b> פותחת את מאגר האקורדים · <b>גרור</b> אקורד כדי להזיז אותו · <b>לחיצה</b> על אקורד לשינוי או מחיקה</span></div><div class="chCols"><span>צבע האקורדים</span>'+cols+'</div>'+chStkHtml(s)+
   '<div class="chTr"><span>החלפת סולם</span><button class="btn sm" data-tr="-1" aria-label="חצי טון למטה">−½</button><b dir="ltr" class="trKey">'+esc(s.key||'—')+'</b><button class="btn sm" data-tr="1" aria-label="חצי טון למעלה">+½</button><span class="trSep"></span><label for="chCapo">קאפו</label><select id="chCapo" class="field capoSel">'+[0,1,2,3,4,5,6,7].map(n=>'<option value="'+n+'"'+((s.capo||0)===n?' selected':'')+'>'+(n?n:'ללא')+'</option>').join('')+'</select></div></div>';
  s.parts.forEach(p=>{
   const src=srcOf(s,p);if(!src)return;
@@ -1635,10 +1632,12 @@ function chordMenu(pid,k){
  B.addEventListener('click',e=>{
   const tr=e.target.closest('[data-tr]');if(tr){const s=curSong();if(!songChords(s).length&&!s.key)return toast('אין עדיין אקורדים או סולם בשיר');transposeSong(s,+tr.dataset.tr);refreshChords();$('#edKey').innerHTML='<option value="">סולם</option>'+KEYS.concat(s.key&&!KEYS.includes(s.key)?[s.key]:[]).map(k=>'<option value="'+k+'"'+(s.key===k?' selected':'')+'>'+k+'</option>').join('');return toast('הסולם הועבר '+(tr.dataset.tr>0?'חצי טון למעלה':'חצי טון למטה')+(s.key?' · '+s.key:''))}
   const dc=e.target.closest('[data-delch]');if(dc){const s=curSong(),p=s.parts.find(x=>x.id===dc.dataset.delch);if(p&&!p.ref){p.chords=[];touch(s);refreshChords()}return}
+  const ks=e.target.closest('[data-chstk],[data-cksc]');if(ks){const s=curSong(),st=s.style;if(ks.dataset.chstk){st.chStroke=Object.assign({c:'#000000',w:3},st.chStroke||{});st.chStroke.on=!st.chStroke.on}else st.chStroke.c=ks.dataset.cksc;touch(s);refreshChords();return}
   const pc=e.target.closest('[data-pastech]');if(pc)return pasteChords(curSong(),pc.dataset.pastech);
   const t=e.target.closest('[data-chcol]');if(t){const s=curSong();s.style.chordColor=t.dataset.chcol;touch(s);refreshChords();renderStyle()}
  });
  B.addEventListener('change',e=>{if(e.target.id==='chCapo'){const s=curSong();s.capo=+e.target.value||0;if(!s.capo)delete s.capo;touch(s);return toast(s.capo?'קאפו '+s.capo+' – במסך ההופעה יוצגו תנוחות האקורדים עם קאפו':'ללא קאפו')}
+  if(e.target.dataset.ckscin){const s=curSong();s.style.chStroke.c=e.target.value;touch(s);refreshChords();return}
   if(e.target.dataset.chcolin){const s=curSong();s.style.chordColor=e.target.value;touch(s);refreshChords();renderStyle()}});
 })();
 function setChordMode(on){
