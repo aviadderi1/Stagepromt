@@ -90,6 +90,7 @@ input[type=range]{accent-color:var(--am);width:100%;height:32px}
 .playBtn{width:46px;height:46px;border-radius:50%;background:var(--ln2);color:var(--tx);border:0;display:flex;align-items:center;justify-content:center}
 .playBtn:active{background:var(--am);color:#111214}
 .badge{height:24px;padding:0 9px;border-radius:12px;background:#2B2230;color:#D9BFF5;font-size:12px;font-weight:800;display:inline-flex;align-items:center}
+.selRow .lOpen{gap:12px}.selBox{width:26px;height:26px;flex-shrink:0;border:2px solid #5A5D64;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#1A1205}.selRow.on .selBox{background:var(--am);border-color:var(--am)}.selRow.on{background:#2A2419;border-radius:14px}.selbar{gap:10px}.selbar b{font-size:17px}.btn.danger{color:#FF9A8F;border-color:#5A2A26}.btn.danger:disabled,.selbar .btn:disabled{opacity:.4}
 .setbar{height:72px;padding:0 20px;display:flex;align-items:center;gap:16px;background:#1F1B14;border:1px solid #3D3322;border-radius:16px;flex-shrink:0;color:var(--am)}
 .sbTxt{min-width:0;color:var(--tx)}
 .sbTxt b{display:block;font-size:17px;font-weight:800}
@@ -1129,7 +1130,8 @@ function renderLib(){
  const reorder=S.ui.sort==='set'&&LIB.reorder;
  const sb=(k,l)=>'<button data-sort="'+k+'" class="'+(S.ui.sort===k?'on':'')+'">'+l+'</button>';
  $('#mhead').innerHTML=(S.ui.navHidden?'<button class="btn" id="navShow">'+ic('folder',18)+'תיקיות</button>':'')+'<div class="flex1"><h1>'+esc(folderName(S.ui.folder))+'</h1><div class="sub">'+(all.length===1?'שיר אחד':all.length+' שירים')+'</div></div>'+
-  (S.ui.sort==='set'&&list.length>1&&!$('#q').value?'<button class="btn'+(reorder?' pri':'')+'" id="reorderBtn">'+ic('sort',18)+(reorder?'סיום':'שנה סדר')+'</button>':'')+
+  (list.length&&!reorder?'<button class="btn'+(LIB.sel?' pri':'')+'" id="selBtn">'+ic('check',18)+(LIB.sel?'סיום בחירה':'בחירה')+'</button>':'')+
+  (S.ui.sort==='set'&&list.length>1&&!$('#q').value&&!LIB.sel?'<button class="btn'+(reorder?' pri':'')+'" id="reorderBtn">'+ic('sort',18)+(reorder?'סיום':'שנה סדר')+'</button>':'')+
   '<div class="seg">'+sb('set','סדר הופעה')+sb('az','א–ת')+sb('recent','אחרונים')+'</div>';
 
  const G=$('#grid');
@@ -1140,6 +1142,8 @@ function renderLib(){
  G.classList.add('asList');
  $('#lib').classList.toggle('navHidden',!!S.ui.navHidden);
 
+ if(LIB.sel){const k=[...LIB.sel].filter(id=>list.some(x=>x.id===id)).length,inSet=S.folders.some(f=>f.id===S.ui.folder);
+  $('#setbar').innerHTML='<div class="setbar selbar"><b class="flex1">'+(k?(k===1?'שיר אחד נבחר':k+' שירים נבחרו'):'סמן שירים')+'</b><button class="btn" id="selAll">'+(k===list.length?'בטל הכל':'בחר הכל')+'</button>'+(inSet?'<button class="btn" id="selOut"'+(k?'':' disabled')+'>'+ic('folder',16)+'הוצא מההופעה</button>':'')+'<button class="btn danger" id="selDel"'+(k?'':' disabled')+'>'+ic('trash',16)+'מחק</button></div>';return}
  $('#setbar').innerHTML=list.length?'<div class="setbar">'+ic('list',22)+'<div class="flex1 sbTxt"><b>'+(list.length===1?'שיר אחד':list.length+' שירים')+' בסט</b><span>'+esc(list.slice(0,4).map(s=>s.title).join(' ← '))+(list.length>4?' ← …':'')+'</span></div><button class="btn pri" id="startSet">'+ic('play',16)+'התחל הופעה</button></div>':'';
 }
 function card(s,i,n,reorder){
@@ -1151,6 +1155,7 @@ function card(s,i,n,reorder){
  return '<div class="card"><button class="cardOpen" data-open="'+s.id+'"><span class="ttl">'+(s.fav?'<span class="favS">'+ic('starF',15)+'</span>':'')+esc(s.title||'ללא שם')+'</span><span class="art">'+esc(s.artist||'')+'</span>'+(pills?'<span class="pills">'+pills+'</span>':'')+(meta?'<span class="meta">'+meta+'</span>':'')+'</button><div class="side">'+side+'</div></div>';
 }
 function listRow(s,i,n,reorder){
+ if(LIB.sel){const on=LIB.sel.has(s.id);return '<div class="lrow selRow'+(on?' on':'')+'"><button class="lOpen" data-selid="'+s.id+'" aria-pressed="'+on+'"><span class="selBox">'+(on?ic('check',16):'')+'</span>'+avatarHtml(s.img,s.artist||s.title,'lAv')+'<span class="lTitle">'+esc(s.title||'ללא שם')+(s.key?'<span class="keyB" dir="ltr">'+esc(s.key)+'</span>':'')+'</span><span class="lArt">'+esc(s.artist||'')+'</span>'+(s.kind==='pdf'?'<span class="pills"><span class="badge">PDF</span></span>':'')+'</button></div>'}
  const pills=s.kind==='pdf'?'<span class="badge">PDF</span>':'';
  const side=reorder?
   '<button class="ib sm" data-up="'+s.id+'" '+(i===0?'disabled':'')+' aria-label="הזז למעלה">'+ic('up',18)+'</button><button class="ib sm" data-down="'+s.id+'" '+(i===n-1?'disabled':'')+' aria-label="הזז למטה">'+ic('down',18)+'</button>':
@@ -1175,6 +1180,12 @@ function cloneSong(s){
  const c=clone(s);c.id=uid();c.title=s.title+' (עותק)';c.order=S.songs.reduce((m,x)=>Math.max(m,x.order||0),0)+1;c.created=c.updated=Date.now();
  const map={};c.parts.forEach(p=>{const n=uid();map[p.id]=n;p.id=n});c.parts.forEach(p=>{if(p.ref)p.ref=map[p.ref]});
  return c;
+}
+function deleteSongs(ids){
+ const del=S.songs.filter(x=>ids.includes(x.id));if(!del.length)return;
+ S.songs=S.songs.filter(x=>!ids.includes(x.id));
+ del.forEach(s=>{if(s.pdfId&&!S.songs.some(x=>x.pdfId===s.pdfId)){IDB.del(s.pdfId);delete docCache[s.pdfId]}if(s.bg&&s.bg.id)dropBgImg(s.bg.id)});
+ save(true);
 }
 function deleteSong(id){
  const s=S.songs.find(x=>x.id===id);if(!s)return;
@@ -1206,12 +1217,14 @@ function folderMenu(fid){
 }
 $('#lib').addEventListener('click',e=>{
  const t=e.target.closest('button');if(!t)return;const d=t.dataset;
- if(d.f){S.ui.folder=d.f;LIB.reorder=false;save();renderLib();$('#grid').scrollTop=0;return}
+ if(d.f){S.ui.folder=d.f;LIB.reorder=false;LIB.sel=null;save();renderLib();$('#grid').scrollTop=0;return}
  if(d.fm)return folderMenu(d.fm);
  if(t.id==='newFold')return ask('תיקייה חדשה','','צור תיקייה',v=>{const f={id:uid(),name:v};S.folders.push(f);S.ui.folder=f.id;save();renderLib()});
  if(d.sort){S.ui.sort=d.sort;LIB.reorder=false;save();renderLib();return}
  if(t.id==='navHide'||t.id==='navShow'){S.ui.navHidden=t.id==='navHide';save();renderLib();return}
  if(t.id==='reorderBtn'){LIB.reorder=!LIB.reorder;renderLib();return}
+ if(t.id==='selBtn'){LIB.sel=LIB.sel?null:new Set();LIB.reorder=false;renderLib();return}
+ if(d.selid){const k=d.selid;LIB.sel.has(k)?LIB.sel.delete(k):LIB.sel.add(k);renderLib();return}
  if(d.open)return openEditor(d.open);
  if(d.play){const l=visibleSongs().map(s=>s.id);return startShow(l,l.indexOf(d.play))}
  if(d.sm)return songMenu(d.sm);
@@ -1224,6 +1237,9 @@ $('#lib').addEventListener('click',e=>{
  if(t.id==='expBtn')return exportMenu();
  if(t.id==='pedalBtn')return pedalModal();
  if(t.id==='startSet')return startShow(visibleSongs().map(s=>s.id),0);
+ if(t.id==='selAll'){const L=visibleSongs();const all=L.every(x=>LIB.sel.has(x.id));L.forEach(x=>all?LIB.sel.delete(x.id):LIB.sel.add(x.id));renderLib();return}
+ if(t.id==='selDel'){const ids=[...LIB.sel].filter(id=>visibleSongs().some(x=>x.id===id));if(!ids.length)return;return confirmBox(ids.length===1?'למחוק את השיר?':'למחוק '+ids.length+' שירים?',ids.length===1?'השיר יימחק מהספרייה ומכל ההופעות.':'השירים יימחקו מהספרייה ומכל ההופעות. אי אפשר לבטל.','מחק',()=>{deleteSongs(ids);LIB.sel=null;renderLib()})}
+ if(t.id==='selOut'){const ids=[...LIB.sel];S.songs.forEach(x=>{if(ids.includes(x.id)&&x.folderId===S.ui.folder)x.folderId=null});save(true);LIB.sel=null;renderLib();return}
  if(t.id==='libNew'||t.id==='emptyNew')return newSong();
  if(t.id==='libImport'||t.id==='emptyImp')return openImp();
  if(t.id==='libWeb'||t.id==='emptyWeb')return openWeb();
