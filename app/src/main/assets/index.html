@@ -619,6 +619,57 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
 .bgT{aspect-ratio:16/10;border-radius:10px;overflow:hidden;border:1px solid #2A2D33;background:#17181C;padding:0}
 .bgT img{width:100%;height:100%;object-fit:cover;display:block}
 #play .pTop,#play .prog{position:relative;z-index:1}
+
+/* ---- phone ---- */
+@media (max-width:600px){
+ .hdr{padding:10px 12px!important;gap:6px!important}
+ #lib>.hdr .logoImg{height:30px}
+ #lib>.hdr .brand{gap:6px}
+ #lib>.hdr .flex1{display:none}
+ #lib>.hdr .brand{flex:1 1 100%;justify-content:space-between}
+ #lib>.hdr .btn{height:40px}
+ #lib>.hdr #libNew{flex:1;justify-content:center}
+ .main{padding:14px 12px 12px;gap:12px}
+ .mhead h1{font-size:24px}
+ #lib.navOver .nav{display:flex;position:fixed;top:0;bottom:0;right:0;width:78vw;max-width:300px;z-index:40;background:var(--bg,#111214);box-shadow:-20px 0 60px rgba(0,0,0,.6);padding-top:28px}
+ #lib.navOver::after{content:'';position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:39}
+ .grid{grid-template-columns:1fr}
+ .lOpen{display:grid;grid-template-columns:auto auto 1fr;column-gap:10px;row-gap:2px;padding:8px 10px}
+ .lOpen>*{grid-row:span 2}
+ .lOpen .lTitle,.lOpen .lArt{grid-row:auto;grid-column:3;max-width:none;font-size:16px}
+ .lOpen .lArt{font-size:13px}
+ .lrow .pills{display:none}
+ .setbar{height:auto;min-height:64px;padding:10px 12px;gap:10px;flex-wrap:wrap}
+ .setbar .sbTxt{min-width:0}
+ .setbar .sbTxt b,.setbar .sbTxt span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ #edit>.hdr{flex-wrap:wrap;height:auto}
+ #edit>.hdr .edTitles{flex:1}
+ #edit>.hdr .flex1{flex-basis:100%;height:0}
+ #edit>.hdr .btn{height:38px;padding:0 10px;font-size:14px}
+ #edit>.hdr #edPlay{flex:1;justify-content:center}
+ .titleIn{font-size:20px;width:100%}
+ .pTop{padding-left:12px!important;padding-right:12px!important}
+ .pInner{padding-left:14px!important;padding-right:14px!important}
+ .pBarWrap{bottom:8px!important;padding:0 6px!important}
+ .pBar{flex-wrap:wrap;height:auto!important;padding:8px!important;gap:6px!important;row-gap:8px!important;justify-content:center;border-radius:18px}
+ .pBrk{display:block;flex-basis:100%;height:0}
+ .pBar .vsep,.pNext,.spd small{display:none!important}
+ .pb,.pb.wide{width:40px!important;min-width:40px!important;height:40px!important;padding:0!important;font-size:14px}
+ .pb.wide span{display:none!important}
+ .pb.big{width:52px!important;height:52px!important}
+ .pPart{min-width:72px}
+ #play.setOpen .pSet{width:100%!important}
+ .modal,.mBox{max-width:calc(100vw - 20px)!important}
+ .modal-wrap{padding:10px}
+ .modal.stModal{height:92vh}
+ .stWrap{flex-direction:column}
+ .stNav{order:-1;width:auto;flex-direction:row;flex-wrap:wrap;align-items:center;padding:12px;border-right:0;border-bottom:1px solid #26292F;gap:6px}
+ .stNav h2{flex-basis:100%;margin:0 4px 4px;font-size:18px}
+ .stNav .flex1,.stNav>div:empty{display:none}
+ .stCat{height:38px;padding:0 10px;font-size:14px;background:#1E2024}
+ .stMain{padding:16px}
+ .stMain h3{font-size:19px}
+}
 </style>
 </head>
 <body>
@@ -1112,6 +1163,8 @@ function autoSplit(raw){
 
 /* ========= library ========= */
 const LIB={reorder:false};
+const isPhone=()=>Math.min(innerWidth,screen.width||innerWidth)<=600;
+function navHid(){return isPhone()?!LIB.navOpen:!!S.ui.navHidden}
 function folderName(id){if(id==='all')return T('כל השירים');if(id==='fav')return T('מועדפים');if(id==='none')return T('ללא תיקייה');const f=S.folders.find(f=>f.id===id);return f?f.name:'כל השירים'}
 function songsIn(fid){
  let a=S.songs;
@@ -1142,7 +1195,7 @@ function renderLib(){
  const list=visibleSongs(),all=songsIn(S.ui.folder);
  const reorder=S.ui.sort==='set'&&LIB.reorder;
  const sb=(k,l)=>'<button data-sort="'+k+'" class="'+(S.ui.sort===k?'on':'')+'">'+l+'</button>';
- $('#mhead').innerHTML=(S.ui.navHidden?'<button class="btn" id="navShow">'+ic('folder',18)+'תיקיות</button>':'')+'<div class="flex1"><h1>'+esc(folderName(S.ui.folder))+'</h1><div class="sub">'+(all.length===1?'שיר אחד':all.length+' שירים')+'</div></div>'+
+ $('#mhead').innerHTML=(navHid()?'<button class="btn" id="navShow">'+ic('folder',18)+'תיקיות</button>':'')+'<div class="flex1"><h1>'+esc(folderName(S.ui.folder))+'</h1><div class="sub">'+(all.length===1?'שיר אחד':all.length+' שירים')+'</div></div>'+
   (list.length&&!reorder?'<button class="btn'+(LIB.sel?' pri':'')+'" id="selBtn">'+ic('check',18)+(LIB.sel?'סיום בחירה':'בחירה')+'</button>':'')+
   (S.ui.sort==='set'&&list.length>1&&!$('#q').value&&!LIB.sel?'<button class="btn'+(reorder?' pri':'')+'" id="reorderBtn">'+ic('sort',18)+(reorder?'סיום':'שנה סדר')+'</button>':'')+
   '<div class="seg">'+sb('set','סדר הופעה')+sb('az','א–ת')+sb('recent','אחרונים')+'</div>';
@@ -1153,7 +1206,7 @@ function renderLib(){
    '<div class="emptyLib"><h2>אין עדיין שירים כאן</h2><p>כתוב שיר חדש או ייבא קובץ PDF עם מילים.</p><div><button class="btn pri" id="emptyNew">'+ic('plus',18)+'שיר חדש</button><button class="btn" id="emptyWeb">'+ic('globe',18)+'חיפוש ברשת</button><button class="btn" id="emptyImp">'+ic('upload',18)+'ייבוא PDF</button></div></div>';
  }else G.innerHTML=list.map((s,i)=>listRow(s,i,list.length,reorder)).join('');
  G.classList.add('asList');
- $('#lib').classList.toggle('navHidden',!!S.ui.navHidden);
+ $('#lib').classList.toggle('navHidden',navHid());$('#lib').classList.toggle('navOver',isPhone()&&!!LIB.navOpen);
 
  if(LIB.sel){const k=[...LIB.sel].filter(id=>list.some(x=>x.id===id)).length,inSet=S.folders.some(f=>f.id===S.ui.folder);
   $('#setbar').innerHTML='<div class="setbar selbar"><b class="flex1">'+(k?(k===1?'שיר אחד נבחר':k+' שירים נבחרו'):'סמן שירים')+'</b><button class="btn" id="selAll">'+(k===list.length?'בטל הכל':'בחר הכל')+'</button>'+(inSet?'<button class="btn" id="selOut"'+(k?'':' disabled')+'>'+ic('folder',16)+'הוצא מההופעה</button>':'')+'<button class="btn danger" id="selDel"'+(k?'':' disabled')+'>'+ic('trash',16)+'מחק</button></div>';return}
@@ -1230,11 +1283,11 @@ function folderMenu(fid){
 }
 $('#lib').addEventListener('click',e=>{
  const t=e.target.closest('button');if(!t)return;const d=t.dataset;
- if(d.f){S.ui.folder=d.f;LIB.reorder=false;LIB.sel=null;save();renderLib();$('#grid').scrollTop=0;return}
+ if(d.f){LIB.navOpen=false;S.ui.folder=d.f;LIB.reorder=false;LIB.sel=null;save();renderLib();$('#grid').scrollTop=0;return}
  if(d.fm)return folderMenu(d.fm);
  if(t.id==='newFold')return ask('תיקייה חדשה','','צור תיקייה',v=>{const f={id:uid(),name:v};S.folders.push(f);S.ui.folder=f.id;save();renderLib()});
  if(d.sort){S.ui.sort=d.sort;LIB.reorder=false;save();renderLib();return}
- if(t.id==='navHide'||t.id==='navShow'){S.ui.navHidden=t.id==='navHide';save();renderLib();return}
+ if(t.id==='navHide'||t.id==='navShow'){if(isPhone())LIB.navOpen=t.id==='navShow';else{S.ui.navHidden=t.id==='navHide';save()}renderLib();return}
  if(t.id==='reorderBtn'){LIB.reorder=!LIB.reorder;renderLib();return}
  if(t.id==='selBtn'){LIB.sel=LIB.sel?null:new Set();LIB.reorder=false;renderLib();return}
  if(d.selid){const k=d.selid;LIB.sel.has(k)?LIB.sel.delete(k):LIB.sel.add(k);renderLib();return}
@@ -1971,7 +2024,7 @@ async function loadPlay(){
 function buildText(s){
  const st=s.style,f=font(st.font),inner=$('#pInner');
  inner.className='pInner'+(S.ui.mirror?' mirror':'');
- inner.style.cssText='font-family:'+f.css+';font-weight:'+f.w+';font-size:'+st.size+'px;text-align:'+st.align+';--lh:'+st.lh+';--chc:'+chordColor(s)+strokeCss(st);
+ inner.style.cssText='font-family:'+f.css+';font-weight:'+f.w+';font-size:'+Math.round(st.size*(isPhone()?Math.min(1,innerWidth/860):1))+'px;text-align:'+st.align+';--lh:'+st.lh+';--chc:'+chordColor(s)+strokeCss(st);
  inner.classList.toggle('noCh',!!S.ui.hideChords);
  const L=labelMap(s);let h='';
  s.parts.forEach(p=>{

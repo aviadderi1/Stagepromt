@@ -15,6 +15,19 @@ android {
         versionName = "1.0." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
     }
 
+    flavorDimensions += "device"
+    productFlavors {
+        create("tablet") {
+            dimension = "device"
+            manifestPlaceholders["appLabel"] = "StagePromt"
+        }
+        create("phone") {
+            dimension = "device"
+            applicationIdSuffix = ".mobile"
+            manifestPlaceholders["appLabel"] = "StagePromt Mobile"
+        }
+    }
+
     signingConfigs {
         create("release") {
             storeFile = file("bama-release.keystore")

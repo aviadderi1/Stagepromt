@@ -24,15 +24,19 @@ jobs:
           gradle-version: "8.9"
 
       - name: Build APK
-        run: gradle assembleRelease --no-daemon --stacktrace
+        run: gradle assembleTabletRelease assemblePhoneRelease --no-daemon --stacktrace
 
       - name: Rename APK
-        run: cp app/build/outputs/apk/release/app-release.apk StagePromt.apk
+        run: |
+          cp app/build/outputs/apk/tablet/release/app-tablet-release.apk StagePromt.apk
+          cp app/build/outputs/apk/phone/release/app-phone-release.apk StagePromt-Mobile.apk
 
       - uses: actions/upload-artifact@v4
         with:
           name: StagePromt.apk
-          path: StagePromt.apk
+          path: |
+            StagePromt.apk
+            StagePromt-Mobile.apk
           retention-days: 1
 
       - name: Delete previous releases
@@ -47,4 +51,6 @@ jobs:
         with:
           tag_name: build-${{ github.run_number }}
           name: StagePromt – גרסה ${{ github.run_number }}
-          files: StagePromt.apk
+          files: |
+            StagePromt.apk
+            StagePromt-Mobile.apk
