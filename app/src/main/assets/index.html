@@ -430,6 +430,9 @@ select.chip{cursor:pointer}
 .pBar.tighter .pb.big{width:48px;height:48px}
 .pBar.tighter .spd{width:44px}
 .pBar.tighter .pPart{min-width:70px}
+.pBar.wrap{flex-wrap:wrap;height:auto;padding:8px;row-gap:8px;justify-content:center}
+.pBar.wrap .pBrk{display:block;flex-basis:100%;height:0}
+.pBar.wrap .vsep,.pBar.wrap .pNext{display:none}
 .hdr .btn.act{background:transparent;border:1.5px solid #F2C14E;color:#F7D57A;box-shadow:none}
 .chwBtn{border-color:#E8A33D;color:#F4C77A;gap:8px}.chwList{display:flex;flex-direction:column;max-height:46vh;overflow:auto;margin-top:6px}.chwItem{height:auto;min-height:56px;padding:8px 14px}.chwItem svg:last-child{transform:rotate(90deg);opacity:.5}.chwT{display:flex;flex-direction:column;flex:1;min-width:0;line-height:1.25}.chwT small{color:#8A847A;font-size:12.5px;text-align:right}
 .chActs{display:flex;gap:10px;justify-content:center;margin-top:12px}.chActs .pasteCh{margin-top:0}.delCh:active{border-color:#FF6B6B!important;color:#FF6B6B!important}
@@ -658,7 +661,13 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
  .pb.wide span{display:none!important}
  .pb.big{width:52px!important;height:52px!important}
  .pPart{min-width:72px}
- #play.setOpen .pSet{width:100%!important}
+ #play.setOpen .pSet{width:42vw!important}
+ #play.setOpen .pScroll,#play.setOpen .pBarWrap{left:42vw!important}
+ #play.setOpen .pBar .pb,#play.setOpen .pBar .pb.wide{width:36px!important;min-width:36px!important;height:36px!important}
+ #play.setOpen .pBar .pb.big{width:44px!important;height:44px!important}
+ #play.setOpen .pBar{gap:4px!important;padding:6px!important}
+ #play.setOpen .pPart{min-width:60px}
+ #play.setOpen .pPart b{font-size:13px}
  .modal,.mBox{max-width:calc(100vw - 20px)!important}
  .modal-wrap{padding:10px}
  .modal.stModal{height:92vh}
@@ -2442,7 +2451,7 @@ $('#pChords').onclick=()=>{const ps=playSong();if(ps&&ps.kind==='pdf'){ps.pdfHid
  S.ui.hideChords=!S.ui.hideChords;save();$('#pInner').classList.toggle('noCh',S.ui.hideChords);updChordBtn();
  const sc=$('#pScroll');if(S.ui.manual)fitPage(P.parts[P.pi]);else{const r=sc.scrollHeight?sc.scrollTop/sc.scrollHeight:0;measure();sc.scrollTop=r*sc.scrollHeight;P.pos=sc.scrollTop;P.cur=-1;onPScroll()}
  castPush();toast(S.ui.hideChords?'האקורדים מוסתרים':'האקורדים מוצגים')};
-function fitBar(){const b=$('.pBar');if(!b||SCREEN!=='play')return;b.classList.remove('tight','tighter');const over=()=>b.scrollWidth>b.clientWidth+1||b.getBoundingClientRect().width>b.parentElement.clientWidth-16;if(over())b.classList.add('tight');if(over())b.classList.add('tighter')}
+function fitBar(){const b=$('.pBar');if(!b||SCREEN!=='play')return;b.classList.remove('tight','tighter','wrap');const over=()=>b.scrollWidth>b.clientWidth+1||b.getBoundingClientRect().width>b.parentElement.clientWidth-16;if(over())b.classList.add('tight');if(over())b.classList.add('tighter');if(over())b.classList.add('wrap')}
 function renderSetPanel(){
  const E=$('#pSet');if(!E)return;
  $('#play').classList.toggle('setOpen',!!S.ui.setOpen);$('#pList').classList.toggle('on',!!S.ui.setOpen);
