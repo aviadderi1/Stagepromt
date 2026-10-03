@@ -440,6 +440,8 @@ select.chip{cursor:pointer}
 .chTools{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;padding:12px 16px;background:#17181B;border:1px solid var(--ln2);border-radius:14px;margin-bottom:14px}
 .chHint{flex:1;min-width:280px;display:flex;align-items:center;gap:10px;color:var(--mu);font-size:14px;line-height:1.55}
 .chHint svg{flex-shrink:0;color:#FFC870}
+.chUndo{background:#202227;gap:6px}
+.chUndo:disabled{opacity:.35}
 .chHint b{color:var(--tx);font-weight:700}
 .chCols{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--mu)}
 .chCols input[type=color],.chRow input[type=color]{width:30px;height:30px;padding:0;border:1px solid var(--ln2);border-radius:8px;background:none}
@@ -910,6 +912,7 @@ const ICON={
  qr:SV+'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 17h4v4h-4"/></svg>',
  chord:SV+'<path d="M6 3v18"/><path d="M10 3v18"/><path d="M14 3v18"/><path d="M18 3v18"/><path d="M4 8h16"/><path d="M4 13h16"/><circle cx="10" cy="10.5" r="1.6" fill="currentColor"/><circle cx="14" cy="15.5" r="1.6" fill="currentColor"/></svg>',
  setlist:SV+'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path d="M12 9h6"/><path d="M12 13h6"/><path d="M12 17h4"/></svg>',
+ undo:SV+'<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>',
  pedal:SV+'<path d="M5 20h14"/><path d="M7 20l3-12 8-3 1 3-7 4-1 8"/><circle cx="17.5" cy="4.5" r="1"/></svg>',
  gauge:SV+'<path d="M12 14l4-4"/><path d="M3.5 17a9 9 0 1 1 17 0"/></svg>',
  gear:SV+'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
@@ -1787,10 +1790,14 @@ async function chwUse(r){
 function chStkHtml(s){const ck=s.style.chStroke||{};
  return '<div class="chCols chStk"><button class="strokeBtn sm'+(ck.on?' on':'')+'" data-chstk="1" aria-pressed="'+!!ck.on+'">Stroke</button>'+
   (ck.on?STK_COL.map(c=>'<button class="sw'+((ck.c||'#000000').toLowerCase()===c.toLowerCase()?' on':'')+'" style="background:'+c+'" data-cksc="'+c+'" aria-label="צבע קו מתאר לאקורדים '+c+'"></button>').join('')+'<input type="color" data-ckscin="1" value="'+(ck.c||'#000000')+'" aria-label="צבע מותאם"><span class="ckWBox"><label class="ckWL" for="ckW">עובי <b id="ckWV">'+(ck.w||3)+'</b></label><input id="ckW" class="ckW" type="range" min="1" max="10" step="1" value="'+(ck.w||3)+'"></span>':'')+'</div>'}
+function chSnap(s){return JSON.stringify({p:s.parts,k:s.key||'',c:s.capo||0})}
+function chHistCheck(s){const cur=chSnap(s);if(ED.last==null||ED.histSid!==s.id){ED.hist=[];ED.histSid=s.id;ED.last=cur;return}if(cur!==ED.last){ED.hist.push(ED.last);if(ED.hist.length>60)ED.hist.shift();ED.last=cur}}
+function chUndo(){const s=curSong();if(!s||!ED.hist||!ED.hist.length)return;const prev=ED.hist.pop(),o=JSON.parse(prev);s.parts=o.p;s.key=o.k||'';s.capo=o.c||0;ED.last=prev;touch(s);const B=$('#blocks'),top=B.scrollTop;renderEditor();B.scrollTop=top;toast('בוטל')}
 function chordBlocks(s){
+ chHistCheck(s);
  const st=s.style,f=font(st.font),L=labelMap(s);
  const cols=CH_COL.map(c=>'<button class="sw'+(chordColor(s).toLowerCase()===c.toLowerCase()?' on':'')+'" style="background:'+c+'" data-chcol="'+c+'" aria-label="צבע אקורדים '+c+'"></button>').join('')+'<input type="color" data-chcolin="1" value="'+chordColor(s)+'" aria-label="צבע אקורדים מותאם">';
- let h='<div class="chTools"><div class="chHint">'+ic('hand',18)+'<span><b>לחיצה כפולה על מילה</b> פותחת את מאגר האקורדים · <b>גרור</b> אקורד כדי להזיז אותו · <b>לחיצה</b> על אקורד לשינוי או מחיקה</span></div><button class="btn pri chwBtn" data-chweb="1">'+ic('globe',18)+'חפש אקורדים ברשת</button><div class="chCols"><span>צבע האקורדים</span>'+cols+'</div>'+chStkHtml(s)+
+ let h='<div class="chTools"><button class="btn chUndo" id="chUndo" aria-label="בטל פעולה אחרונה"'+(ED.hist&&ED.hist.length?'':' disabled')+'>'+ic('undo',18)+'Undo</button><div class="chHint">'+ic('hand',18)+'<span><b>לחיצה כפולה על מילה</b> פותחת את מאגר האקורדים · <b>גרור</b> אקורד כדי להזיז אותו · <b>לחיצה</b> על אקורד לשינוי או מחיקה</span></div><button class="btn pri chwBtn" data-chweb="1">'+ic('globe',18)+'חפש אקורדים ברשת</button><div class="chCols"><span>צבע האקורדים</span>'+cols+'</div>'+chStkHtml(s)+
   '<div class="chTr"><span>החלפת סולם</span><button class="btn sm" data-tr="-1" aria-label="חצי טון למטה">−½</button><b dir="ltr" class="trKey">'+esc(s.key||'—')+'</b><button class="btn sm" data-tr="1" aria-label="חצי טון למעלה">+½</button><span class="trSep"></span><label for="chCapo">קאפו</label><select id="chCapo" class="field capoSel">'+[0,1,2,3,4,5,6,7].map(n=>'<option value="'+n+'"'+((s.capo||0)===n?' selected':'')+'>'+(n?n:'ללא')+'</option>').join('')+'</select></div></div>';
  s.parts.forEach(p=>{
   const src=srcOf(s,p);if(!src)return;
@@ -1887,6 +1894,7 @@ function chordMenu(pid,k){
   last={t:now,x:e.clientX,y:e.clientY};
  });
  B.addEventListener('click',e=>{
+  if(e.target.closest('#chUndo'))return chUndo();
   const tr=e.target.closest('[data-tr]');if(tr){const s=curSong();if(!songChords(s).length&&!s.key)return toast('אין עדיין אקורדים או סולם בשיר');transposeSong(s,+tr.dataset.tr);refreshChords();$('#edKey').innerHTML='<option value="">סולם</option>'+KEYS.concat(s.key&&!KEYS.includes(s.key)?[s.key]:[]).map(k=>'<option value="'+k+'"'+(s.key===k?' selected':'')+'>'+k+'</option>').join('');return toast('הסולם הועבר '+(tr.dataset.tr>0?'חצי טון למעלה':'חצי טון למטה')+(s.key?' · '+s.key:''))}
   const dc=e.target.closest('[data-delch]');if(dc){const s=curSong(),p=s.parts.find(x=>x.id===dc.dataset.delch);if(p&&!p.ref){p.chords=[];touch(s);refreshChords()}return}
   if(e.target.closest('[data-chweb]'))return chordWebModal();
@@ -1899,7 +1907,7 @@ function chordMenu(pid,k){
   if(e.target.dataset.chcolin){const s=curSong();s.style.chordColor=e.target.value;touch(s);refreshChords();renderStyle()}});
 })();
 function setChordMode(on){
- ED.chords=!!on;const b=$('#edChords');b.classList.toggle('act',ED.chords);b.setAttribute('aria-pressed',ED.chords?'true':'false');
+ ED.chords=!!on;ED.last=null;ED.hist=[];const b=$('#edChords');b.classList.toggle('act',ED.chords);b.setAttribute('aria-pressed',ED.chords?'true':'false');
  $('#edit').classList.toggle('chordMode',ED.chords);
  renderBlocks();
 }
