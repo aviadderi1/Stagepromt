@@ -1,5 +1,5 @@
 {
- "v": 1,
+ "v": 2,
  "images": [
   {
    "id": "stage-green",
@@ -30,6 +30,56 @@
    "id": "deep-purple",
    "t": "עומק סגול",
    "file": "deep-purple.jpg"
+  },
+  {
+   "id": "lake-sunrise",
+   "t": "אגם בזריחה",
+   "file": "lake-sunrise.jpg"
+  },
+  {
+   "id": "misty-forest",
+   "t": "יער בערפל",
+   "file": "misty-forest.jpg"
+  },
+  {
+   "id": "tropical-sunset",
+   "t": "שקיעה טרופית",
+   "file": "tropical-sunset.jpg"
+  },
+  {
+   "id": "snow-peaks",
+   "t": "פסגות מושלגות",
+   "file": "snow-peaks.jpg"
+  },
+  {
+   "id": "lavender",
+   "t": "שדה לבנדר",
+   "file": "lavender.jpg"
+  },
+  {
+   "id": "canyon",
+   "t": "קניון במדבר",
+   "file": "canyon.jpg"
+  },
+  {
+   "id": "aurora-lake",
+   "t": "זוהר מעל האגם",
+   "file": "aurora-lake.jpg"
+  },
+  {
+   "id": "green-hills",
+   "t": "גבעות ירוקות",
+   "file": "green-hills.jpg"
+  },
+  {
+   "id": "fjord",
+   "t": "פיורד בדמדומים",
+   "file": "fjord.jpg"
+  },
+  {
+   "id": "autumn-hills",
+   "t": "סתיו בגבעות",
+   "file": "autumn-hills.jpg"
   }
  ]
 }
