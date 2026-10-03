@@ -440,7 +440,8 @@ select.chip{cursor:pointer}
 .chTools{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;padding:12px 16px;background:#17181B;border:1px solid var(--ln2);border-radius:14px;margin-bottom:14px}
 .chHint{flex:1;min-width:280px;display:flex;align-items:center;gap:10px;color:var(--mu);font-size:14px;line-height:1.55}
 .chHint svg{flex-shrink:0;color:#FFC870}
-.chUndo{background:#202227;gap:6px}
+.chUndo{gap:6px;display:none}
+#edit.chordMode .chUndo{display:inline-flex}
 .chUndo:disabled{opacity:.35}
 .chHint b{color:var(--tx);font-weight:700}
 .chCols{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--mu)}
@@ -677,6 +678,7 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
  #edit>.hdr .flex1{flex-basis:100%;height:0}
  #edit>.hdr .btn{height:38px;padding:0 10px;font-size:14px}
  #edit>.hdr #edPlay{flex:1;justify-content:center}
+ #edit>.hdr .chUndo{font-size:0;gap:0;width:38px;padding:0!important;justify-content:center}
  .titleIn{font-size:20px;width:100%}
  .pTop{padding-left:12px!important;padding-right:12px!important}
  .pInner{padding-left:14px!important;padding-right:14px!important}
@@ -762,6 +764,7 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
       <div class="edSub"><input id="edArtist" placeholder="שם האמן" aria-label="שם האמן"><span>·</span><select id="edKey" aria-label="סולם" dir="ltr"></select></div>
     </div>
     <div class="flex1"></div>
+    <button class="btn chUndo" id="chUndo" aria-label="בטל פעולה אחרונה" disabled><i data-ic="undo" data-s="18"></i>Undo</button>
     <button class="btn" id="edNik" aria-pressed="false"><span>ניקוד</span></button>
     <button class="btn" id="edChords" aria-pressed="false"><i data-ic="chord" data-s="18"></i>אקורדים</button>
     <button class="btn" id="edPaste"><i data-ic="clip" data-s="18"></i><span class="hideS">הדבק טקסט וחלק אוטומטית</span></button>
@@ -1794,10 +1797,10 @@ function chSnap(s){return JSON.stringify({p:s.parts,k:s.key||'',c:s.capo||0})}
 function chHistCheck(s){const cur=chSnap(s);if(ED.last==null||ED.histSid!==s.id){ED.hist=[];ED.histSid=s.id;ED.last=cur;return}if(cur!==ED.last){ED.hist.push(ED.last);if(ED.hist.length>60)ED.hist.shift();ED.last=cur}}
 function chUndo(){const s=curSong();if(!s||!ED.hist||!ED.hist.length)return;const prev=ED.hist.pop(),o=JSON.parse(prev);s.parts=o.p;s.key=o.k||'';s.capo=o.c||0;ED.last=prev;touch(s);const B=$('#blocks'),top=B.scrollTop;renderEditor();B.scrollTop=top;toast('בוטל')}
 function chordBlocks(s){
- chHistCheck(s);
+ chHistCheck(s);setTimeout(()=>{const u=$('#chUndo');if(u)u.disabled=!(ED.hist&&ED.hist.length)},0);
  const st=s.style,f=font(st.font),L=labelMap(s);
  const cols=CH_COL.map(c=>'<button class="sw'+(chordColor(s).toLowerCase()===c.toLowerCase()?' on':'')+'" style="background:'+c+'" data-chcol="'+c+'" aria-label="צבע אקורדים '+c+'"></button>').join('')+'<input type="color" data-chcolin="1" value="'+chordColor(s)+'" aria-label="צבע אקורדים מותאם">';
- let h='<div class="chTools"><button class="btn chUndo" id="chUndo" aria-label="בטל פעולה אחרונה"'+(ED.hist&&ED.hist.length?'':' disabled')+'>'+ic('undo',18)+'Undo</button><div class="chHint">'+ic('hand',18)+'<span><b>לחיצה כפולה על מילה</b> פותחת את מאגר האקורדים · <b>גרור</b> אקורד כדי להזיז אותו · <b>לחיצה</b> על אקורד לשינוי או מחיקה</span></div><button class="btn pri chwBtn" data-chweb="1">'+ic('globe',18)+'חפש אקורדים ברשת</button><div class="chCols"><span>צבע האקורדים</span>'+cols+'</div>'+chStkHtml(s)+
+ let h='<div class="chTools"><div class="chHint">'+ic('hand',18)+'<span><b>לחיצה כפולה על מילה</b> פותחת את מאגר האקורדים · <b>גרור</b> אקורד כדי להזיז אותו · <b>לחיצה</b> על אקורד לשינוי או מחיקה</span></div><button class="btn pri chwBtn" data-chweb="1">'+ic('globe',18)+'חפש אקורדים ברשת</button><div class="chCols"><span>צבע האקורדים</span>'+cols+'</div>'+chStkHtml(s)+
   '<div class="chTr"><span>החלפת סולם</span><button class="btn sm" data-tr="-1" aria-label="חצי טון למטה">−½</button><b dir="ltr" class="trKey">'+esc(s.key||'—')+'</b><button class="btn sm" data-tr="1" aria-label="חצי טון למעלה">+½</button><span class="trSep"></span><label for="chCapo">קאפו</label><select id="chCapo" class="field capoSel">'+[0,1,2,3,4,5,6,7].map(n=>'<option value="'+n+'"'+((s.capo||0)===n?' selected':'')+'>'+(n?n:'ללא')+'</option>').join('')+'</select></div></div>';
  s.parts.forEach(p=>{
   const src=srcOf(s,p);if(!src)return;
@@ -1894,7 +1897,6 @@ function chordMenu(pid,k){
   last={t:now,x:e.clientX,y:e.clientY};
  });
  B.addEventListener('click',e=>{
-  if(e.target.closest('#chUndo'))return chUndo();
   const tr=e.target.closest('[data-tr]');if(tr){const s=curSong();if(!songChords(s).length&&!s.key)return toast('אין עדיין אקורדים או סולם בשיר');transposeSong(s,+tr.dataset.tr);refreshChords();$('#edKey').innerHTML='<option value="">סולם</option>'+KEYS.concat(s.key&&!KEYS.includes(s.key)?[s.key]:[]).map(k=>'<option value="'+k+'"'+(s.key===k?' selected':'')+'>'+k+'</option>').join('');return toast('הסולם הועבר '+(tr.dataset.tr>0?'חצי טון למעלה':'חצי טון למטה')+(s.key?' · '+s.key:''))}
   const dc=e.target.closest('[data-delch]');if(dc){const s=curSong(),p=s.parts.find(x=>x.id===dc.dataset.delch);if(p&&!p.ref){p.chords=[];touch(s);refreshChords()}return}
   if(e.target.closest('[data-chweb]'))return chordWebModal();
@@ -1911,6 +1913,7 @@ function setChordMode(on){
  $('#edit').classList.toggle('chordMode',ED.chords);
  renderBlocks();
 }
+$('#chUndo').onclick=()=>chUndo();
 $('#edChords').onclick=()=>{const s=curSong();if(!s||s.kind==='pdf')return;if(!resolve(s).some(p=>p.text.trim()))return toast('הוסף קודם מילים לשיר');setChordMode(!ED.chords)};
 
 /* ========= nikud (Dicta Nakdan) ========= */
