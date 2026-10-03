@@ -1,5 +1,5 @@
 {
- "v": 2,
+ "v": 3,
  "images": [
   {
    "id": "stage-green",
@@ -80,6 +80,31 @@
    "id": "autumn-hills",
    "t": "סתיו בגבעות",
    "file": "autumn-hills.jpg"
+  },
+  {
+   "id": "candles-row",
+   "t": "שורת נרות",
+   "file": "candles-row.jpg"
+  },
+  {
+   "id": "candles-single",
+   "t": "נר בודד",
+   "file": "candles-single.jpg"
+  },
+  {
+   "id": "tealights",
+   "t": "נרות קטנים",
+   "file": "tealights.jpg"
+  },
+  {
+   "id": "candles-roses",
+   "t": "נרות ורודים",
+   "file": "candles-roses.jpg"
+  },
+  {
+   "id": "candles-window",
+   "t": "נרות בחלון",
+   "file": "candles-window.jpg"
   }
  ]
 }
