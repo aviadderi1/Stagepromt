@@ -1072,7 +1072,7 @@ function lyricsOnly(text){
  return String(text||'').replace(/\r/g,'').split('\n').filter(l=>!isChordLine(l)).map(l=>stripChords(l.replace(/[\u00a0\t]+/g,' '))).join('\n');
 }
 
-function normKey(t){return t.split('\n').map(l=>l.trim().replace(/[.,!?״"'׳\-–:;()]/g,'').replace(/\s+/g,' ')).filter(Boolean).join('\n')}
+function normKey(t){return String(t).replace(/\uE000[^\uE001]*\uE001/g,'').split('\n').map(l=>l.trim().replace(/[.,!?״"'׳\-–:;()]/g,'').replace(/\s+/g,' ')).filter(Boolean).join('\n')}
 function autoSplit(raw){
  const text=lyricsOnly(String(raw||'').replace(/\r\n?/g,'\n'));
  const blocks=text.replace(/\n(?=[ \t]*\[(verse|chorus|pre-?chorus|post-?chorus|bridge|intro|outro|hook|refrain)\b)/gi,'\n\n').split(/\n[ \t]*\n+/).map(b=>b.split('\n').map(l=>l.replace(/\s+$/,'').replace(/^\s+/,'')).filter(l=>l!=='').join('\n')).filter(Boolean);
@@ -1266,7 +1266,7 @@ function renderBlocks(){
  const s=curSong(),B=$('#blocks'),top=B.scrollTop;
  if(s.kind==='pdf'){
   B.innerHTML='<div class="pdfCard"><div class="pdfPrev" id="pdfPrev"><span class="spin"></span></div><div class="pdfInfoBox"><b>'+esc(s.pdfName||'קובץ PDF')+'</b><span>'+pagesTxt(s)+'</span><p>בהופעה השיר יוצג כמו שהוא בקובץ, עם גלילה אוטומטית. כדי לשנות גופן, צבעים וחלוקה לבתים — המר אותו לטקסט.</p><button class="btn pri" id="toText">'+ic('text',18)+'המר לטקסט עריך</button></div></div>';
-  pdfById(s.pdfId).then(d=>renderPage(d,s.from||1,260)).then(c=>{const w=$('#pdfPrev');if(w){w.innerHTML='';w.appendChild(c)}}).catch(()=>{const w=$('#pdfPrev');if(w)w.textContent='הקובץ לא נמצא'});
+  pdfById(s.pdfId).then(d=>renderPage(d,s.from||1,260,!!s.pdfHideCh)).then(c=>{const w=$('#pdfPrev');if(w){w.innerHTML='';w.appendChild(c)}}).catch(()=>{const w=$('#pdfPrev');if(w)w.textContent='הקובץ לא נמצא'});
   return;
  }
  if(!s.parts.length){
@@ -1338,7 +1338,7 @@ function pasteModal(){
 }
 function renderStyle(){
  const s=curSong(),st=s.style,E=$('#style');
- if(s.kind==='pdf'){E.innerHTML='<div class="grp"><div class="lbl">תצוגה בהופעה</div><label class="tgl"><input type="checkbox" id="stInv"'+(s.invert?' checked':'')+'><span>היפוך צבעים: רקע כהה וטקסט בהיר</span></label><div class="hint">מומלץ על במה חשוכה — דף לבן מסנוור.</div></div>';return}
+ if(s.kind==='pdf'){E.innerHTML='<div class="grp"><div class="lbl">תצוגה בהופעה</div><label class="tgl"><input type="checkbox" id="stInv"'+(s.invert?' checked':'')+'><span>היפוך צבעים: רקע כהה וטקסט בהיר</span></label><div class="hint">מומלץ על במה חשוכה — דף לבן מסנוור.</div><label class="tgl"><input type="checkbox" id="stPdfCh"'+(s.pdfHideCh?' checked':'')+'><span>הסתר אקורדים בקובץ</span></label><div class="hint">מסתיר שורות שיש בהן רק אקורדים.</div></div>';return}
  const cn={verse:'בית',chorus:'פזמון',bridge:'גשר',note:'הערה'};
  const cf=font(st.font),sk=st.stroke||{},sh=st.shadow||{},ck=st.chStroke||{};
  E.innerHTML='<div class="grp"><div class="lbl">גופן</div><div class="fontRow"><div class="fontDD'+(STY.fdd?' open':'')+'"><button class="fontCur" data-fdd="1" aria-expanded="'+STY.fdd+'" style="font-family:'+cf.css+';font-weight:'+cf.w+'"><span>'+cf.label+'</span>'+ic(STY.fdd?'up':'down',16)+'</button>'+
@@ -1396,6 +1396,7 @@ $('#style').addEventListener('change',e=>{
  else if(t.dataset.chcin){s.style.chordColor=t.value;touch(s);renderStyle();if(ED.chords)refreshChords()}
  else if(t.id==='stLabels'){s.style.labels=t.checked;touch(s)}
  else if(t.id==='stInv'){s.invert=t.checked;touch(s)}
+ else if(t.id==='stPdfCh'){s.pdfHideCh=t.checked;touch(s);renderBlocks()}
 });
 
 /* ========= chords ========= */
@@ -1702,34 +1703,74 @@ if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc='lib/pdf.worker.min.js
 const docCache={};
 function openPdf(buf){return pdfjsLib.getDocument({data:new Uint8Array(buf.slice(0)),isEvalSupported:false}).promise}
 async function pdfById(id){if(docCache[id])return docCache[id];const buf=await IDB.get(id);if(!buf)throw new Error('missing');return docCache[id]=await openPdf(buf)}
-async function renderPage(doc,n,width){
+async function renderPage(doc,n,width,hideCh){
  const pg=await doc.getPage(n);const v1=pg.getViewport({scale:1});
  const dpr=Math.min(window.devicePixelRatio||1,2),vp=pg.getViewport({scale:width/v1.width*dpr});
  const c=document.createElement('canvas');c.width=Math.floor(vp.width);c.height=Math.floor(vp.height);c.style.width=width+'px';
  const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);
- await pg.render({canvasContext:ctx,viewport:vp}).promise;return c;
+ await pg.render({canvasContext:ctx,viewport:vp}).promise;
+ if(hideCh){try{const L=await pageLines(doc,n);ctx.fillStyle='#fff';L.filter(l=>l.chord).forEach(l=>l.items.forEach(it=>{const r=vp.convertToViewportRectangle([it.x-1,it.y-it.h*.3,it.x+it.w+1,it.y+it.h*1.05]);const x=Math.min(r[0],r[2]),y=Math.min(r[1],r[3]);ctx.fillRect(x-2,y-2,Math.abs(r[2]-r[0])+4,Math.abs(r[3]-r[1])+4)}))}catch(e){}}
+ return c;
 }
 const HEB=/[\u0590-\u05FF]/;
-async function pageText(doc,n){
+async function pageLines(doc,n){
  const pg=await doc.getPage(n);const tc=await pg.getTextContent();
  const items=tc.items.filter(i=>typeof i.str==='string'&&i.str.trim()!=='').map(i=>({s:i.str,x:i.transform[4],y:i.transform[5],w:i.width||0,h:Math.abs(i.transform[3])||i.height||10}));
- if(!items.length)return '';
+ if(!items.length)return [];
  items.sort((a,b)=>b.y-a.y);
  const lines=[];
  items.forEach(it=>{let L=null;for(let k=lines.length-1;k>=0&&k>=lines.length-4;k--){if(Math.abs(lines[k].y-it.y)<Math.max(lines[k].h,it.h)*.45){L=lines[k];break}}if(L){L.items.push(it);L.h=Math.max(L.h,it.h)}else lines.push({y:it.y,h:it.h,items:[it]})});
  lines.sort((a,b)=>b.y-a.y);
  const gaps=[];for(let i=1;i<lines.length;i++)gaps.push(lines[i-1].y-lines[i].y);
  const med=gaps.length?gaps.slice().sort((a,b)=>a-b)[Math.floor(gaps.length/2)]:0;
- const out=[];
  lines.forEach((l,i)=>{
   const rtl=l.items.some(t=>HEB.test(t.s));
   l.items.sort((a,b)=>rtl?b.x-a.x:a.x-b.x);
-  let txt='';
-  l.items.forEach((t,j)=>{if(j){const p=l.items[j-1];const gap=rtl?p.x-(t.x+t.w):t.x-(p.x+p.w);if(gap>l.h*.2&&!/\s$/.test(txt)&&!/^\s/.test(t.s))txt+=' '}txt+=t.s});
-  if(i&&med>0&&lines[i-1].y-l.y>med*1.55)out.push('');
-  out.push(txt.replace(/\s+/g,' ').trim());
+  let txt='';const xs=[];
+  l.items.forEach((t,j)=>{if(j){const p=l.items[j-1];const gap=rtl?p.x-(t.x+t.w):t.x-(p.x+p.w);if(gap>l.h*.2&&!/\s$/.test(txt)&&!/^\s/.test(t.s)){txt+=' ';xs.push(null)}}
+   const ch=[...t.s],ir=HEB.test(t.s),cw=t.w/Math.max(1,ch.length);ch.forEach((c,k)=>{txt+=c;xs.push(ir?t.x+t.w-(k+.5)*cw:t.x+(k+.5)*cw)})});
+  // collapse whitespace while keeping x map
+  let o='',ox=[];for(let k=0;k<txt.length;k++){const c=txt[k];if(/\s/.test(c)){if(!o.length||/\s$/.test(o))continue;o+=' ';ox.push(null)}else{o+=c;ox.push(xs[k])}}
+  while(/\s$/.test(o)){o=o.slice(0,-1);ox.pop()}
+  l.txt=o;l.xs=ox;l.gapBefore=!!(i&&med>0&&lines[i-1].y-l.y>med*1.55);l.chord=isChordLine(o);
  });
+ return lines;
+}
+async function pageText(doc,n){const L=await pageLines(doc,n);const out=[];L.forEach(l=>{if(l.gapBefore)out.push('');out.push(l.txt)});return out.join('\n')}
+/* chords from a PDF: chord-only lines become markers Am before the lyric character under them */
+const CHM=/([^]*)/g;
+function chordMarked(lines){
+ const out=[];
+ for(let i=0;i<lines.length;i++){
+  const l=lines[i];
+  if(l.chord){
+   const nx=lines[i+1];
+   if(nx&&!nx.chord&&!nx.gapBefore&&nx.txt.trim()){
+    const toks=[];const re=/\S+/g;let m;while((m=re.exec(l.txt))){if(!isChord(m[0]))continue;const xa=l.xs[m.index],xb=l.xs[m.index+m[0].length-1];if(xa==null||xb==null)continue;toks.push({c:m[0],x:(Math.min(xa,xb)+Math.max(xa,xb))/2})}
+    const cand=[];[...nx.txt].forEach((c,k)=>{if(c!==' '&&nx.xs[k]!=null)cand.push(k)});
+    const at={};
+    toks.forEach(t=>{let best=-1,bd=1e9;cand.forEach(k=>{const d=Math.abs(nx.xs[k]-t.x);if(d<bd){bd=d;best=k}});if(best<0)return;while(at[best]!=null&&best<nx.txt.length-1)best++;at[best]=t.c});
+    if(l.gapBefore)out.push('');
+    const arr=[...nx.txt];let t='';arr.forEach((c,k)=>{if(at[k]!=null)t+=''+at[k]+'';t+=c});
+    out.push(t);i++;continue;
+   }
+   continue;
+  }
+  if(l.gapBefore)out.push('');
+  out.push(l.txt);
+ }
  return out.join('\n');
+}
+function extractMarkers(parts){
+ parts.forEach(p=>{if(!p.text||!//.test(p.text))return;const ch=[];
+  p.text=p.text.split('\n').map((line,li)=>{let clean='',pend=[];const re=/([^]*)|([\s\S])/g;let m,idx=[];
+   let raw=line.replace(CHM,(mm,c)=>''+c+'');let out='';const marks=[];
+   let k=0;while(k<raw.length){if(raw[k]===''){const e=raw.indexOf('',k);marks.push({c:raw.slice(k+1,e),at:out.length});k=e+1}else{out+=raw[k];k++}}
+   const cl=clusters(out);const off=[];let pos=0;cl.forEach((c,ci)=>{off.push(pos);pos+=c.length});
+   marks.forEach(mk=>{let ci=off.findIndex(o=>o>=mk.at);if(ci<0)ci=cl.length-1;if(ci<0)return;ch.push({l:li,i:ci,n:1,c:mk.c,t:out})});
+   return out}).join('\n');
+  if(ch.length)p.chords=ch});
+ return parts;
 }
 async function pdfToText(s){
  try{
@@ -1806,7 +1847,7 @@ async function buildPdf(s){
   const w=Math.max(300,Math.min($('#pScroll').clientWidth-48,1100));
   let first=true;
   for(let n=s.from||1;n<=(s.to||doc.numPages);n++){
-   const c=await renderPage(doc,n,w);if(tok!==P.tok)return;
+   const c=await renderPage(doc,n,w,!!s.pdfHideCh);if(tok!==P.tok)return;
    if(first){inner.innerHTML='';first=false}
    c.className='pdfPage';c.dataset.w=c.style.width;inner.appendChild(c);P.parts=$$('.pdfPage',inner);
    if(S.ui.manual&&P.parts.length===1){applyMode();showPage(0)}else updPart();
@@ -2120,8 +2161,9 @@ function renderBgModal(){
  const dm=$('#bgDim');if(dm)dm.oninput=()=>{const s=playSong();s.bg.dim=+dm.value;$('#bgDimV').textContent=Math.round(dm.value*100)+'%';touch(s);applyBg();castPush()};
 }
 $('#pBg').onclick=()=>{P.playing=false;updPlayBtn();bgModal()};
-function updChordBtn(){const b=$('#pChords');if(!b)return;const s=playSong(),has=!!(s&&s.kind!=='pdf'&&songChords(s).length),hid=!!S.ui.hideChords;b.hidden=!!(s&&s.kind==='pdf');b.classList.toggle('on',!hid&&has);b.setAttribute('aria-label',hid?'הצג אקורדים':'הסתר אקורדים');b.classList.toggle('off',hid);b.setAttribute('aria-pressed',hid?'false':'true')}
-$('#pChords').onclick=()=>{S.ui.hideChords=!S.ui.hideChords;save();$('#pInner').classList.toggle('noCh',S.ui.hideChords);updChordBtn();
+function updChordBtn(){const b=$('#pChords');if(!b)return;const s=playSong(),pdf=!!(s&&s.kind==='pdf'),has=pdf||!!(s&&songChords(s).length),hid=pdf?!!s.pdfHideCh:!!S.ui.hideChords;b.hidden=false;b.classList.toggle('on',!hid&&has);b.setAttribute('aria-label',hid?'הצג אקורדים':'הסתר אקורדים');b.classList.toggle('off',hid);b.setAttribute('aria-pressed',hid?'false':'true')}
+$('#pChords').onclick=()=>{const ps=playSong();if(ps&&ps.kind==='pdf'){ps.pdfHideCh=!ps.pdfHideCh;touch(ps);updChordBtn();const sc=$('#pScroll'),r=sc.scrollHeight?sc.scrollTop/sc.scrollHeight:0,pi=P.pi;P.tok=uid();buildPdf(ps).then(()=>{if(S.ui.manual){P.pi=Math.min(pi,P.parts.length-1);showPage(P.pi)}else{sc.scrollTop=r*sc.scrollHeight}});return}
+ S.ui.hideChords=!S.ui.hideChords;save();$('#pInner').classList.toggle('noCh',S.ui.hideChords);updChordBtn();
  const sc=$('#pScroll');if(S.ui.manual)fitPage(P.parts[P.pi]);else{const r=sc.scrollHeight?sc.scrollTop/sc.scrollHeight:0;measure();sc.scrollTop=r*sc.scrollHeight;P.pos=sc.scrollTop;P.cur=-1;onPScroll()}
  castPush();toast(S.ui.hideChords?'האקורדים מוסתרים':'האקורדים מוצגים')};
 function fitBar(){const b=$('.pBar');if(!b||SCREEN!=='play')return;b.classList.remove('tight','tighter');const over=()=>b.scrollWidth>b.clientWidth+1||b.getBoundingClientRect().width>b.parentElement.clientWidth-16;if(over())b.classList.add('tight');if(over())b.classList.add('tighter')}
@@ -2300,11 +2342,11 @@ $('#pCast').onclick=castModal;
 
 /* ========= pdf import ========= */
 const IMP={src:'device',folder:''};
-function resetImp(){Object.assign(IMP,{name:'',buf:null,doc:null,pages:[],songs:[],split:'one',mode:'text',scanned:false,page:1,view:'page',busy:false,th:{},big:{},tok:null})}
+function resetImp(){Object.assign(IMP,{hasCh:false,ch:'show',lines:[],dest:'lib',newSet:'',name:'',buf:null,doc:null,pages:[],songs:[],split:'one',mode:'text',scanned:false,page:1,view:'page',busy:false,th:{},big:{},tok:null})}
 resetImp();
 function openImp(){
  if(SCREEN==='play'){P.playing=false;P.tok=null;cancelAnimationFrame(P.raf);keepAwake(false)}
- resetImp();IMP.folder=S.folders.some(x=>x.id===S.ui.folder)?S.ui.folder:'';
+ resetImp();IMP.folder=S.folders.some(x=>x.id===S.ui.folder)?S.ui.folder:'';IMP.dest=IMP.folder?'set':'lib';
  show('imp');renderImp();
 }
 function closeImp(){resetImp();show('lib');renderLib()}
@@ -2322,13 +2364,16 @@ function makeImpSong(text,from,to){
  if(lines.length&&lines[0].trim().length<=40&&!IMP.scanned)title=lines.shift().trim();
  while(lines.length&&(/^(מילים|לחן|ביצוע|עיבוד|מאת)/.test(lines[0].trim())||!lines[0].trim())){const l=lines.shift().trim();if(/^ביצוע/.test(l)&&!artist)artist=l.replace(/^ביצוע\s*[:：\-–]?\s*/,'')}
  if(!title)title=(IMP.split==='page'&&IMP.doc&&IMP.doc.numPages>1)?base+' – עמוד '+from:base;
- const body=lines.join('\n'),parts=autoSplit(body);
+ const body=lines.join('\n'),parts=extractMarkers(autoSplit(body));title=title.replace(CHM,'');
  const exists=S.songs.some(s=>s.title.trim()===title);
  return {title,artist,from,to,parts,on:!exists,exists};
 }
 function buildImpSongs(){
- const n=IMP.doc.numPages;
- IMP.songs=IMP.split==='one'?[makeImpSong(IMP.pages.join('\n\n'),1,n)]:IMP.pages.map((t,i)=>makeImpSong(t,i+1,i+1));
+ const n=IMP.doc.numPages,keep=IMP.hasCh&&IMP.ch==='show'&&IMP.mode==='text';
+ const pg=keep?IMP.lines.map(L=>chordMarked(L)):IMP.pages;
+ const old=IMP.songs||[];
+ IMP.songs=IMP.split==='one'?[makeImpSong(pg.join('\n\n'),1,n)]:pg.map((t,i)=>makeImpSong(t,i+1,i+1));
+ if(old.length===IMP.songs.length)IMP.songs.forEach((x,i)=>{x.on=old[i].on;if(old[i].edited){x.title=old[i].title;x.edited=true}});
 }
 async function onPdf(name,buf){
  if(SCREEN!=='imp'){openImp()}
@@ -2337,8 +2382,8 @@ async function onPdf(name,buf){
   if(!window.pdfjsLib)throw new Error('pdfjs');
   const doc=await openPdf(buf);
   Object.assign(IMP,{buf,doc,th:{},big:{},page:1,view:'page',tok:uid()});
-  const pages=[];for(let i=1;i<=doc.numPages;i++)pages.push(await pageText(doc,i));
-  IMP.pages=pages;IMP.scanned=pages.join('').replace(/\s/g,'').length<15;
+  const pages=[],lines=[];for(let i=1;i<=doc.numPages;i++){const L=await pageLines(doc,i);lines.push(L);pages.push(L.map(l=>(l.gapBefore?'\n':'')+l.txt).join('\n'))}
+  IMP.pages=pages;IMP.lines=lines;IMP.hasCh=lines.some(L=>L.some(l=>l.chord));IMP.ch='show';IMP.scanned=pages.join('').replace(/\s/g,'').length<15;
   IMP.mode=IMP.scanned?'pdf':'text';IMP.split=doc.numPages>=3?'page':'one';
   buildImpSongs();IMP.busy=false;
  }catch(e){console.error(e);resetImp();toast('הקובץ לא נפתח. ודא שזה קובץ PDF תקין.')}
@@ -2353,7 +2398,9 @@ function sideHtml(){
  '<div class="grp"><div class="lbl">איך לייבא</div>'+
  '<button class="radio'+(IMP.mode==='text'?' on':'')+'" data-mode="text"'+(IMP.scanned?' disabled':'')+'><span class="rd"></span><span><b>המר לטקסט עריך</b><small>'+(IMP.scanned?'לא נמצא טקסט בקובץ — כנראה שהוא סרוק':'חלוקה לבתים ופזמונים, גלילה, צבעים וגופנים')+'</small></span></button>'+
  '<button class="radio'+(IMP.mode==='pdf'?' on':'')+'" data-mode="pdf"><span class="rd"></span><span><b>הצג את ה-PDF כמו שהוא</b><small>לסריקות ולקבצים עם אקורדים — גלילה על הקובץ המקורי</small></span></button></div>'+
- '<div class="grp"><label class="lbl" for="impFolder">לשמור בתיקייה</label><select id="impFolder" class="field"><option value="">ללא תיקייה</option>'+S.folders.map(f=>'<option value="'+f.id+'"'+(IMP.folder===f.id?' selected':'')+'>'+esc(f.name)+'</option>').join('')+'</select></div>'+
+ (IMP.hasCh?'<div class="grp"><div class="lbl">אקורדים מה-PDF</div><div class="seg full"><button data-impch="show" class="'+(IMP.ch==='show'?'on':'')+'">הצג אקורדים</button><button data-impch="hide" class="'+(IMP.ch==='hide'?'on':'')+'">הסתר אקורדים</button></div><div class="hint">'+(IMP.mode==='text'?(IMP.ch==='show'?'האקורדים יעברו מעל המילים, ואפשר להסתיר אותם בהופעה':'רק המילים ייובאו'):(IMP.ch==='show'?'הקובץ יוצג עם האקורדים':'שורות האקורדים יוסתרו בקובץ – אפשר להחזיר אותן בהופעה'))+'</div></div>':'')+
+ '<div class="grp"><div class="lbl">לאן להוסיף</div><div class="seg full"><button data-dest="lib" class="'+(IMP.dest==='lib'?'on':'')+'">לרשימת השירים</button><button data-dest="set" class="'+(IMP.dest==='set'?'on':'')+'">להופעה</button></div>'+
+ (IMP.dest==='set'?'<select id="impFolder" class="field impDestSel"><option value="__new"'+(IMP.folder==='__new'||!S.folders.length?' selected':'')+'>+ הופעה חדשה…</option>'+S.folders.map(f=>'<option value="'+f.id+'"'+(IMP.folder===f.id?' selected':'')+'>'+esc(f.name)+'</option>').join('')+'</select>'+((IMP.folder==='__new'||!S.folders.length)?'<input class="field impDestSel" id="impNewSet" placeholder="שם ההופעה החדשה" value="'+esc(IMP.newSet)+'">':'')+'<div class="hint">השירים יתווספו לסוף ההופעה, לפי הסדר בקובץ</div>':'')+'</div>'+
  '<div class="flex1"></div><button class="btn pri big" id="impGo"'+(k?'':' disabled')+'>'+(k===1?'ייבא שיר אחד':'ייבא '+k+' שירים')+'</button>';
 }
 function renderSide(){const e=$('.impSide');if(e)e.innerHTML=sideHtml()}
@@ -2396,14 +2443,18 @@ async function renderThumbs(){
 }
 async function doImport(){
  const sel=IMP.songs.filter(s=>s.on);if(!sel.length)return;
+ let dest=null;
+ if(IMP.dest==='set'){
+  if(IMP.folder==='__new'||!S.folders.some(f=>f.id===IMP.folder)){const nm=(IMP.newSet||'').trim()||IMP.name.replace(/\.pdf$/i,'')||'הופעה חדשה';const f={id:uid(),name:nm};S.folders.push(f);dest=f.id}else dest=IMP.folder;
+ }
  let pdfId=null;
  if(IMP.mode==='pdf'){pdfId=uid();try{await IDB.put(pdfId,IMP.buf.slice(0))}catch(e){return toast('לא ניתן לשמור את הקובץ — אין מספיק מקום')}}
  sel.forEach(x=>{
-  const s=newSongObj({title:x.title,artist:x.artist,folderId:IMP.folder||null});
-  if(pdfId){s.kind='pdf';s.pdfId=pdfId;s.from=x.from;s.to=x.to;s.pdfName=IMP.name}else s.parts=x.parts;
+  const s=newSongObj({title:x.title,artist:x.artist,folderId:dest});
+  if(pdfId){s.kind='pdf';s.pdfId=pdfId;s.from=x.from;s.to=x.to;s.pdfName=IMP.name;if(IMP.hasCh&&IMP.ch==='hide')s.pdfHideCh=true}else s.parts=x.parts;
   S.songs.push(s);
  });
- S.ui.folder=IMP.folder||'all';S.ui.sort='set';save(true);
+ S.ui.folder=dest||'all';S.ui.sort='set';save(true);
  toast(sel.length===1?'השיר יובא':'יובאו '+sel.length+' שירים');closeImp();
 }
 $('#imp').addEventListener('click',e=>{
@@ -2413,15 +2464,17 @@ $('#imp').addEventListener('click',e=>{
  if(d.pg){IMP.page=+d.pg;$$('.thumb').forEach(b=>b.classList.toggle('on',b===t));return renderImpView()}
  if(d.view){IMP.view=d.view;$$('.impCenter .seg button').forEach(b=>b.classList.toggle('on',b===t));return renderImpView()}
  if(d.split){IMP.split=d.split;buildImpSongs();renderSide();return renderImpView()}
- if(d.mode){IMP.mode=d.mode;return renderSide()}
+ if(d.mode){IMP.mode=d.mode;buildImpSongs();renderSide();return renderImpView()}
+ if(d.impch){IMP.ch=d.impch;buildImpSongs();renderSide();return renderImpView()}
+ if(d.dest){IMP.dest=d.dest;if(d.dest==='set'&&!S.folders.some(f=>f.id===IMP.folder))IMP.folder=S.folders.length?S.folders[0].id:'__new';return renderSide()}
  if(t.id==='impGo')return doImport();
 });
 $('#imp').addEventListener('change',e=>{
  const t=e.target;
  if(t.dataset.ck){IMP.songs[+t.dataset.ck].on=t.checked;renderSide()}
- else if(t.id==='impFolder')IMP.folder=t.value;
+ else if(t.id==='impFolder'){IMP.folder=t.value;renderSide()}
 });
-$('#imp').addEventListener('input',e=>{const t=e.target;if(t.dataset.ti)IMP.songs[+t.dataset.ti].title=t.value.trim()||IMP.songs[+t.dataset.ti].title});
+$('#imp').addEventListener('input',e=>{const t=e.target;if(t.id==='impNewSet'){IMP.newSet=t.value;return}if(t.dataset.ti)IMP.songs[+t.dataset.ti].edited=true;if(t.dataset.ti)IMP.songs[+t.dataset.ti].title=t.value.trim()||IMP.songs[+t.dataset.ti].title});
 
 /* ========= online lyrics search ========= */
 const HTTP={n:0,cb:{}};
@@ -2999,7 +3052,7 @@ async function runExport(songs,withCh,kind,arg){
    const b=$('#exBar');if(b){b.style.width=((i+1)/songs.length*100)+'%';$('#exTxt').textContent=(i+1)+' / '+songs.length}
    await new Promise(r=>setTimeout(r,0));
   }
-  const pdf=buildPdf(pages),name=expName(kind,arg,songs);
+  const pdf=makePdfFile(pages),name=expName(kind,arg,songs);
   closeModal();
   if(window.Android&&window.Android.saveBinary){await nativeFile('saveBinary',name,'application/pdf|'+bufToB64(pdf));}
   else{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([pdf],{type:'application/pdf'}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
@@ -3070,7 +3123,7 @@ async function renderSongPage(s,withCh,no,tot){
  if(tot>1){x.textAlign='right';x.fillText(no+' / '+tot,R,H-34)}
  return c;
 }
-function buildPdf(jpgs){
+function makePdfFile(jpgs){
  const enc=new TextEncoder(),chunks=[],offs=[];let len=0;
  const push=d=>{const b=typeof d==='string'?enc.encode(d):new Uint8Array(d);chunks.push(b);len+=b.length};
  const obj=(n,body,stream)=>{offs[n]=len;push(n+' 0 obj\n'+body+(stream?'\nstream\n':'\nendobj\n'));if(stream){push(stream);push('\nendstream\nendobj\n')}};
