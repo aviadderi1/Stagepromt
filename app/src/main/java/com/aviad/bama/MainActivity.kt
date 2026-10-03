@@ -16,6 +16,8 @@ import android.os.Bundle
 import android.provider.OpenableColumns
 import android.util.Base64
 import android.view.WindowManager
+import android.view.inputmethod.InputMethodManager
+import androidx.core.view.ViewCompat
 import android.webkit.JavascriptInterface
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
@@ -162,6 +164,12 @@ class MainActivity : ComponentActivity() {
         web = WebView(this)
         web.setBackgroundColor(0xFF111214.toInt())
         setContentView(web)
+        // Edge-to-edge disables adjustResize: shrink the page by the keyboard height ourselves.
+        val root = findViewById<android.view.View>(android.R.id.content)
+        ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
+            v.setPadding(0, 0, 0, insets.getInsets(WindowInsetsCompat.Type.ime()).bottom)
+            insets
+        }
 
         val loader = WebViewAssetLoader.Builder()
             .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(this))
@@ -503,6 +511,16 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun pickPdf(source: String) {
             runOnUiThread { launchPicker(source) }
+        }
+
+        @JavascriptInterface
+        fun showKeyboard() {
+            runOnUiThread {
+                web.requestFocus()
+                val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                imm.showSoftInput(web, InputMethodManager.SHOW_IMPLICIT)
+                web.postDelayed({ imm.showSoftInput(web, InputMethodManager.SHOW_IMPLICIT) }, 150)
+            }
         }
 
         @JavascriptInterface

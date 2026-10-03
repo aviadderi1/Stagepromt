@@ -2496,6 +2496,9 @@ function hwKey(k,e){
  return false;
 }
 window.__hwKey=k=>{hwKey(k,null)};
+/* Android WebView won't raise the soft keyboard for script focus(): ask the native side. */
+document.addEventListener('focusin',e=>{const t=e.target;if(!t||!t.matches||!t.matches('input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=file]),textarea,[contenteditable]'))return;if(t.readOnly||t.disabled)return;try{window.Android&&Android.showKeyboard&&Android.showKeyboard()}catch(_){}});
+document.addEventListener('pointerup',e=>{const t=e.target&&e.target.closest&&e.target.closest('input,textarea');if(t&&document.activeElement===t&&!t.readOnly){try{window.Android&&Android.showKeyboard&&Android.showKeyboard()}catch(_){}}});
 function renderPedal(){
  const b=$('#pedalBox');if(!b)return;const map=S.pedal||{};
  const act=Object.keys(map).find(a=>map[a]===PEDAL.last);
