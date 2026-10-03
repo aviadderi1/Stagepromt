@@ -609,6 +609,7 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
 .bgSrc{margin-top:0;flex-wrap:nowrap;gap:10px}
 .bgSrc .srcBig{width:auto;flex:1;min-width:0;height:104px;font-size:14.5px;padding:0 4px}
 .bgSrc .srcBig.on{border-color:var(--am)}
+.phCats{display:flex;flex-wrap:wrap;gap:6px}.phCat{height:34px;padding:0 12px;border:1px solid #33363d;background:#1d1f24;color:#CFC9BF;font-size:13.5px;border-radius:17px}.phCat.on{background:#E8A33D;border-color:#E8A33D;color:#1A1205;font-weight:700}.b4k{position:absolute;bottom:6px;left:6px;padding:1px 6px;border-radius:5px;background:rgba(0,0,0,.7);color:#F4C77A;font-size:11px;font-weight:800}.b4k.hd{color:#BDB6AA}.phMore{align-self:center;margin-top:4px}
 .bglBox{display:flex;flex-direction:column;gap:8px;margin-top:12px;padding:12px;background:#15161A;border:1px solid #2A2D33;border-radius:14px}.bglTop{gap:8px;align-items:center}.bglTop b{font-size:16px}.bglSec{font-size:13px;color:#8A847A;margin-top:4px}.bglGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}.bglT{position:relative}.bglI{display:block;width:100%;padding:0;border:2px solid transparent;border-radius:10px;overflow:hidden;background:#000;aspect-ratio:16/9;position:relative}.bglI:active{border-color:var(--am)}.bglI img{width:100%;height:100%;object-fit:cover;display:block}.bglI span{position:absolute;inset:auto 0 0 0;padding:14px 8px 5px;font-size:12.5px;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.75));text-align:right}.bglX{position:absolute;top:5px;left:5px;width:28px;height:28px;border-radius:50%;border:0;background:rgba(0,0,0,.65);color:#FF9A8F;display:flex;align-items:center;justify-content:center}
 .aiBox{display:flex;flex-direction:column;gap:10px;margin-top:12px;padding:14px;background:#15161A;border:1px solid #2A2D33;border-radius:14px}.aiEng{margin:0}.aiNote{margin:0;font-size:13px}.aiKeyRow{display:flex;gap:8px;align-items:center}.aiKeyRow .field{flex:1}.aiP{resize:none;min-height:64px;font-size:16px}.aiRow{gap:8px;align-items:center}.aiRow .btn svg{margin-inline-end:6px}.aiWait{display:flex;align-items:center;gap:12px;justify-content:center;color:#BDB6AA}.aiDet{margin:0;font-size:11.5px;color:#8A847A;word-break:break-word}.aiErr{color:#FF9A8F;margin:0;font-size:14px}.aiPrev{display:flex;flex-direction:column;gap:10px;align-items:center}.aiPrev img{width:100%;max-height:24vh;object-fit:cover;border-radius:12px;border:1px solid #2A2D33}
 .bgGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-height:300px;overflow-y:auto}
@@ -2153,8 +2154,8 @@ function setBgColor(c){const s=playSong();if(!s)return;const old=s.bg&&s.bg.type
 async function setBgImage(dataUrl,anim,scene){
  const img=await new Promise(res=>{const im=new Image();im.onload=()=>res(im);im.onerror=()=>res(null);im.src=dataUrl});
  if(!img)return toast('לא ניתן לקרוא את התמונה');
- const M=1920,r=Math.min(1,M/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*r);c.height=Math.round(img.height*r);c.getContext('2d').drawImage(img,0,0,c.width,c.height);
- const d=c.toDataURL('image/jpeg',.85);
+ const M=3840,r=Math.min(1,M/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*r);c.height=Math.round(img.height*r);c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+ const d=c.toDataURL('image/jpeg',.9);
  const s=playSong();if(!s)return;const id='bg-'+uid();
  try{await IDB.put(id,d)}catch(e){return toast('לא ניתן לשמור את התמונה — אין מספיק מקום')}
  const old=s.bg&&s.bg.type==='img'?s.bg.id:null;BG[id]=d;s.bg={type:'img',id,dim:(s.bg&&s.bg.dim!=null)?s.bg.dim:.45};if(anim)s.bg.anim=1;if(scene)s.bg.scene=scene;touch(s);dropBgImg(old);applyBg();castPush();renderBgModal();
@@ -2178,8 +2179,8 @@ async function bglAdd(data,title,src){
  S.bgLib=(S.bgLib||[]).concat([{id,t:title||'',src:src||'mine'}]);BGL.thumbs[id]=th;save();return true;
 }
 async function bglThumb(id){if(BGL.thumbs[id]!==undefined)return BGL.thumbs[id];try{BGL.thumbs[id]=(await IDB.get('libt-'+id))||''}catch(e){BGL.thumbs[id]=''}return BGL.thumbs[id]}
-function bglAnimOn(kind,id){return kind==='b'?(S.bgAnimIds||[]).includes(id):!!(bglItems().find(x=>x.id===id)||{}).anim}
-function bglAnimToggle(kind,id){if(kind==='b'){const a=S.bgAnimIds||[];S.bgAnimIds=a.includes(id)?a.filter(x=>x!==id):a.concat([id])}else{const it=bglItems().find(x=>x.id===id);if(it)it.anim=!it.anim}save();renderBgModal()}
+function bglAnimOn(kind,id){return kind==='b'||kind==='p'?(S.bgAnimIds||[]).includes(kind==='p'?'ph:'+id:id):!!(bglItems().find(x=>x.id===id)||{}).anim}
+function bglAnimToggle(kind,id){if(kind==='b'||kind==='p'){const k=kind==='p'?'ph:'+id:id,a=S.bgAnimIds||[];S.bgAnimIds=a.includes(k)?a.filter(x=>x!==k):a.concat([k])}else{const it=bglItems().find(x=>x.id===id);if(it)it.anim=!it.anim}save();renderBgModal()}
 async function bglUse(kind,id){
  BGW.busy=true;renderBgModal();let d=null;
  try{if(kind==='b')d=await imgToData('bglib/'+id+'.jpg',1920,.9);else d=await IDB.get('lib-'+id)}catch(e){}
@@ -2196,13 +2197,52 @@ async function bglUpdate(){
  save();BGL.busy='';renderBgModal();toast(n?'נוספו '+n+' תמונות חדשות למאגר':'אין תמונות חדשות – המאגר מעודכן');
 }
 function bglDel(id){S.bgLib=bglItems().filter(x=>x.id!==id);IDB.del('lib-'+id);IDB.del('libt-'+id);delete BGL.thumbs[id];save();renderBgModal()}
+const PH_CATS=[['stage','במה ואורות','concert stage lights'],['land','נופים','landscape panorama'],['sunset','שקיעות','sunset'],['sea','ים וחופים','beach sea coast'],['night','לילה וכוכבים','night sky stars milky way'],['candles','נרות','candles candlelight'],['flowers','פרחים','flowers field bloom'],['forest','יערות','forest trees'],['mountains','הרים','mountains snow peaks'],['lake','אגמים','lake reflection'],['city','עיר בלילה','city skyline night'],['sky','שמיים ועננים','clouds sky'],['desert','מדבר','desert dunes'],['live','מונפשים ✦','']];
+const PH={cat:'stage',res:{},busy:false,err:''};
+async function phSearch(cat,more){
+ const c=PH_CATS.find(x=>x[0]===cat);if(!c||!c[2])return;const st=PH.res[cat]||(PH.res[cat]={items:[],seen:{},q:0,done:false});if(st.done&&more)return;
+ PH.busy=true;PH.err='';renderBgModal();
+ const qs=[c[2]+' incategory:Featured_pictures_on_Wikimedia_Commons',c[2]+' incategory:Quality_images',c[2]+' filew:>3000'];
+ const E=encodeURIComponent;let added=0;
+ try{
+  while(st.q<qs.length&&added<12){
+   const off=st['o'+st.q]||0;
+   const j=await jget('https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrnamespace=6&gsrlimit=40&gsroffset='+off+'&gsrsearch='+E(qs[st.q]+' filetype:bitmap')+'&prop=imageinfo&iiprop=url|size&iiurlwidth=480',15000);
+   const pages=Object.values((j.query&&j.query.pages)||{}).sort((a,b)=>(a.index||0)-(b.index||0));
+   pages.forEach(p=>{const ii=p.imageinfo&&p.imageinfo[0];if(!ii||st.seen[p.title])return;st.seen[p.title]=1;if(ii.width<2400||ii.width<ii.height*1.25)return;st.items.push({title:p.title,th:ii.thumburl,w:ii.width,h:ii.height});added++});
+   if(j.continue&&j.continue.gsroffset){st['o'+st.q]=j.continue.gsroffset;if(!more&&added>=12)break;if(pages.length<40)st.q++}else st.q++;
+   if(more&&added>=12)break;
+  }
+  if(st.q>=qs.length)st.done=true;
+ }catch(e){PH.err=/nonative/.test(e.message)?'מאגר התמונות עובד באפליקציה בטאבלט':'לא ניתן להתחבר למאגר התמונות'}
+ PH.busy=false;renderBgModal();
+}
+async function phUse(i){
+ const st=PH.res[PH.cat];const it=st&&st.items[i];if(!it)return;
+ BGW.busy=true;renderBgModal();
+ try{
+  const j=await jget('https://commons.wikimedia.org/w/api.php?action=query&format=json&titles='+encodeURIComponent(it.title)+'&prop=imageinfo&iiprop=url|size&iiurlwidth=3840',15000);
+  const p=Object.values(j.query.pages)[0],ii=p.imageinfo[0];const r=await httpGet(ii.thumburl||ii.url,true,60000);
+  BGW.busy=false;BGL.open=false;await setBgImage(r.text,(S.bgAnimIds||[]).includes('ph:'+it.title));
+ }catch(e){BGW.busy=false;renderBgModal();toast('לא ניתן להוריד את התמונה')}
+}
+function phThumbs(){const st=PH.res[PH.cat];if(!st)return;$$('[data-phi]').forEach(b=>{const im=$('img',b);if(im.dataset.l)return;im.dataset.l=1;const it=st.items[+b.dataset.phi];httpGet(it.th,true,20000).then(x=>{im.src=x.text}).catch(()=>{})})}
 function bglHtml(){
- const mine=bglItems();
- let h='<div class="bglBox"><div class="row bglTop"><b class="flex1">מאגר רקעים</b><button class="btn sm" id="bglAdd">'+ic('plus',16)+'הוסף תמונות</button><button class="btn sm" id="bglUpd">'+ic('globe',16)+'עדכן מהרשת</button></div>'+
+ const mine=bglItems(),live=PH.cat==='live',st=PH.res[PH.cat];
+ let h='<div class="bglBox"><div class="row bglTop"><b class="flex1">מאגר רקעים</b><button class="btn sm" id="bglAdd">'+ic('plus',16)+'הוסף תמונות</button></div>'+
+  '<div class="phCats">'+PH_CATS.map(c=>'<button class="chip phCat'+(PH.cat===c[0]?' on':'')+'" data-phc="'+c[0]+'">'+esc(c[1])+'</button>').join('')+'</div>'+
   (BGL.busy?'<div class="wMsg aiWait"><span class="spin"></span><span>'+esc(BGL.busy)+'</span></div>':'')+
-  (mine.length?'<div class="bglSec">שלי ושהורדו</div><div class="bglGrid">'+mine.map(x=>'<div class="bglT"><button class="bglI" data-bglu="'+x.id+'"><img data-bglth="'+x.id+'" alt="">'+(x.t?'<span>'+esc(x.t.slice(0,40))+'</span>':'')+'</button><button class="bglX" data-bgldel="'+x.id+'" aria-label="מחק מהמאגר">'+ic('trash',14)+'</button>'+animBtn('u',x.id)+'</div>').join('')+'</div>':'')+
-  '<div class="bglSec">מובנה</div><div class="bglGrid">'+BGLIB_BUILTIN.map(x=>'<div class="bglT"><button class="bglI" data-bglb="'+x.id+'"><img src="bglib/'+x.id+'_t.jpg" alt=""><span>'+esc(x.t)+'</span></button>'+animBtn('b',x.id)+'</div>').join('')+'</div></div>';
- return h;
+  (mine.length?'<div class="bglSec">שלי</div><div class="bglGrid">'+mine.map(x=>'<div class="bglT"><button class="bglI" data-bglu="'+x.id+'"><img data-bglth="'+x.id+'" alt="">'+(x.t?'<span>'+esc(x.t.slice(0,40))+'</span>':'')+'</button><button class="bglX" data-bgldel="'+x.id+'" aria-label="מחק מהמאגר">'+ic('trash',14)+'</button>'+animBtn('u',x.id)+'</div>').join('')+'</div>':'');
+ if(live)h+='<div class="bglSec">רקעים מאוירים עם תנועה חיה – אלומות שזזות, להבות מהבהבות, עצים ברוח</div><div class="bglGrid">'+BGLIB_BUILTIN.map(x=>'<div class="bglT"><button class="bglI" data-bglb="'+x.id+'"><img src="bglib/'+x.id+'_t.jpg" alt=""><span>'+esc(x.t)+'</span></button>'+animBtn('b',x.id)+'</div>').join('')+'</div>';
+ else{
+  h+='<div class="bglSec">תמונות אמיתיות באיכות גבוהה (עד 4K) · Wikimedia Commons</div>';
+  if(st&&st.items.length)h+='<div class="bglGrid">'+st.items.map((x,i)=>'<div class="bglT"><button class="bglI" data-phi="'+i+'"><img alt="">'+(x.w>=3800?'<b class="b4k">4K</b>':'<b class="b4k hd">HD</b>')+'</button>'+animBtn('p',x.title)+'</div>').join('')+'</div>';
+  if(PH.busy)h+='<div class="wMsg aiWait"><span class="spin"></span><span>טוען תמונות…</span></div>';
+  else if(PH.err)h+='<p class="aiErr">'+esc(PH.err)+'</p>';
+  else if(st&&!st.items.length&&st.done)h+='<p class="hint">לא נמצאו תמונות בקטגוריה הזו</p>';
+  if(st&&st.items.length&&!st.done&&!PH.busy)h+='<button class="btn phMore" id="phMore">טען עוד תמונות</button>';
+ }
+ return h+'</div>';
 }
 function animBtn(k,id){const on=bglAnimOn(k,id);return '<button class="bglA'+(on?' on':'')+'" data-bgla="'+k+':'+id+'" aria-pressed="'+on+'" aria-label="תמונה מונפשת">'+ANIM_IC+'</button>'}
 const ANIM_IC='<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8z"/><path d="M19 14l.9 2.1L22 17l-2.1.9L19 20l-.9-2.1L16 17l2.1-.9z"/></svg>';
@@ -2336,17 +2376,20 @@ function renderBgModal(){
   if(b.type==='img')h+='<div class="grp"><div class="row"><label class="lbl flex1" for="bgDim" dir="ltr" style="text-align:right">Image dimming</label><b id="bgDimV">'+Math.round((b.dim==null?.45:b.dim)*100)+'%</b></div><input id="bgDim" type="range" min="0" max="0.85" step="0.05" value="'+(b.dim==null?.45:b.dim)+'"></div><div class="row" style="gap:8px"><button class="btn sm'+(b.anim?' pri':'')+'" id="bgAnimT">'+ANIM_IC+(b.anim?'מונפש':'הנפש תמונה')+'</button><button class="btn sm" data-bgc="#000000">הסר תמונה</button></div>';
  }
  h+='<div class="acts"><span class="flex1"></span><button class="btn pri" id="mCancel">סגור</button></div>';
- E.innerHTML=h;if(BGL.open)bglFill();
+ E.innerHTML=h;if(BGL.open){bglFill();phThumbs()}
  E.onclick=e=>{const t=e.target.closest('button');if(!t)return;const d=t.dataset;
   if(t.id==='mCancel')return closeModal();
   if(d.bgt){BGW.tab=d.bgt;return renderBgModal()}
   if(d.bgc)return setBgColor(d.bgc);
   if(d.bgsrc)return bgPick(d.bgsrc);
-  if(d.bglib){BGL.open=!BGL.open;if(BGL.open){BGW.ai=false;BGW.web=false}return renderBgModal()}
+  if(d.bglib){BGL.open=!BGL.open;if(BGL.open){BGW.ai=false;BGW.web=false}renderBgModal();if(BGL.open&&!PH.res[PH.cat]&&PH.cat!=='live')phSearch(PH.cat);return}
   if(d.bglb)return bglUse('b',d.bglb);
   if(d.bglu)return bglUse('u',d.bglu);
   if(d.bgldel)return bglDel(d.bgldel);
-  if(d.bgla){const [k,id]=d.bgla.split(':');return bglAnimToggle(k,id)}
+  if(d.bgla){const k=d.bgla.slice(0,1),id=d.bgla.slice(2);return bglAnimToggle(k,id)}
+  if(d.phc){PH.cat=d.phc;renderBgModal();if(!PH.res[PH.cat]&&PH.cat!=='live')phSearch(PH.cat);return}
+  if(d.phi!=null)return phUse(+d.phi);
+  if(t.id==='phMore')return phSearch(PH.cat,true);
   if(t.id==='bgAnimT'){const ps=playSong();if(ps&&ps.bg&&ps.bg.type==='img'){if(ps.bg.anim)delete ps.bg.anim;else ps.bg.anim=1;touch(ps);applyBg();castPush();renderBgModal()}return}
   if(t.id==='bglAdd')return bglAddDevice();
   if(t.id==='bglUpd')return bglUpdate();

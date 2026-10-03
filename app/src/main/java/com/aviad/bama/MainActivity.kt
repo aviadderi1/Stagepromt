@@ -450,7 +450,7 @@ class MainActivity : ComponentActivity() {
                 conn = u.openConnection() as HttpURLConnection
                 conn.instanceFollowRedirects = false
                 conn.connectTimeout = 12000
-                conn.readTimeout = 15000
+                conn.readTimeout = if (binary) 45000 else 15000
                 conn.setRequestProperty("User-Agent", userAgent)
                 conn.setRequestProperty("Accept", "text/html,application/xhtml+xml,*/*;q=0.8")
                 conn.setRequestProperty("Accept-Language", "he-IL,he;q=0.9,en;q=0.8")
@@ -475,7 +475,7 @@ class MainActivity : ComponentActivity() {
             val code = conn.responseCode
             if (code >= 400) throw IllegalStateException("HTTP $code")
             var bytes = conn.inputStream.use { it.readBytes() }
-            if (bytes.size > 4 * 1024 * 1024) bytes = bytes.copyOf(4 * 1024 * 1024)
+            if (!binary && bytes.size > 4 * 1024 * 1024) bytes = bytes.copyOf(4 * 1024 * 1024)
             val ctype = conn.contentType ?: "application/octet-stream"
             val text = if (binary) "data:" + ctype.substringBefore(';').trim() + ";base64," + Base64.encodeToString(bytes, Base64.NO_WRAP)
                 else String(bytes, charsetOf(conn.contentType, bytes))
