@@ -658,6 +658,11 @@ class MainActivity : ComponentActivity() {
         }
 
         @JavascriptInterface
+        fun castBg(id: String, b64: String) {
+            try { cast.bg = Pair(id, Base64.decode(b64, Base64.DEFAULT)) } catch (_: Exception) { }
+        }
+
+        @JavascriptInterface
         fun castState(json: String) {
             if (casting) cast.push(json)
         }

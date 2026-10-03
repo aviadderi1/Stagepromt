@@ -25,6 +25,9 @@ class CastServer(private val context: Context) {
     var port: Int = 0
         private set
 
+    /** Current stage background image (id, JPEG bytes). */
+    @Volatile var bg: Pair<String, ByteArray>? = null
+
     private var server: ServerSocket? = null
     /** Sets shared with band members: token -> JSON. */
     val shares = java.util.concurrent.ConcurrentHashMap<String, String>()
@@ -126,6 +129,19 @@ class CastServer(private val context: Context) {
                 val code = if (json == null) "404 Not Found" else "200 OK"
                 out.write(("HTTP/1.1 $code\r\nContent-Type: $type\r\nContent-Length: ${body.size}\r\nAccess-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n").toByteArray())
                 out.write(body)
+                out.flush()
+                sock.close()
+                return
+            }
+
+            if (path == "/bg") {
+                val b = bg
+                if (b == null) {
+                    out.write("HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".toByteArray())
+                } else {
+                    out.write(("HTTP/1.1 200 OK\r\nContent-Type: image/jpeg\r\nContent-Length: ${b.second.size}\r\nAccess-Control-Allow-Origin: *\r\nCache-Control: max-age=86400\r\nConnection: close\r\n\r\n").toByteArray())
+                    out.write(b.second)
+                }
                 out.flush()
                 sock.close()
                 return

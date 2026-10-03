@@ -13,6 +13,7 @@ html,body{margin:0;height:100%;background:#000;color:#F2EEE6;overflow:hidden;fon
 #idle.off{opacity:0;pointer-events:none}
 #hdr{position:fixed;top:0;left:0;right:0;height:7vh;min-height:34px;display:flex;align-items:center;gap:2vw;padding:0 3vw;font-family:'Rubik','Assistant',sans-serif;font-weight:600;font-size:max(15px,2.4vh);color:#8F897F;z-index:2;background:linear-gradient(#000 70%,rgba(0,0,0,0))}
 #hdr[hidden]{display:none}
+#bg{position:fixed;left:0;right:0;bottom:0;top:max(34px,7vh);z-index:0;pointer-events:none}#sc{position:relative;z-index:1}
 #hdr b{color:#CFC9BF;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #hdr .fl{flex:1}
 #sc{position:fixed;left:0;right:0;top:0;bottom:0;overflow:hidden}
@@ -42,7 +43,7 @@ html,body{margin:0;height:100%;background:#000;color:#F2EEE6;overflow:hidden;fon
 </style>
 </head>
 <body>
-<div id="sc"><div id="in"></div></div>
+<div id="bg"></div><div id="sc"><div id="in"></div></div>
 <div id="hdr" hidden><b id="t"></b><span class="fl"></span><span id="n"></span></div>
 <div id="msg"><b id="mt"></b><span id="ms"></span></div>
 <div id="idle"><img src="logo.svg" alt="StagePromt"></div>
@@ -85,10 +86,14 @@ function loop(){
  const d=target-cur;if(Math.abs(d)<.5){cur=target}else cur+=d*.12;
  $('#in').style.transform='translateY('+(-cur)+'px)'+(st&&st.mirror?' scaleX(-1)':'');
 }
+function setBg(s){const b=$('#bg');let css='';
+ if(s&&s.bgi){const k=s.bgd==null?.45:s.bgd;css='linear-gradient(rgba(0,0,0,'+k+'),rgba(0,0,0,'+k+')),url("'+(s.bgsrc||('bg?'+encodeURIComponent(s.bgi)))+'") center/cover no-repeat #000'}
+ else if(s&&s.bgc)css=s.bgc;
+ if(b.dataset.css!==css){b.dataset.css=css;b.style.background=css}}
 function apply(s){
  st=s;
- if(!s||s.idle){$('#idle').classList.remove('off');$('#hdr').hidden=true;$('#msg').style.display='none';$('#in').innerHTML='';key='';return}
- $('#idle').classList.add('off');document.body.style.background=s.bgc||'#000';
+ if(!s||s.idle){setBg(null);$('#idle').classList.remove('off');$('#hdr').hidden=true;$('#msg').style.display='none';$('#in').innerHTML='';key='';return}
+ $('#idle').classList.add('off');setBg(s);
  $('#hdr').hidden=false;$('#t').textContent=s.title+(s.artist?' · '+s.artist:'');
  $('#n').textContent=s.count>1?(s.idx+1)+' / '+s.count:'';
  if(s.kind==='pdf'){
