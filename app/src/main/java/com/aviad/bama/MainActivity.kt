@@ -251,9 +251,11 @@ class MainActivity : ComponentActivity() {
             wv.settings.javaScriptEnabled = true
             wv.settings.domStorageEnabled = true
             wv.settings.textZoom = 100
+            wv.settings.cacheMode = android.webkit.WebSettings.LOAD_NO_CACHE
+            wv.clearCache(true)
             wv.webViewClient = WebViewClient()
             setContentView(wv)
-            wv.loadUrl("http://127.0.0.1:${cast.port}/")
+            wv.loadUrl("http://127.0.0.1:${cast.port}/?v=" + System.currentTimeMillis())
             view = wv
         }
 
@@ -703,7 +705,7 @@ class MainActivity : ComponentActivity() {
                     js("window.__ccStatus(" + JSONObject.quote(id) + ",'error'," + JSONObject.quote("הטאבלט לא מחובר לרשת Wi-Fi") + ")")
                     return@runOnUiThread
                 }
-                chromecast.cast(d, "http://$ip:${cast.port}/")
+                chromecast.cast(d, "http://$ip:${cast.port}/?v=" + System.currentTimeMillis())
             }
         }
 

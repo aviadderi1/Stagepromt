@@ -190,7 +190,7 @@ class CastServer(private val context: Context) {
             } else {
                 out.write(
                     ("HTTP/1.1 200 OK\r\nContent-Type: ${mime(name)}\r\nContent-Length: ${bytes.size}\r\n" +
-                        "Cache-Control: max-age=300\r\nConnection: close\r\n\r\n").toByteArray()
+                        (if (name.endsWith(".html")) "Cache-Control: no-store, no-cache, must-revalidate\r\nPragma: no-cache\r\n" else "Cache-Control: max-age=300\r\n") + "Connection: close\r\n\r\n").toByteArray()
                 )
                 out.write(bytes)
             }
