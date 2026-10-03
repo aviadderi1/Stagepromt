@@ -601,7 +601,7 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
 .bgSrc{margin-top:0;flex-wrap:nowrap;gap:10px}
 .bgSrc .srcBig{width:auto;flex:1;height:110px;font-size:15px}
 .bgSrc .srcBig.on{border-color:var(--am)}
-.aiBox{display:flex;flex-direction:column;gap:10px;margin-top:12px;padding:14px;background:#15161A;border:1px solid #2A2D33;border-radius:14px}.aiKeyRow{display:flex;gap:8px;align-items:center}.aiKeyRow .field{flex:1}.aiP{resize:none;min-height:64px;font-size:16px}.aiRow{gap:8px;align-items:center}.aiRow .btn svg{margin-inline-end:6px}.aiWait{display:flex;align-items:center;gap:12px;justify-content:center;color:#BDB6AA}.aiErr{color:#FF9A8F;margin:0;font-size:14px}.aiPrev{display:flex;flex-direction:column;gap:10px;align-items:center}.aiPrev img{width:100%;max-height:24vh;object-fit:cover;border-radius:12px;border:1px solid #2A2D33}
+.aiBox{display:flex;flex-direction:column;gap:10px;margin-top:12px;padding:14px;background:#15161A;border:1px solid #2A2D33;border-radius:14px}.aiEng{margin:0}.aiNote{margin:0;font-size:13px}.aiKeyRow{display:flex;gap:8px;align-items:center}.aiKeyRow .field{flex:1}.aiP{resize:none;min-height:64px;font-size:16px}.aiRow{gap:8px;align-items:center}.aiRow .btn svg{margin-inline-end:6px}.aiWait{display:flex;align-items:center;gap:12px;justify-content:center;color:#BDB6AA}.aiErr{color:#FF9A8F;margin:0;font-size:14px}.aiPrev{display:flex;flex-direction:column;gap:10px;align-items:center}.aiPrev img{width:100%;max-height:24vh;object-fit:cover;border-radius:12px;border:1px solid #2A2D33}
 .bgGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-height:300px;overflow-y:auto}
 .bgT{aspect-ratio:16/10;border-radius:10px;overflow:hidden;border:1px solid #2A2D33;background:#17181C;padding:0}
 .bgT img{width:100%;height:100%;object-fit:cover;display:block}
@@ -1972,7 +1972,7 @@ async function bgPick(src){
  setBgImage('data:image/jpeg;base64,'+b64);
 }
 function dropBgImg(id){if(id&&!S.songs.some(x=>x.bg&&x.bg.id===id)){IDB.del(id);delete BG[id]}}
-const BGW={tab:'color',q:'',res:[],busy:false,ai:false,ap:'',aimg:'',aerr:''};
+const BGW={tab:'color',q:'',res:[],busy:false,ai:false,ap:'',aimg:'',aerr:'',eng:'free',stat:''};
 const GEM_SPARK='<svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="gmG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4E8BF5"/><stop offset=".55" stop-color="#9B72CB"/><stop offset="1" stop-color="#D96570"/></linearGradient></defs><path fill="url(#gmG)" d="M12 2c.4 5.3 4.7 9.6 10 10-5.3.4-9.6 4.7-10 10-.4-5.3-4.7-9.6-10-10 5.3-.4 9.6-4.7 10-10z"/></svg>';
 const GEM_MODELS=['gemini-3.1-flash-image','gemini-2.5-flash-image','gemini-3.1-flash-lite-image','gemini-2.5-flash-image-preview'];
 function aiPost(url,body){return new Promise((res,rej)=>{
@@ -1980,6 +1980,44 @@ function aiPost(url,body){return new Promise((res,rej)=>{
  const id='h'+(++HTTP.n);HTTP.cb[id]={res,rej};
  try{window.Android.aiPost(id,url,body)}catch(e){delete HTTP.cb[id];return rej(e)}
  setTimeout(()=>{if(HTTP.cb[id]){delete HTTP.cb[id];rej(new Error('timeout'))}},150000)})}
+function aiReq(method,url,body,headers,bin,ms){return new Promise((res,rej)=>{
+ if(!(window.Android&&window.Android.aiReq))return rej(new Error('nonative'));
+ const id='h'+(++HTTP.n);HTTP.cb[id]={res,rej};
+ try{window.Android.aiReq(id,method,url,body||'',headers?JSON.stringify(headers):'',bin?'1':'0')}catch(e){delete HTTP.cb[id];return rej(e)}
+ setTimeout(()=>{if(HTTP.cb[id]){delete HTTP.cb[id];rej(new Error('timeout'))}},ms||130000)})}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function toEnglish(t){if(!/[\u0590-\u05FF]/.test(t))return t;try{const r=await aiReq('GET','https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q='+encodeURIComponent(t),'',null,false,15000);const j=JSON.parse(r.text);const o=(j[0]||[]).map(x=>x[0]).join('');return o||t}catch(e){return t}}
+const FREE_SUFFIX=', cinematic wide stage background, atmospheric, high quality, no text, no letters, no watermark';
+async function pollinationsImage(p){
+ const seed=Math.floor(Math.random()*1e9),q=encodeURIComponent(p+FREE_SUFFIX);
+ const urls=['https://image.pollinations.ai/prompt/'+q+'?width=1280&height=720&nologo=true&model=flux&seed='+seed,'https://gen.pollinations.ai/image/'+q+'?width=1280&height=720&seed='+seed];
+ let last='';for(const u of urls){try{const r=await aiReq('GET',u,'',null,true,90000);if(/^data:image\//.test(r.text))return r.text;last='notimage'}catch(e){last=e.message;if(/nonative/.test(last))throw e}}
+ throw new Error('pollinations '+last);
+}
+async function hordeImage(p,onStat){
+ const H={apikey:'0000000000','Client-Agent':'StagePromt:1.0:aviad'};
+ const body=JSON.stringify({prompt:p+FREE_SUFFIX+' ### text, letters, watermark, logo, blurry, deformed',params:{width:768,height:432,steps:24,n:1,sampler_name:'k_euler_a',cfg_scale:7},nsfw:false,censor_nsfw:true,r2:true,shared:false});
+ const r=await aiReq('POST','https://aihorde.net/api/v2/generate/async',body,H,false,30000);const id=JSON.parse(r.text).id;if(!id)throw new Error('horde noid');
+ const t0=Date.now();
+ while(Date.now()-t0<240000){
+  await sleep(4000);
+  let c;try{c=JSON.parse((await aiReq('GET','https://aihorde.net/api/v2/generate/check/'+id,'',H,false,20000)).text)}catch(e){continue}
+  if(c.faulted)throw new Error('horde faulted');
+  if(c.done)break;
+  if(onStat)onStat(c.queue_position>0?'בתור: מקום '+c.queue_position+' · בערך '+Math.max(1,Math.round((c.wait_time||10)))+' שנ׳':'מצייר… בערך '+Math.max(1,Math.round(c.wait_time||5))+' שנ׳');
+ }
+ const st=JSON.parse((await aiReq('GET','https://aihorde.net/api/v2/generate/status/'+id,'',H,false,30000)).text);
+ const g=(st.generations||[])[0];if(!g||!g.img)throw new Error('horde noimg');
+ if(/^https?:/.test(g.img)){const d=await aiReq('GET',g.img,'',null,true,60000);if(/^data:image\//.test(d.text))return d.text;throw new Error('horde dl')}
+ return 'data:image/webp;base64,'+g.img;
+}
+async function freeImage(prompt,onStat){
+ onStat&&onStat('מתרגם את התיאור…');const en=await toEnglish(prompt);
+ onStat&&onStat('יוצר תמונה…');
+ try{return await pollinationsImage(en)}catch(e){if(/nonative/.test(e.message))throw e}
+ onStat&&onStat('השרת הראשון עמוס – עובר לשרת חינמי נוסף…');
+ return await hordeImage(en,onStat);
+}
 function gemImg(j){const c=(j.candidates||[])[0];const ps=(c&&c.content&&c.content.parts)||[];for(const p of ps){const d=p.inlineData||p.inline_data;if(d&&d.data)return 'data:'+(d.mimeType||d.mime_type||'image/png')+';base64,'+d.data}return ''}
 async function geminiImage(prompt){
  const key=S.gemKey;if(!key)throw new Error('nokey');
@@ -2006,9 +2044,11 @@ async function gemKeyHelp(){
 async function bgAiGo(){
  const t=$('#aiP');BGW.ap=t?t.value.trim():BGW.ap;if(!BGW.ap)return toast('כתוב מה ליצור');
  const kf=$('#aiKey');if(kf&&kf.value.trim()){S.gemKey=kf.value.trim();save()}
- BGW.busy=true;BGW.aerr='';BGW.aimg='';renderBgModal();
- try{BGW.aimg=await geminiImage(BGW.ap)}catch(e){BGW.aerr=gemErrTxt(e.message)}
- BGW.busy=false;renderBgModal();
+ BGW.busy=true;BGW.aerr='';BGW.aimg='';BGW.stat='';renderBgModal();
+ const onStat=m=>{BGW.stat=m;const w=$('#aiStat');if(w)w.textContent=m};
+ try{BGW.aimg=BGW.eng==='gem'?await geminiImage(BGW.ap):await freeImage(BGW.ap,onStat)}
+ catch(e){BGW.aerr=BGW.eng==='gem'?gemErrTxt(e.message):(/nonative/.test(e.message)?'יצירת תמונות עובדת רק באפליקציה בטאבלט':'השרתים החינמיים עמוסים כרגע – נסה שוב בעוד דקה')}
+ BGW.busy=false;renderBgModal();const u=$('#aiUse');if(u)setTimeout(()=>u.scrollIntoView({block:'nearest',behavior:'smooth'}),60);
 }
 async function bgWebSearch(q){
  q=q.trim();if(!q)return;
@@ -2028,12 +2068,14 @@ function renderBgModal(){
   h+='<div class="bgFan">'+BG_COLORS.map((c,i)=>'<button class="bgSw'+(cur&&cur.toLowerCase()===c.toLowerCase()?' on':'')+'" style="--c:'+c+';--r:'+(-82+i*11)+'deg" data-bgc="'+c+'" aria-label="צבע '+c+'"></button>').join('')+'</div>'+
    '<div class="row bgCustom"><label for="bgCin">צבע אחר</label><input type="color" id="bgCin" value="'+(b.type==='color'&&b.c?b.c:'#000000')+'"><span class="flex1"></span><button class="btn sm" data-bgc="#000000">ברירת מחדל (שחור)</button></div>';
  }else{
-  h+='<div class="srcRow bgSrc"><button class="srcBig" data-bgsrc="device">'+ic('phone',30)+'<span>מהמכשיר</span></button><button class="srcBig" data-bgsrc="drive">'+gdriveIcon(30)+'<span dir="ltr">Google Drive</span></button><button class="srcBig'+(BGW.web?' on':'')+'" data-bgweb="1">'+ic('globe',30)+'<span>מהרשת</span></button><button class="srcBig'+(BGW.ai?' on':'')+'" data-bgai="1">'+GEM_SPARK+'<span dir="ltr">Gemini AI</span></button></div>';
+  h+='<div class="srcRow bgSrc"><button class="srcBig" data-bgsrc="device">'+ic('phone',30)+'<span>מהמכשיר</span></button><button class="srcBig" data-bgsrc="drive">'+gdriveIcon(30)+'<span dir="ltr">Google Drive</span></button><button class="srcBig'+(BGW.web?' on':'')+'" data-bgweb="1">'+ic('globe',30)+'<span>מהרשת</span></button><button class="srcBig'+(BGW.ai?' on':'')+'" data-bgai="1">'+GEM_SPARK+'<span>יצירה ב-AI</span></button></div>';
   if(BGW.ai){
-   h+='<div class="aiBox">'+(S.gemKey?'':'<div class="aiKeyRow"><input class="field" id="aiKey" dir="ltr" placeholder="Gemini API key" autocomplete="off"><button class="btn sm" id="aiKeyHelp">איך משיגים מפתח?</button></div>')+
+   const gem=BGW.eng==='gem';
+   h+='<div class="aiBox"><div class="seg full aiEng"><button data-aieng="free" class="'+(gem?'':'on')+'">חינמי</button><button data-aieng="gem" class="'+(gem?'on':'')+'" dir="ltr">Gemini</button></div>'+
+    (gem?'':'<p class="hint aiNote">חינמי, בלי הרשמה. האיכות טובה פחות מ-Gemini, ולפעמים לוקח כמה דקות כשהשרתים עמוסים.</p>')+(S.gemKey||!gem?'':'<div class="aiKeyRow"><input class="field" id="aiKey" dir="ltr" placeholder="Gemini API key" autocomplete="off"><button class="btn sm" id="aiKeyHelp">איך משיגים מפתח?</button></div>')+
     '<textarea class="field aiP" id="aiP" dir="auto" rows="2" placeholder="תאר את התמונה, למשל: במה עם אורות כחולים ועשן, שקיעה על הים">'+esc(BGW.ap)+'</textarea>'+
-    '<div class="row aiRow"><button class="btn pri" id="aiGo"'+(BGW.busy?' disabled':'')+'>'+GEM_SPARK.replace(/30/g,'18')+(BGW.aimg?'צור שוב':'צור תמונה')+'</button>'+(S.gemKey?'<span class="flex1"></span><button class="btn sm ghost" id="aiKeyCh">החלף מפתח</button>':'')+'</div>'+
-    (BGW.busy?'<div class="wMsg aiWait"><span class="spin big"></span><span>Gemini יוצר את התמונה…</span></div>':'')+
+    '<div class="row aiRow"><button class="btn pri" id="aiGo"'+(BGW.busy?' disabled':'')+'>'+GEM_SPARK.replace(/30/g,'18')+(BGW.aimg?'צור שוב':'צור תמונה')+'</button>'+(S.gemKey&&gem?'<span class="flex1"></span><button class="btn sm ghost" id="aiKeyCh">החלף מפתח</button>':'')+'</div>'+
+    (BGW.busy?'<div class="wMsg aiWait"><span class="spin big"></span><span id="aiStat">'+esc(BGW.stat||(gem?'Gemini יוצר את התמונה…':'יוצר תמונה…'))+'</span></div>':'')+
     (BGW.aerr?'<p class="aiErr">'+esc(BGW.aerr)+'</p>':'')+
     (BGW.aimg&&!BGW.busy?'<div class="aiPrev"><img src="'+BGW.aimg+'" alt=""><button class="btn pri" id="aiUse">'+ic('check',18)+'הגדר כרקע</button></div>':'')+'</div>';
   }
@@ -2049,6 +2091,7 @@ function renderBgModal(){
   if(d.bgc)return setBgColor(d.bgc);
   if(d.bgsrc)return bgPick(d.bgsrc);
   if(d.bgai){BGW.ai=!BGW.ai;if(BGW.ai)BGW.web=false;renderBgModal();const p=$('#aiKey')||$('#aiP');if(p)p.focus();return}
+  if(d.aieng){if(BGW.busy)return;BGW.eng=d.aieng;BGW.aerr='';return renderBgModal()}
   if(t.id==='aiGo')return bgAiGo();
   if(t.id==='aiUse'){const d=BGW.aimg;BGW.aimg='';BGW.ai=false;return setBgImage(d)}
   if(t.id==='aiKeyCh'){delete S.gemKey;save();return renderBgModal()}
