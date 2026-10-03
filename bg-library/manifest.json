@@ -1,0 +1,35 @@
+{
+ "v": 1,
+ "images": [
+  {
+   "id": "stage-green",
+   "t": "במה ירוקה",
+   "file": "stage-green.jpg"
+  },
+  {
+   "id": "concert-red",
+   "t": "הופעה אדומה",
+   "file": "concert-red.jpg"
+  },
+  {
+   "id": "bokeh-pink",
+   "t": "אורות ורודים",
+   "file": "bokeh-pink.jpg"
+  },
+  {
+   "id": "aurora-pink",
+   "t": "זוהר ורוד",
+   "file": "aurora-pink.jpg"
+  },
+  {
+   "id": "synthwave-cyan",
+   "t": "ניאון טורקיז",
+   "file": "synthwave-cyan.jpg"
+  },
+  {
+   "id": "deep-purple",
+   "t": "עומק סגול",
+   "file": "deep-purple.jpg"
+  }
+ ]
+}
