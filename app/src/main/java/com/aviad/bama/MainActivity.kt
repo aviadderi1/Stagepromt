@@ -91,7 +91,7 @@ class MainActivity : ComponentActivity() {
             try {
                 contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
             } catch (_: Exception) { }
-            writeUri(req.first, uri, req.third, uri.toString())
+            if (req.second == "savebin") writeBytes(req.first, uri, req.third) else writeUri(req.first, uri, req.third, uri.toString())
         }
 
     private val openLauncher =
@@ -116,6 +116,17 @@ class MainActivity : ComponentActivity() {
 
     private fun fileDone(id: String, ok: Boolean, msg: String) {
         runOnUiThread { js("window.__fileDone(" + JSONObject.quote(id) + "," + ok + "," + JSONObject.quote(msg) + ")") }
+    }
+
+    private fun writeBytes(id: String, uri: Uri, b64: String) {
+        thread {
+            try {
+                val bytes = Base64.decode(b64, Base64.DEFAULT)
+                val os = try { contentResolver.openOutputStream(uri, "wt") } catch (_: Exception) { contentResolver.openOutputStream(uri, "w") }
+                (os ?: throw IllegalStateException("no stream")).use { it.write(bytes) }
+                fileDone(id, true, uri.toString())
+            } catch (e: Exception) { fileDone(id, false, e.message ?: "write error") }
+        }
     }
 
     private fun writeUri(id: String, uri: Uri, text: String, result: String) {
@@ -540,6 +551,17 @@ class MainActivity : ComponentActivity() {
                 fileReq = Triple(id, "save", text)
                 val i = Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
                     .setType("application/json").putExtra(Intent.EXTRA_TITLE, name)
+                try { saveLauncher.launch(i) } catch (e: Exception) { fileReq = null; fileDone(id, false, "no picker") }
+            }
+        }
+
+        @JavascriptInterface
+        fun saveBinary(id: String, name: String, payload: String) {
+            runOnUiThread {
+                val mime = payload.substringBefore('|')
+                fileReq = Triple(id, "savebin", payload.substringAfter('|'))
+                val i = Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
+                    .setType(mime).putExtra(Intent.EXTRA_TITLE, name)
                 try { saveLauncher.launch(i) } catch (e: Exception) { fileReq = null; fileDone(id, false, "no picker") }
             }
         }

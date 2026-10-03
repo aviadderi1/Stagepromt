@@ -530,6 +530,9 @@ select.chip{cursor:pointer}
 .capoB{background:#2A2419;color:#F4C77A}
 .spd{cursor:pointer;border-radius:10px}
 .spd:active{background:#1E2025}
+.expBtn{height:36px;padding:0 12px;display:inline-flex;align-items:center;gap:6px;border:1px solid #3A3D44;border-radius:10px;background:transparent;color:#CFC9BF;font:700 14px Assistant,sans-serif;letter-spacing:.3px}.expBtn:active{border-color:#F4C77A;color:#F4C77A}
+.expList{display:flex;flex-direction:column;max-height:52vh;overflow:auto;margin-top:10px}.expSong .lAv{width:38px;height:38px;flex-shrink:0}.esT{display:flex;flex-direction:column;line-height:1.2;min-width:0}.esT small{color:var(--tx2,#9A958C);font-size:13px}
+.expProg{display:flex;align-items:center;gap:14px;margin:18px 0 6px}.expProg .spBar{flex:1;width:auto}
 .gearBtn{margin-inline-start:6px;color:#CFC9BF}
 .modal.stModal{width:min(900px,100%);height:min(620px,92vh);padding:0;overflow:hidden}
 .stWrap{display:flex;height:100%;min-height:0}
@@ -612,7 +615,7 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
 
 <section id="lib" class="screen active">
   <header class="hdr">
-    <div class="brand"><img class="logoImg" src="logo.svg" alt="StagePromt"><button class="ib gearBtn" id="gearBtn" aria-label="הגדרות"><i data-ic="gear" data-s="22"></i></button></div>
+    <div class="brand"><img class="logoImg" src="logo.svg" alt="StagePromt"><button class="ib gearBtn" id="gearBtn" aria-label="הגדרות"><i data-ic="gear" data-s="22"></i></button><button class="expBtn" id="expBtn" aria-label="ייצוא ל-PDF"><i data-ic="upload" data-s="17"></i>Export</button></div>
     <div class="flex1"></div>
     <label class="search"><i data-ic="search" data-s="18"></i><input id="q" type="search" placeholder="חיפוש שיר, אמן או שורה…" aria-label="חיפוש"></label>
     <button class="btn" id="libWeb"><i data-ic="globe" data-s="18"></i><span class="hideS">חיפוש ברשת</span></button>
@@ -1212,6 +1215,7 @@ $('#lib').addEventListener('click',e=>{
  if(t.id==='impSet')return importSetModal();
  if(t.id==='backupBtn')return backupModal();
  if(t.id==='gearBtn')return settingsModal();
+ if(t.id==='expBtn')return exportMenu();
  if(t.id==='pedalBtn')return pedalModal();
  if(t.id==='startSet')return startShow(visibleSongs().map(s=>s.id),0);
  if(t.id==='libNew'||t.id==='emptyNew')return newSong();
@@ -2815,6 +2819,143 @@ function onSugInput(field){
  el.addEventListener('blur',()=>setTimeout(()=>{if(document.activeElement!==$('#wq')&&document.activeElement!==$('#wa'))hideSug()},150));
  el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();hideSug();WEB.back=null;doWebSearch()}else if(e.key==='Escape')hideSug()});
 });
+
+/* ========= PDF export ========= */
+const PDFX={W:1240,H:1754};
+function expSongs(kind,arg){
+ const ok=s=>s.kind!=='pdf'&&resolve(s).some(p=>String(p.text||'').trim());
+ if(kind==='all')return S.songs.filter(ok).slice().sort((a,b)=>a.title.localeCompare(b.title,'he'));
+ if(kind==='set')return songsIn(arg).filter(ok).slice().sort((x,y)=>(x.order||0)-(y.order||0));
+ return S.songs.filter(s=>s.id===arg&&ok(s));
+}
+function exportMenu(){
+ menu('Export – ייצוא ל-PDF',[
+  {icon:'music',label:'ייצא את כל השירים',fn:()=>expAskChords('all')},
+  {icon:'folder',label:'ייצא הופעה',fn:expPickSet},
+  {icon:'text',label:'ייצא שיר בודד',fn:expPickSong}]);
+}
+function expPickSet(){
+ if(!S.folders.length)return toast('אין עדיין הופעות – צור תיקייה בספרייה');
+ menu('איזו הופעה לייצא?',S.folders.map(f=>({icon:'folder',label:f.name+' · '+songsIn(f.id).length+' שירים',uc:true,cur:f.id===S.ui.folder,fn:()=>expAskChords('set',f.id)})));
+}
+function expPickSong(){
+ const list=S.songs.filter(s=>s.kind!=='pdf').slice().sort((a,b)=>a.title.localeCompare(b.title,'he'));
+ if(!list.length)return toast('אין שירים לייצוא');
+ const row=s=>'<button class="mItem expSong" data-es="'+s.id+'">'+avatarHtml(s.img,s.artist||s.title,'lAv')+'<span class="esT"><b>'+esc(s.title||'ללא שם')+'</b><small>'+esc(s.artist||'')+'</small></span></button>';
+ openModal('<h2>איזה שיר לייצא?</h2><input class="field" id="esQ" placeholder="חיפוש שיר או אמן" autofocus><div class="expList" id="esL">'+list.map(row).join('')+'</div><div class="acts"><button class="btn" id="mCancel">ביטול</button></div>');
+ $('#esQ').oninput=()=>{const q=stripNik($('#esQ').value.trim().toLowerCase());$('#esL').innerHTML=list.filter(s=>!q||stripNik((s.title+' '+(s.artist||'')).toLowerCase()).includes(q)).map(row).join('')};
+ $('#esL').onclick=e=>{const b=e.target.closest('[data-es]');if(b)expAskChords('song',b.dataset.es)};
+ $('#mCancel').onclick=closeModal;
+}
+function expAskChords(kind,arg){
+ const songs=expSongs(kind,arg);if(!songs.length){closeModal();return toast('אין שירים עם מילים לייצוא')}
+ const has=songs.some(s=>s.parts.some(p=>p.chords&&p.chords.length));
+ openModal('<h2>לייצא עם האקורדים?</h2><p class="mTxt">'+(songs.length===1?'השיר "'+esc(songs[0].title)+'"':songs.length+' שירים')+(songs.length>1?' · כל שיר בעמוד אחד':'')+(has?'':'<br>אין עדיין אקורדים בשירים האלה.')+'</p>'+
+  '<div class="acts"><button class="btn pri" id="exYes">כן, עם אקורדים</button><button class="btn" id="exNo">לא, רק מילים</button><span class="flex1"></span><button class="btn" id="mCancel">ביטול</button></div>');
+ $('#exYes').onclick=()=>runExport(songs,true,kind,arg);$('#exNo').onclick=()=>runExport(songs,false,kind,arg);$('#mCancel').onclick=closeModal;
+}
+function expName(kind,arg,songs){
+ const n=kind==='all'?'כל השירים':kind==='set'?folderName(arg):(songs[0].title+(songs[0].artist?' - '+songs[0].artist:''));
+ return ('StagePromt - '+n).replace(/[\\/:*?"<>|]/g,'')+'.pdf';
+}
+async function runExport(songs,withCh,kind,arg){
+ openModal('<h2>מייצר PDF…</h2><div class="expProg"><div class="spBar"><i id="exBar"></i></div><span id="exTxt">0 / '+songs.length+'</span></div>');
+ try{
+  const pages=[];
+  for(let i=0;i<songs.length;i++){
+   const c=await renderSongPage(songs[i],withCh,i+1,songs.length);
+   pages.push(b64ToBuf(c.toDataURL('image/jpeg',.88).split(',')[1]));
+   const b=$('#exBar');if(b){b.style.width=((i+1)/songs.length*100)+'%';$('#exTxt').textContent=(i+1)+' / '+songs.length}
+   await new Promise(r=>setTimeout(r,0));
+  }
+  const pdf=buildPdf(pages),name=expName(kind,arg,songs);
+  closeModal();
+  if(window.Android&&window.Android.saveBinary){await nativeFile('saveBinary',name,'application/pdf|'+bufToB64(pdf));}
+  else{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([pdf],{type:'application/pdf'}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}
+ }catch(e){closeModal();if(!/cancel/.test(e&&e.message))toast('הייצוא נכשל')}
+}
+function loadImg(src){return new Promise(r=>{if(!src)return r(null);const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=src})}
+async function renderSongPage(s,withCh,no,tot){
+ const {W,H}=PDFX,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
+ const st=s.style||DEF_STYLE,f=font(st.font),fam=f.css,wt=f.w||700;
+ try{await document.fonts.load(wt+' 40px '+fam,'אב');await document.fonts.load('700 40px Assistant','אב')}catch(e){}
+ x.fillStyle='#fff';x.fillRect(0,0,W,H);x.direction='rtl';x.textBaseline='alphabetic';
+ const M=80,R=W-M;
+ // header
+ const AV=150,img=await loadImg(s.img);
+ x.save();x.beginPath();x.arc(R-AV/2,M+AV/2,AV/2,0,Math.PI*2);x.clip();
+ if(img){const k=Math.max(AV/img.width,AV/img.height),w=img.width*k,h=img.height*k;x.drawImage(img,R-AV/2-w/2,M+AV/2-h/2,w,h)}
+ else{x.fillStyle='#E8E2D6';x.fillRect(R-AV,M,AV,AV);x.fillStyle='#8A7F6C';x.font='800 72px Assistant';x.textAlign='center';x.fillText((s.artist||s.title||'♪').trim().charAt(0),R-AV/2,M+AV/2+25)}
+ x.restore();
+ x.strokeStyle='#D9A441';x.lineWidth=4;x.beginPath();x.arc(R-AV/2,M+AV/2,AV/2+2,0,Math.PI*2);x.stroke();
+ const tx=R-AV-36;x.textAlign='right';
+ let ts=68;x.font='800 '+ts+'px Assistant';while(x.measureText(s.title||'').width>tx-M-160&&ts>34){ts-=2;x.font='800 '+ts+'px Assistant'}
+ x.fillStyle='#16130F';x.fillText(s.title||'ללא שם',tx,M+70);
+ x.font='500 40px Assistant';x.fillStyle='#6B6458';x.fillText(s.artist||'',tx,M+128);
+ const meta=[];if(s.key)meta.push(['סולם',s.key]);if(s.capo)meta.push(['קאפו',String(s.capo)]);
+ x.textAlign='left';let my=M+56;meta.forEach(([k,v])=>{x.font='700 34px Assistant';x.fillStyle='#B8681A';x.direction='ltr';x.fillText(v,M,my);const w=x.measureText(v).width;x.direction='rtl';x.font='500 24px Assistant';x.fillStyle='#8A8276';x.textAlign='left';x.fillText(k,M+w+14,my);my+=50});
+ x.direction='rtl';
+ const HY=M+AV+34;x.fillStyle='#D9A441';x.fillRect(M,HY,W-2*M,3);
+ // body
+ const parts=resolve(s).filter(p=>String(p.text||'').trim()),L=labelMap(s);
+ const blocks=parts.map(p=>{const map=withCh?partChordMap(p):{};return {lab:L[p.oid]||TYPES[p.type].name,type:p.type,lines:String(p.text).split('\n').filter(l=>l.trim()).map(l=>({t:l,ch:null})),raw:String(p.text).split('\n'),map}});
+ blocks.forEach(b=>{let k=0;b.lines=[];b.raw.forEach((l,li)=>{if(l.trim())b.lines.push({t:l,ch:b.map[li]||null})})});
+ const top=HY+40,bot=H-90,avail=bot-top;
+ const meas=(fs,cols)=>{const lh=fs*1.32,chh=withCh?fs*.86:0,labH=fs*.62+8,gap=fs*.7;
+  const hs=blocks.map(b=>labH+b.lines.reduce((a,l)=>a+lh+(l.ch?chh:0),0));
+  x.font=wt+' '+fs+'px '+fam;const colW=(W-2*M-(cols-1)*60)/cols;const wide=blocks.some(b=>b.lines.some(l=>x.measureText(l.t).width>colW));
+  if(wide)return null;
+  if(cols===1){const t=hs.reduce((a,h)=>a+h,0)+gap*(hs.length-1);return t<=avail?{fs,cols,lh,chh,labH,gap,colW,split:[blocks.length]}:null}
+  let acc=0,cut=0;for(let i=0;i<hs.length;i++){if(acc+hs[i]>avail)break;acc+=hs[i]+gap;cut=i+1}
+  const rest=hs.slice(cut).reduce((a,h)=>a+h,0)+gap*Math.max(0,hs.length-cut-1);
+  return cut&&rest<=avail?{fs,cols,lh,chh,labH,gap,colW,split:[cut,blocks.length]}:null};
+ let l1=null,l2=null;for(let fs=46;fs>=12&&!l1;fs--)l1=meas(fs,1);for(let fs=46;fs>=12&&!l2;fs--)l2=meas(fs,2);
+ let lay=l1&&(l1.fs>=30||!l2||l1.fs>=l2.fs*.8)?l1:(l2||l1);
+ if(!lay)lay=meas(12,2)||{fs:12,cols:2,lh:16,chh:withCh?10:0,labH:16,gap:8,colW:(W-2*M-60)/2,split:[Math.ceil(blocks.length/2),blocks.length]};
+ const COL={verse:'#16130F',chorus:'#123A6B',bridge:'#4B2A7A',note:'#7A746A',intro:'#16130F'};
+ let bi=0;
+ for(let ci=0;ci<lay.cols;ci++){
+  const cr=R-ci*(lay.colW+60),cl=cr-lay.colW,cx=(cr+cl)/2;let y=top;
+  for(;bi<lay.split[ci];bi++){
+   const b=blocks[bi];
+   x.font='700 '+Math.round(lay.fs*.48)+'px Assistant';x.fillStyle='#A39A8A';x.textAlign='right';x.fillText(b.lab,cr,y+lay.fs*.5);y+=lay.labH;
+   for(const l of b.lines){
+    x.font=(b.type==='note'?'italic ':'')+wt+' '+lay.fs+'px '+fam;
+    const lw=x.measureText(l.t).width,al=st.align==='right'?'right':'center',lr=al==='right'?cr:cx+lw/2;
+    if(l.ch){const cy=y+lay.chh*.8;y+=lay.chh;const arr=clusters(l.t);let prevL=1e9;x.font='700 '+Math.round(lay.fs*.7)+'px Assistant';
+     const cs=l.ch.slice().sort((a,b)=>a.i-b.i);
+     for(const ch of cs){x.font=wt+' '+lay.fs+'px '+fam;const off=x.measureText(arr.slice(0,ch.i).join('')).width,cw=x.measureText(arr.slice(ch.i,ch.i+ch.n).join('')||' ').width;
+      x.font='700 '+Math.round(lay.fs*.7)+'px Assistant';const label=shownChord(s,ch.c),w=x.measureText(label).width;let cc=lr-off-cw/2;let rgt=cc+w/2;if(rgt>prevL-8){cc-=rgt-(prevL-8)}
+      x.fillStyle='#C2580A';x.textAlign='center';x.direction='ltr';x.fillText(label,cc,cy);x.direction='rtl';prevL=cc-w/2}
+    }
+    x.font=(b.type==='note'?'italic ':'')+wt+' '+lay.fs+'px '+fam;x.fillStyle=COL[b.type]||'#16130F';x.textAlign='right';x.fillText(l.t,lr,y+lay.fs*.98);
+    y+=lay.lh;
+   }
+   y+=lay.gap;
+  }
+ }
+ // footer
+ x.fillStyle='#E6DFD2';x.fillRect(M,H-66,W-2*M,2);x.font='600 22px Assistant';x.fillStyle='#A39A8A';x.textAlign='left';x.direction='ltr';x.fillText('StagePromt',M,H-34);
+ if(tot>1){x.textAlign='right';x.fillText(no+' / '+tot,R,H-34)}
+ return c;
+}
+function buildPdf(jpgs){
+ const enc=new TextEncoder(),chunks=[],offs=[];let len=0;
+ const push=d=>{const b=typeof d==='string'?enc.encode(d):new Uint8Array(d);chunks.push(b);len+=b.length};
+ const obj=(n,body,stream)=>{offs[n]=len;push(n+' 0 obj\n'+body+(stream?'\nstream\n':'\nendobj\n'));if(stream){push(stream);push('\nendstream\nendobj\n')}};
+ const n=jpgs.length,PW=595.28,PH=841.89;
+ push('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+ const kids=[];for(let i=0;i<n;i++)kids.push((3+i*3)+' 0 R');
+ obj(1,'<< /Type /Catalog /Pages 2 0 R >>');
+ obj(2,'<< /Type /Pages /Kids ['+kids.join(' ')+'] /Count '+n+' >>');
+ jpgs.forEach((j,i)=>{const p=3+i*3,im=p+1,ct=p+2,cs='q '+PW+' 0 0 '+PH+' 0 0 cm /Im0 Do Q';
+  obj(p,'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+PW+' '+PH+'] /Resources << /XObject << /Im0 '+im+' 0 R >> >> /Contents '+ct+' 0 R >>');
+  obj(im,'<< /Type /XObject /Subtype /Image /Width '+PDFX.W+' /Height '+PDFX.H+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+j.byteLength+' >>',j);
+  obj(ct,'<< /Length '+cs.length+' >>',enc.encode(cs))});
+ const total=3+n*3,xo=len;let xr='xref\n0 '+total+'\n0000000000 65535 f \n';for(let i=1;i<total;i++)xr+=String(offs[i]).padStart(10,'0')+' 00000 n \n';
+ push(xr+'trailer\n<< /Size '+total+' /Root 1 0 R >>\nstartxref\n'+xo+'\n%%EOF');
+ const out=new Uint8Array(len);let o=0;chunks.forEach(c=>{out.set(c,o);o+=c.length});return out.buffer;
+}
 
 /* ========= backup & set sharing ========= */
 const NATIVE_FILES=!!(window.Android&&window.Android.saveFile);
