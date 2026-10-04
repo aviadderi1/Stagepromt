@@ -563,7 +563,7 @@ $("#spbtn").onclick=async()=>{const list=visibleSongs().filter(s=>s.text&&!s.sta
 
 /* ---------- list generation ---------- */
 let RES=[],RESLIST="";
-function showResults(items,listName,src){RES=items;RESLIST=listName;const have=new Set(SONGS.map(s=>norm(s.title)));
+let RESSRC="";function showResults(items,listName,src){RES=items;RESLIST=listName;RESSRC=src||"";const have=new Set(SONGS.map(s=>norm(s.title)));
   $("#restitle").textContent=`${items.length} שירים${src?" · "+src:""}`;
   $("#reslist").innerHTML=items.map((it,i)=>{const dup=have.has(norm(it.title));return`<label class="res-item${dup?" dup":""}" for="r${i}"><input type="checkbox" id="r${i}" ${dup?"":"checked"}><span>${esc(it.title)}<small>${esc(it.artist||"")}${it.era?" · "+esc(it.era):""}${dup?" · כבר במאגר":""}</small></span></label>`}).join("");
   $("#results").hidden=false}
@@ -616,7 +616,7 @@ $("#resclose").onclick=()=>{$("#results").hidden=true};
 $("#resadd").onclick=async()=>{const picks=RES.filter((_,i)=>$("#r"+i)?.checked);const have=new Set(SONGS.map(s=>norm(s.title)));const todo=picks.filter(p=>!have.has(norm(p.title)));
   if(!todo.length){toast("לא נבחרו שירים חדשים");return}const btn=$("#resadd");btn.disabled=true;let o=Date.now();
   for(let i=0;i<todo.length;i+=8){btn.textContent=`מוסיף ${Math.min(i+8,todo.length)}/${todo.length}…`;await Promise.all(todo.slice(i,i+8).map(p=>store.add({title:p.title,artist:p.artist||"",list:RESLIST,text:"",credits:"",bg:null,order:o++})))}
-  btn.disabled=false;btn.textContent="הוסף למאגר";$("#results").hidden=true;UI.filter=RESLIST;renderAll();toast(`נוספו ${todo.length} שירים`)};
+  btn.disabled=false;btn.textContent="הוסף למאגר";UI.filter=RESLIST;renderAll();showResults(RES,RESLIST,RESSRC);toast(`נוספו ${todo.length} שירים. הרשימה נשארת פתוחה להמשך בחירה`)};
 $("#addbtn").onclick=async()=>{const v=$("#addq").value.trim();const er=$("#generr");if(!v){er.textContent="כתבו שם של שיר.";return}er.textContent="";
   const[t,...a]=v.split(/\s+[–—-]\s+/);await store.add({title:t.trim(),artist:a.join(" - ").trim(),list:UI.filter==="הכול"?"שירים שלי":UI.filter,text:"",credits:"",bg:null,order:Date.now()});$("#addq").value="";toast("השיר נוסף")};
 $("#addq").addEventListener("keydown",e=>{if(e.key==="Enter")$("#addbtn").click()});
