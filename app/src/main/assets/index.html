@@ -659,6 +659,7 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
 .pfRow input{width:20px;height:20px;accent-color:#E8A23A}
 .pfRow:has(input:checked){border-color:#E8A23A;background:#2A2419}
 .pfNew{padding:0 4px 4px}.pfNew[hidden]{display:none}
+#lib>.hdr #libWeb,#lib>.hdr #libImport{display:none!important}
 /* ---- phone ---- */
 @media (max-width:600px){
  .hdr{padding:10px 12px!important;gap:6px!important}
@@ -3849,9 +3850,12 @@ async function fbPublicSongs(){const out=[];let pt='';
  return out.sort((a,b)=>(a.list||'').localeCompare(b.list||'','he')||(a.order||0)-(b.order||0))}
 function newChooser(){
  openModal('<h2>הוספת שיר</h2><div class="ncGrid"><button class="ncOpt" id="ncNew"><span class="ncIc" style="background:#E8A23A;color:#17120A">'+ic('plus',26)+'</span><b>שיר חדש</b><small>כתוב או הדבק מילים</small></button>'+
-  '<button class="ncOpt" id="ncLib"><span class="ncIc" style="background:#7C5CD6;color:#fff">'+ic('search',24)+'</span><b>חפש במאגר</b><small>שירים מוכנים עם רקע ותמונה</small></button></div>'+
+  '<button class="ncOpt" id="ncLib"><span class="ncIc" style="background:#7C5CD6;color:#fff">'+ic('search',24)+'</span><b>חפש במאגר</b><small>שירים מוכנים עם רקע ותמונה</small></button>'+
+  '<button class="ncOpt" id="ncWeb"><span class="ncIc" style="background:#2E9E62;color:#fff">'+ic('globe',24)+'</span><b>חיפוש ברשת</b><small>מילים ואקורדים מאתרי שירים</small></button>'+
+  '<button class="ncOpt" id="ncPdf"><span class="ncIc" style="background:#2F7BE0;color:#fff">'+ic('upload',24)+'</span><b>ייבוא PDF</b><small>מהמכשיר, Drive או Dropbox</small></button></div>'+
   '<div class="acts"><span class="flex1"></span><button class="btn" id="mCancel">ביטול</button></div>');
  $('#mCancel').onclick=closeModal;$('#ncNew').onclick=()=>{closeModal();newSong()};$('#ncLib').onclick=()=>{closeModal();genLibModal(true)};
+ $('#ncWeb').onclick=()=>{closeModal();$('#libWeb').click()};$('#ncPdf').onclick=()=>{closeModal();$('#libImport').click()};
 }
 function pickFolderFor(n){return new Promise(done=>{
  const cur=S.folders.some(f=>f.id===S.ui.folder)?S.ui.folder:'';
