@@ -560,7 +560,14 @@ let tx0=null;sc.addEventListener("touchstart",e=>tx0=e.touches[0].clientX,{passi
 const fontsReady=(document.fonts?Promise.all([document.fonts.load(`700 74px ${TF}`,"שיר"),document.fonts.load(`600 40px ${BF}`,"שיר"),document.fonts.load(`700 40px ${BF}`,"שיר")]).catch(()=>{}):Promise.resolve());
 renderAll();
 fontsReady.then(()=>{previewCache.clear();[...grid.children].forEach(el=>el.dataset.key="");renderAll()});
-function start(){$("#login").hidden=true;$("#app").hidden=false;$("#app").style.display="contents";
+const APPRET=(()=>{const v=new URLSearchParams(location.search).get("app");return /^stagepromtm?$/.test(v||"")?v:null})();
+function backToApp(st){if(!st||!st.refresh)return showLogin();
+  const url=APPRET+"://fbauth?r="+encodeURIComponent(st.refresh)+"&u="+encodeURIComponent(st.uid||"")+"&e="+encodeURIComponent(st.email||"");
+  $("#login").hidden=true;$("#app").hidden=true;let b=$("#appret");
+  if(!b){b=document.createElement("section");b.id="appret";b.className="gen";b.style.cssText="align-items:center;text-align:center;gap:14px";document.querySelector(".wrap").appendChild(b)}
+  b.innerHTML='<strong style="font-family:var(--f-display);font-size:24px">מחובר'+(st.email?' בתור '+st.email.replace(/[<>&"]/g,""):"")+'</strong><p class="hint" style="margin:0">לחץ כדי לחזור לאפליקציה ולסיים את החיבור.</p><a class="primary btn" id="appgo" style="padding:14px 26px;font-size:18px;text-decoration:none;background:var(--accent);color:var(--accent-ink);border-color:var(--accent)" href="'+url+'">חזור ל-StagePromt</a>';
+  b.hidden=false;setTimeout(()=>{try{location.href=url}catch(e){}},300)}
+function start(){if(APPRET)return backToApp(FB.mem||fbAuthState());$("#login").hidden=true;$("#app").hidden=false;$("#app").style.display="contents";
   store.init(list=>{SONGS=list;renderAll()}).catch(e=>{if(e.message==="signin"||e.status===401||e.status===403&&/auth|token/i.test(e.message)){showLogin()}else{toast(e.status===403?"אין הרשאה למאגר. בדקו את חוקי האבטחה ב-Firestore.":"לא הצלחתי לטעון את המאגר")}})}
 function showLogin(){try{localStorage.removeItem(FB.LS)}catch(e){}FB.mem=null;$("#app").hidden=true;$("#login").hidden=false}
 $("#lgo").onclick=async()=>{const e=$("#lem").value.trim(),p=$("#lpw").value;const er=$("#lerr");if(!e||!p){er.textContent="מלאו אימייל וסיסמה.";return}

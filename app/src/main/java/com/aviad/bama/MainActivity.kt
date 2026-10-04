@@ -47,6 +47,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var web: WebView
     private var pageReady = false
     private var pendingUri: Uri? = null
+    private var pendingJs: String? = null
     private var fileCallback: ValueCallback<Array<Uri>>? = null
 
     private val cast by lazy { CastServer(applicationContext) }
@@ -200,6 +201,7 @@ class MainActivity : ComponentActivity() {
             override fun onPageFinished(view: WebView, url: String) {
                 pageReady = true
                 pendingUri?.let { pendingUri = null; sendPdf(it) }
+                pendingJs?.let { pendingJs = null; web.postDelayed({ js(it) }, 600) }
             }
         }
 
@@ -351,6 +353,11 @@ class MainActivity : ComponentActivity() {
             else -> null
         }
         if (uri == null) return
+        if (uri.host == "fbauth" && (uri.scheme == "stagepromt" || uri.scheme == "stagepromtm")) {
+            val code = "window.__fbAuth&&window.__fbAuth(" + JSONObject.quote(uri.toString()) + ")"
+            if (pageReady) js(code) else pendingJs = code
+            return
+        }
         if (pageReady) sendPdf(uri) else pendingUri = uri
     }
 
@@ -600,6 +607,9 @@ class MainActivity : ComponentActivity() {
         fun httpGet(id: String, url: String) {
             thread { fetchPage(id, url) }
         }
+
+        @JavascriptInterface
+        fun authScheme(): String = if (packageName.endsWith(".mobile")) "stagepromtm" else "stagepromt"
 
         @JavascriptInterface
         fun openUrl(url: String) {

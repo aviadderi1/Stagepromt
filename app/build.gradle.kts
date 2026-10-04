@@ -20,11 +20,13 @@ android {
         create("tablet") {
             dimension = "device"
             manifestPlaceholders["appLabel"] = "StagePromt"
+            manifestPlaceholders["authScheme"] = "stagepromt"
         }
         create("phone") {
             dimension = "device"
             applicationIdSuffix = ".mobile"
             manifestPlaceholders["appLabel"] = "StagePromt Mobile"
+            manifestPlaceholders["authScheme"] = "stagepromtm"
         }
     }
 
