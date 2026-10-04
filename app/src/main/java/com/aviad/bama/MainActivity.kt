@@ -364,6 +364,12 @@ class MainActivity : ComponentActivity() {
     /** PDF opened or shared into the app (VIEW / SEND). */
     private fun handleIncoming(intent: Intent?) {
         if (intent == null) return
+        if (intent.getBooleanExtra("openAdmin", false)) {
+            intent.removeExtra("openAdmin")
+            val code = "window.__openAdmin&&window.__openAdmin()"
+            if (pageReady) js(code) else pendingJs = code
+            return
+        }
         val uri: Uri? = when (intent.action) {
             Intent.ACTION_VIEW -> intent.data
             Intent.ACTION_SEND -> streamUri(intent)
@@ -545,6 +551,16 @@ class MainActivity : ComponentActivity() {
                 imm.showSoftInput(web, InputMethodManager.SHOW_IMPLICIT)
                 web.postDelayed({ imm.showSoftInput(web, InputMethodManager.SHOW_IMPLICIT) }, 150)
             }
+        }
+
+        @JavascriptInterface
+        fun adminWatch(refresh: String) {
+            runOnUiThread {
+                if (refresh.isNotEmpty() && Build.VERSION.SDK_INT >= 33 &&
+                    checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED)
+                    requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 77)
+            }
+            try { SubmissionWorker.schedule(applicationContext, refresh) } catch (_: Exception) { }
         }
 
         @JavascriptInterface
