@@ -185,6 +185,7 @@ select.chip{cursor:pointer}
 .prog.last i{background:#FF4D4D;box-shadow:0 0 8px rgba(255,77,77,.6)}
 .pStage{flex:1;position:relative;min-height:0}
 .pBgA{position:absolute;inset:0;overflow:hidden;pointer-events:none}.pBgA[hidden]{display:none}
+.glRows{display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow:auto;margin:8px 0}.glRow{display:flex;gap:10px;align-items:center;padding:8px 10px;border:1px solid rgba(128,128,128,.3);border-radius:10px}.glRow small{display:block;opacity:.7}.glSt{font-size:12px;opacity:.8;white-space:nowrap}
 .bgImg{position:absolute;inset:0;background:center/cover no-repeat;animation:bgKb 70s ease-in-out infinite alternate;transform-origin:50% 50%;backface-visibility:hidden}
 @keyframes bgKb{from{transform:scale(1.0)}to{transform:scale(1.09)}}
 .bgDim{position:absolute;inset:0}
@@ -3624,9 +3625,11 @@ function renderSetCat(){
   M.innerHTML='<h3>'+ic('qr',20)+' שיתוף עם הלהקה</h3>'+
    '<div class="stCard"><div class="flex1"><b>שתף הופעה</b><p>שולח את השירים של "'+esc(folderName(S.ui.folder))+'" ('+(n===1?'שיר אחד':n+' שירים')+') לחבר להקה, בקוד QR או כקובץ.</p></div><button class="btn pri" id="stShare"'+(n?'':' disabled')+'>'+ic('qr',18)+'שתף הופעה</button></div>'+
    '<div class="stCard"><div class="flex1"><b>קבלת סט מחבר להקה</b><p>סורקים את הקוד שמופיע אצל חבר הלהקה, או פותחים קובץ סט ששלח לך.</p></div><button class="btn" id="stRecv">'+ic('qr',18)+'קבל סט</button></div>'+
+   '<div class="stCard"><div class="flex1"><b>מאגר מהמחולל</b><p>שירים ששלחת ממחולל השקופיות, עם הבתים, הפזמונים והרקע.</p></div><button class="btn pri" id="stGen">'+ic('upload',18)+'פתח מאגר</button></div>'+
    '<p class="hint">כדי לשתף הופעה אחרת, בחר קודם את התיקייה שלה בספרייה.</p>';
   $('#stShare').onclick=()=>shareSetModal();
   $('#stRecv').onclick=()=>importSetModal();
+  $('#stGen').onclick=()=>{closeModal();genLibModal()};
  }else if(SETCAT==='drive'){
   const B=S.backup||{};
   M.innerHTML='<h3 class="gdH">'+gdriveIcon(22)+'<span dir="ltr">Google Drive</span></h3><p class="mTxt">כל השירים, התיקיות וקובצי ה-PDF נשמרים בקובץ אחד. בחלון שייפתח בחר <b>Google Drive</b> ותיקייה. גם אם תסיר את האפליקציה או תחליף טאבלט, תוכל לשחזר מהקובץ.</p>'+
@@ -3694,6 +3697,161 @@ function previewSet(j){
    if(typeof x.bgData==='string'&&/^data:image\//.test(x.bgData)){const id='bg-'+uid();try{await IDB.put(id,x.bgData);BG[id]=x.bgData;s.bg={type:'img',id,dim:typeof x.bgDim==='number'?x.bgDim:.45}}catch(e){}}
    S.songs.push(s)}
   S.ui.folder=f.id;S.ui.sort='set';save(true);renderLib();toast('הסט "'+f.name+'" נוסף');
+ };
+}
+
+/* ========= song library from the slide generator (Firebase) ========= */
+const GENBG=(()=>{
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function hx(h){h=h.replace("#","");return[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]}
+function mix(a,b,t){const A=hx(a),B=hx(b);return"#"+A.map((v,i)=>Math.round(v+(B[i]-v)*t).toString(16).padStart(2,"0")).join("")}
+function rgba(h,a){const[r,g,b]=hx(h);return`rgba(${r},${g},${b},${a})`}
+
+const TIMES={
+ dawn:{sky:["#24305e","#b5627e","#f4b08a"],sun:"#ffe2b6",sunY:.6,land:"#3c3550",haze:"#f4b08a"},
+ day:{sky:["#2f6fbf","#7fb6e6","#d8ecfb"],sun:"#fff7dc",sunY:.2,land:"#4f6b3a",haze:"#cfe4f3"},
+ dusk:{sky:["#1c1838","#7b2d4e","#f08a4b"],sun:"#ffd06f",sunY:.64,land:"#2b1c2c",haze:"#f08a4b"},
+ night:{sky:["#02050f","#0b1734","#1e3460"],sun:"#f3f0e2",sunY:.2,land:"#070d1a",haze:"#1e3460",moon:1},
+ night2:{sky:["#05030f","#1f1238","#3d2463"],sun:"#efe7ff",sunY:.18,land:"#0a0716",haze:"#3d2463",moon:1},
+ grey:{sky:["#2a3138","#4e5a63","#86939b"],sun:"#d9dfe3",sunY:.3,land:"#20272c",haze:"#86939b"},
+ warm:{sky:["#2a0f1c","#6e1f38","#c85a4a"],sun:"#ffd9a0",sunY:.5,land:"#1b0a12",haze:"#c85a4a"},
+ rose:{sky:["#1a0e24","#5b2350","#c76d93"],sun:"#ffe0ec",sunY:.5,land:"#12081a",haze:"#c76d93"}
+};
+function sky(c,W,H,t,hz){const g=c.createLinearGradient(0,0,0,H*hz);g.addColorStop(0,t.sky[0]);g.addColorStop(.6,t.sky[1]);g.addColorStop(1,t.sky[2]);c.fillStyle=g;c.fillRect(0,0,W,H)}
+function glowDisc(c,x,y,r,col,glow=4){const g=c.createRadialGradient(x,y,r*.2,x,y,r*glow);g.addColorStop(0,rgba(col,.55));g.addColorStop(1,rgba(col,0));c.fillStyle=g;c.fillRect(x-r*glow,y-r*glow,r*glow*2,r*glow*2);c.fillStyle=col;c.beginPath();c.arc(x,y,r,0,7);c.fill()}
+function starsF(c,W,H,n,R,maxY){for(let i=0;i<n;i++){const r=R()*1.6+.3;c.globalAlpha=.35+R()*.65;c.fillStyle="#fff";c.beginPath();c.arc(R()*W,R()*H*maxY,r*W/1920*1.4,0,7);c.fill()}c.globalAlpha=1}
+function ridge(c,W,H,base,amp,col,R,fq=1){const p=[R()*6,R()*6,R()*6];c.fillStyle=col;c.beginPath();c.moveTo(0,H);for(let x=0;x<=W;x+=W/120){const u=x/W;c.lineTo(x,H*base-H*amp*(Math.sin(u*3*fq+p[0])*.5+Math.sin(u*7*fq+p[1])*.3+Math.sin(u*17*fq+p[2])*.12))}c.lineTo(W,H);c.closePath();c.fill()}
+function layers(c,W,H,t,R,n,top,bottom,amp){for(let i=0;i<n;i++){const k=i/(n-1||1);ridge(c,W,H,top+(bottom-top)*k,amp*(1-k*.4),mix(t.haze,t.land,.35+k*.65),R,1+k)}}
+function moonOrSun(c,W,H,t,R,x){const r=H*(t.moon?.05:.07);glowDisc(c,W*x,H*t.sunY,r,t.sun,t.moon?3:5)}
+function tree(c,x,y,s,col){c.fillStyle=col;c.fillRect(x-s*.06,y-s*.6,s*.12,s*.6);c.beginPath();c.arc(x,y-s*.75,s*.35,0,7);c.arc(x-s*.25,y-s*.6,s*.25,0,7);c.arc(x+s*.25,y-s*.6,s*.25,0,7);c.fill()}
+function cypress(c,x,y,s,col){c.fillStyle=col;c.beginPath();c.ellipse(x,y-s*.55,s*.12,s*.55,0,0,7);c.fill()}
+function palm(c,x,y,s,col,R){c.strokeStyle=col;c.lineWidth=s*.05;c.beginPath();c.moveTo(x,y);const lean=(R()-.5)*s*.4;c.quadraticCurveTo(x+lean*.3,y-s*.5,x+lean,y-s);c.stroke();const tx=x+lean,ty=y-s;c.lineWidth=s*.025;for(let i=0;i<8;i++){const a=-Math.PI+i/7*Math.PI;c.beginPath();c.moveTo(tx,ty);c.quadraticCurveTo(tx+Math.cos(a)*s*.25,ty+Math.sin(a)*s*.25-s*.05,tx+Math.cos(a)*s*.45,ty+Math.sin(a)*s*.2+s*.12);c.stroke()}}
+
+const PAINT={
+ sea(c,W,H,t,R){sky(c,W,H,t,.55);if(t.moon)starsF(c,W,H,260,R,.5);moonOrSun(c,W,H,t,R,.3+R()*.4);
+  const hz=.58;ridge(c,W,H,hz,.03,mix(t.haze,t.land,.6),R,2);
+  const g=c.createLinearGradient(0,H*hz,0,H);g.addColorStop(0,mix(t.sky[2],t.sky[1],.4));g.addColorStop(1,mix(t.sky[0],"#000000",.4));c.fillStyle=g;c.fillRect(0,H*hz,W,H);
+  const sx=W*(.3+R()*.4);for(let i=0;i<140;i++){const y=H*hz+Math.pow(R(),1.6)*H*(1-hz);const w=(R()*.08+.01)*W*(.3+(y/H-hz)*2);c.fillStyle=rgba(t.sun,.15+R()*.45);c.fillRect(sx-w/2+(R()-.5)*W*.12,y,w,H*.003)}
+  c.strokeStyle=rgba("#ffffff",.08);c.lineWidth=H*.002;for(let i=0;i<40;i++){const y=H*hz+R()*H*(1-hz);c.beginPath();c.moveTo(R()*W,y);c.lineTo(R()*W,y);c.stroke()}},
+ lake(c,W,H,t,R){sky(c,W,H,t,.6);moonOrSun(c,W,H,t,R,.65);layers(c,W,H,t,R,2,.5,.58,.06);
+  const g=c.createLinearGradient(0,H*.6,0,H);g.addColorStop(0,mix(t.sky[2],t.haze,.3));g.addColorStop(1,mix(t.sky[1],"#000000",.45));c.fillStyle=g;c.fillRect(0,H*.6,W,H);
+  c.fillStyle=rgba("#ffffff",.06);for(let i=0;i<60;i++)c.fillRect(R()*W,H*.6+R()*H*.4,W*(.02+R()*.08),H*.002);
+  const col=mix(t.land,"#000000",.3);c.fillStyle=col;c.beginPath();c.moveTo(0,H);c.lineTo(0,H*.86);c.quadraticCurveTo(W*.18,H*.82,W*.32,H*.92);c.lineTo(W*.32,H);c.fill();
+  palm(c,W*.08,H*.88,H*.42,col,R);palm(c,W*.18,H*.86,H*.32,col,R)},
+ desert(c,W,H,t,R){sky(c,W,H,t,.6);if(t.moon)starsF(c,W,H,320,R,.6);glowDisc(c,W*(.25+R()*.5),H*(t.sunY+.05),H*.11,t.sun,4);
+  const sand=t.moon?"#2a2a40":"#d9a35a";for(let i=0;i<4;i++){const k=i/3;ridge(c,W,H,.6+k*.14,.08,mix(mix(sand,t.haze,.35),"#000000",.15+k*.35),R,.6)}},
+ jerusalem(c,W,H,t,R){sky(c,W,H,t,.7);if(t.moon)starsF(c,W,H,200,R,.5);moonOrSun(c,W,H,t,R,.75);layers(c,W,H,t,R,2,.62,.7,.05);
+  const stone=t.moon?"#2d2a35":mix("#d9b77c",t.land,.55);const base=H*.8;c.fillStyle=stone;let x=0;
+  while(x<W){const w=W*(.02+R()*.05),h=H*(.05+R()*.12);c.fillRect(x,base-h,w+1,h+H);if(R()<.18){c.beginPath();c.arc(x+w/2,base-h,w*.5,Math.PI,0);c.fill()}if(R()<.1){c.fillRect(x+w*.4,base-h-H*.09,w*.2,H*.09)}
+   if(t.moon||t===TIMES.dusk){c.fillStyle=rgba("#ffd27a",.8);for(let j=0;j<3;j++)if(R()<.5)c.fillRect(x+R()*w*.8,base-R()*h*.9,W*.003,H*.006);c.fillStyle=stone}x+=w}
+  const dx=W*(.35+R()*.3),dr=W*.045;c.fillStyle=t.moon?"#6b5a2a":"#d4a83a";c.beginPath();c.arc(dx,base-H*.13,dr,Math.PI,0);c.fill();c.fillStyle=stone;c.fillRect(dx-dr*1.2,base-H*.13,dr*2.4,H*.13);
+  c.fillStyle=mix(stone,"#000000",.35);c.fillRect(0,base,W,H);for(let i=0;i<W;i+=W/36)c.fillRect(i,base-H*.02,W/72,H*.02)},
+ hills(c,W,H,t,R){sky(c,W,H,t,.6);moonOrSun(c,W,H,t,R,.2+R()*.6);
+  const green=mix("#3f6b3a",t.land,.4);for(let i=0;i<5;i++){const k=i/4;ridge(c,W,H,.5+k*.2,.08*(1-k*.3),mix(mix(t.haze,green,.5),mix(green,"#000000",.5),k),R,.8+k)}
+  const tc=mix(green,"#000000",.6);for(let i=0;i<9;i++){const x=R()*W,s=H*(.08+R()*.1);R()<.5?cypress(c,x,H*.9,s*1.6,tc):tree(c,x,H*.9,s,tc)}},
+ field(c,W,H,t,R){sky(c,W,H,t,.62);glowDisc(c,W*(.3+R()*.4),H*.6,H*.08,t.sun,5);layers(c,W,H,t,R,2,.56,.62,.03);
+  const gold=mix("#d6a13c",t.land,.3);const g=c.createLinearGradient(0,H*.62,0,H);g.addColorStop(0,mix(gold,t.haze,.3));g.addColorStop(1,mix(gold,"#000000",.45));c.fillStyle=g;c.fillRect(0,H*.62,W,H);
+  for(let i=0;i<700;i++){const y=H*.66+Math.pow(R(),.7)*H*.34;const k=(y/H-.62)/.38;const x=R()*W,h=H*(.03+k*.16);c.strokeStyle=rgba(mix(gold,t.sun,R()*.4),.5+k*.4);c.lineWidth=Math.max(1,W*.0012*(.5+k));c.beginPath();c.moveTo(x,y);c.quadraticCurveTo(x+h*.1,y-h*.6,x+h*.18,y-h);c.stroke();c.fillStyle=c.strokeStyle;c.beginPath();c.ellipse(x+h*.18,y-h,W*.002*(1+k*2),H*.01*(1+k*2),.2,0,7);c.fill()}},
+ rain(c,W,H,t,R){sky(c,W,H,t,1);for(let i=0;i<26;i++){const x=R()*W,y=R()*H*.45,r=H*(.06+R()*.12);c.fillStyle=rgba(mix(t.sky[1],t.sky[0],R()),.55);c.beginPath();c.ellipse(x,y,r*2.2,r,0,0,7);c.fill()}
+  layers(c,W,H,t,R,3,.62,.78,.05);c.strokeStyle=rgba("#dfe8ee",.28);c.lineWidth=Math.max(1,W*.0009);for(let i=0;i<700;i++){const x=R()*W*1.2,y=R()*H,l=H*(.02+R()*.05);c.beginPath();c.moveTo(x,y);c.lineTo(x-l*.25,y+l);c.stroke()}
+  c.fillStyle=rgba("#ffffff",.07);for(let i=0;i<40;i++){c.beginPath();c.ellipse(R()*W,H*(.85+R()*.15),W*(.02+R()*.05),H*.006,0,0,7);c.fill()}},
+ stars(c,W,H,t,R){sky(c,W,H,t,1);starsF(c,W,H,900,R,.95);
+  c.save();c.translate(W*.5,H*.4);c.rotate(-.5);const g=c.createRadialGradient(0,0,0,0,0,W*.5);g.addColorStop(0,rgba(mix(t.sky[2],"#ffffff",.4),.25));g.addColorStop(1,rgba(t.sky[2],0));c.fillStyle=g;c.scale(1,.18);c.beginPath();c.arc(0,0,W*.5,0,7);c.fill();c.restore();
+  glowDisc(c,W*(.15+R()*.2),H*.18,H*.045,t.sun,3);layers(c,W,H,t,R,2,.8,.9,.08)},
+ sunrise(c,W,H,t,R){sky(c,W,H,t,.75);const sx=W*(.4+R()*.2),sy=H*.7;c.save();c.translate(sx,sy);for(let i=0;i<24;i++){c.rotate(Math.PI*2/24);c.fillStyle=rgba(t.sun,.07);c.beginPath();c.moveTo(0,0);c.lineTo(W,-W*.06);c.lineTo(W,W*.06);c.fill()}c.restore();
+  glowDisc(c,sx,sy,H*.09,t.sun,5);layers(c,W,H,t,R,4,.68,.88,.07)},
+ flowers(c,W,H,t,R){sky(c,W,H,t,.55);moonOrSun(c,W,H,t,R,.8);layers(c,W,H,t,R,2,.5,.56,.05);
+  const g=c.createLinearGradient(0,H*.56,0,H);g.addColorStop(0,"#6e8f45");g.addColorStop(1,"#1f3315");c.fillStyle=g;c.fillRect(0,H*.56,W,H);
+  const cols=["#d7262f","#e2343a","#c41d48","#f0f0ea","#d7262f"];const items=[];for(let i=0;i<260;i++){const y=H*.58+Math.pow(R(),.8)*H*.42;items.push([R()*W,y])}items.sort((a,b)=>a[1]-b[1]);
+  for(const[x,y]of items){const k=(y/H-.56)/.44,s=H*(.006+k*k*.05);c.strokeStyle="#2e4a1c";c.lineWidth=Math.max(1,s*.15);c.beginPath();c.moveTo(x,y);c.lineTo(x,y+s*2.2);c.stroke();c.fillStyle=cols[(R()*cols.length)|0];for(let p=0;p<6;p++){const a=p/6*Math.PI*2;c.beginPath();c.ellipse(x+Math.cos(a)*s*.6,y+Math.sin(a)*s*.45,s*.55,s*.4,a,0,7);c.fill()}c.fillStyle="#1a1414";c.beginPath();c.arc(x,y,s*.3,0,7);c.fill()}},
+ love(c,W,H,t,R){const g=c.createRadialGradient(W*.5,H*.55,0,W*.5,H*.55,W*.75);g.addColorStop(0,t.sky[2]);g.addColorStop(.5,t.sky[1]);g.addColorStop(1,t.sky[0]);c.fillStyle=g;c.fillRect(0,0,W,H);
+  for(let i=0;i<70;i++){const r=H*(.02+R()*.12);const gg=c.createRadialGradient(0,0,0,0,0,r);const col=R()<.5?t.sun:mix(t.sky[2],"#ffffff",.3);gg.addColorStop(0,rgba(col,.35*R()+.1));gg.addColorStop(.85,rgba(col,.12));gg.addColorStop(1,rgba(col,0));c.save();c.translate(R()*W,R()*H);c.fillStyle=gg;c.beginPath();c.arc(0,0,r,0,7);c.fill();c.restore()}},
+ memory(c,W,H,t,R){sky(c,W,H,t,.85);if(t.moon)starsF(c,W,H,240,R,.6);moonOrSun(c,W,H,t,R,.7);layers(c,W,H,t,R,2,.72,.8,.05);
+  const col=mix(t.land,"#000000",.5);c.fillStyle=col;c.beginPath();c.moveTo(0,H);c.lineTo(0,H*.88);c.quadraticCurveTo(W*.35,H*.74,W*.7,H*.86);c.lineTo(W,H*.9);c.lineTo(W,H);c.fill();
+  const tx=W*.33,ty=H*.8;c.strokeStyle=col;c.lineCap="round";const br=(x,y,a,l,d)=>{if(d===0||l<2)return;const x2=x+Math.cos(a)*l,y2=y+Math.sin(a)*l;c.lineWidth=Math.max(1,d*H*.003);c.beginPath();c.moveTo(x,y);c.lineTo(x2,y2);c.stroke();br(x2,y2,a-.35-R()*.2,l*.72,d-1);br(x2,y2,a+.3+R()*.2,l*.7,d-1)};br(tx,ty,-Math.PI/2,H*.12,8);
+  c.strokeStyle=rgba("#000000",.6);c.lineWidth=H*.003;for(let i=0;i<5;i++){const bx=W*(.55+R()*.3),by=H*(.25+R()*.2),s=H*.015;c.beginPath();c.moveTo(bx-s,by);c.quadraticCurveTo(bx-s/2,by-s*.6,bx,by);c.quadraticCurveTo(bx+s/2,by-s*.6,bx+s,by);c.stroke()}},
+ road(c,W,H,t,R){sky(c,W,H,t,.55);if(t.moon)starsF(c,W,H,220,R,.5);moonOrSun(c,W,H,t,R,.5+(R()-.5)*.3);layers(c,W,H,t,R,3,.5,.58,.05);
+  const gr=mix("#5a6b38",t.land,.55);c.fillStyle=gr;c.fillRect(0,H*.58,W,H);const vx=W*(.45+R()*.1),vy=H*.58;
+  c.fillStyle=mix("#2b2b2b",t.land,.4);c.beginPath();c.moveTo(vx-W*.004,vy);c.lineTo(vx+W*.004,vy);c.lineTo(W*.82,H);c.lineTo(W*.18,H);c.fill();
+  c.fillStyle=rgba("#f0e6c8",.8);for(let i=0;i<12;i++){const a=i/12,b=(i+.5)/12;const y1=vy+(H-vy)*a*a,y2=vy+(H-vy)*b*b;c.beginPath();c.moveTo(vx-1,y1);c.lineTo(vx+1,y1);c.lineTo(vx+W*.006*(1+b*3),y2);c.lineTo(vx-W*.006*(1+b*3),y2);c.fill()}
+  const tc=mix(gr,"#000000",.6);for(let i=0;i<10;i++){const side=i%2?1:-1,k=R();const y=vy+(H-vy)*k*k;cypress(c,vx+side*(W*.04+(W*.42)*k*k),y,H*(.02+k*k*.3),tc)}}
+};
+
+
+const REF=/^[\[(]?\s*(פזמון|פיזמון)\s*[\])]?\s*$/;
+function blocks(text){return String(text||"").split(/\n\s*\n/).map(b=>b.split("\n").map(x=>x.trim()).filter(Boolean)).filter(b=>b.length).map(b=>{
+  if(b.length===1&&REF.test(b[0])&&!/[:：]/.test(b[0]))return{ref:true,lines:[]};
+  const ch=/^(פזמון|פיזמון)\s*[:：]$/.test(b[0]);return{chorus:ch,lines:ch?b.slice(1):b}}).filter(b=>b.ref||b.lines.length)}
+/* every verse and chorus becomes its own page; a "[פזמון]" line repeats the chorus there */
+function pages(song){const out=[];let chorus=null,v=0;
+  for(const b of blocks(song.text)){if(b.ref){if(chorus)out.push({chorus:true,lines:chorus.lines,label:"פזמון"});continue}
+    if(b.chorus){chorus=b;out.push({chorus:true,lines:b.lines,label:"פזמון"})}else out.push({chorus:false,lines:b.lines,label:"בית "+(++v)})}
+  return out}
+
+
+ function render(bg){const cv=document.createElement('canvas');cv.width=1920;cv.height=1080;const c=cv.getContext('2d');bg=bg||{};
+  try{(PAINT[bg.scene]||PAINT.sunrise)(c,1920,1080,TIMES[bg.time]||TIMES.dusk,mulberry(bg.seed||1))}catch(e){c.fillStyle='#101826';c.fillRect(0,0,1920,1080)}
+  return cv.toDataURL('image/jpeg',.88)}
+ function parts(text){const out=[];let ch=null;
+  for(const b of blocks(text)){if(b.ref){if(ch)out.push({id:uid(),type:'chorus',text:'',ref:ch});continue}
+   const p={id:uid(),type:b.chorus?'chorus':'verse',text:b.lines.join('\n'),ref:null};if(b.chorus&&!ch)ch=p.id;out.push(p)}
+  return out}
+ return {render,parts};
+})();
+const FB={key:'AIzaSyAQj76Gha9yGidawfxbouvrE47teuzIsO4',project:'stagepromt',LS:'sp-fb'};
+FB.base='https://firestore.googleapis.com/v1/projects/'+FB.project+'/databases/(default)/documents';
+function fbAuthState(){try{return JSON.parse(localStorage.getItem(FB.LS))||null}catch(e){return null}}
+async function fbReq(method,url,body,headers){
+ if(window.Android&&window.Android.aiReq){const r=await aiReq(method,url,body?JSON.stringify(body):'',headers||null,false,30000);return r.text?JSON.parse(r.text):{}}
+ const r=await fetch(url,{method,headers:Object.assign({'Content-Type':'application/json'},headers||{}),body:body?JSON.stringify(body):undefined});
+ const t=await r.text();if(!r.ok)throw new Error('HTTP '+r.status+': '+t.slice(0,300));return t?JSON.parse(t):{}}
+async function fbSignIn(email,password){
+ const j=await fbReq('POST','https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key='+FB.key,{email,password,returnSecureToken:true});
+ const st={uid:j.localId,email:j.email,refresh:j.refreshToken,token:j.idToken,exp:Date.now()+(+j.expiresIn||3600)*1000-60000};
+ localStorage.setItem(FB.LS,JSON.stringify(st));return st}
+async function fbToken(){const st=fbAuthState();if(!st)throw new Error('signin');if(st.token&&st.exp>Date.now())return st;
+ const j=await fbReq('POST','https://securetoken.googleapis.com/v1/token?key='+FB.key,{grant_type:'refresh_token',refresh_token:st.refresh});
+ Object.assign(st,{token:j.id_token,refresh:j.refresh_token,exp:Date.now()+(+j.expires_in||3600)*1000-60000});localStorage.setItem(FB.LS,JSON.stringify(st));return st}
+function fbVal(v){if(!v)return null;if('stringValue'in v)return v.stringValue;if('integerValue'in v)return +v.integerValue;if('doubleValue'in v)return v.doubleValue;if('booleanValue'in v)return v.booleanValue;if('nullValue'in v)return null;
+ if('mapValue'in v){const o={};for(const[k,x]of Object.entries(v.mapValue.fields||{}))o[k]=fbVal(x);return o}if('arrayValue'in v)return(v.arrayValue.values||[]).map(fbVal);return null}
+async function fbStageSongs(){const st=await fbToken();const out=[];let pt='';
+ do{const j=await fbReq('GET',FB.base+'/users/'+st.uid+'/songs?pageSize=300'+(pt?'&pageToken='+encodeURIComponent(pt):''),null,{Authorization:'Bearer '+st.token});
+  for(const d of j.documents||[]){const o={};for(const[k,x]of Object.entries(d.fields||{}))o[k]=fbVal(x);o.id=d.name.split('/').pop();if(o.stage&&o.text)out.push(o)}
+  pt=j.nextPageToken||''}while(pt);
+ return out.sort((a,b)=>(a.order||0)-(b.order||0))}
+function genLibModal(){
+ const st=fbAuthState();
+ if(!st){
+  openModal('<h2>מאגר מהמחולל</h2><p class="mTxt">התחבר עם המשתמש של Firebase. אותו משתמש שאיתו אתה נכנס למחולל השקופיות.</p>'+
+   '<input class="field" id="fbEm" type="email" placeholder="אימייל" dir="ltr" autocomplete="username"><input class="field" id="fbPw" type="password" placeholder="סיסמה" dir="ltr" autocomplete="current-password" style="margin-top:8px">'+
+   '<p class="hint" id="fbErr"></p><div class="acts"><button class="btn pri" id="fbGo">התחבר</button><button class="btn" id="mCancel">ביטול</button></div>',true);
+  $('#mCancel').onclick=closeModal;
+  $('#fbGo').onclick=async()=>{const e=$('#fbEm').value.trim(),p=$('#fbPw').value;if(!e||!p){$('#fbErr').textContent='מלא אימייל וסיסמה';return}
+   $('#fbErr').textContent='מתחבר…';try{await fbSignIn(e,p);closeModal();genLibModal()}catch(err){$('#fbErr').textContent=/INVALID|PASSWORD|EMAIL/.test(err.message)?'האימייל או הסיסמה שגויים':'ההתחברות נכשלה. בדוק את החיבור לאינטרנט'}};
+  return}
+ openModal('<h2>מאגר מהמחולל</h2><p class="mTxt" id="glMsg">טוען את השירים ששלחת מהמחולל…</p><div id="glList"></div>'+
+  '<div class="acts"><button class="btn pri" id="glGo" disabled>'+ic('check',18)+'הוסף לספרייה</button><button class="btn" id="glOut">התנתק</button><span class="flex1"></span><button class="btn" id="mCancel">סגור</button></div>',true);
+ $('#mCancel').onclick=closeModal;
+ $('#glOut').onclick=()=>{localStorage.removeItem(FB.LS);closeModal();toast('התנתקת מהמאגר')};
+ let list=[];
+ fbStageSongs().then(l=>{list=l;const have={};S.songs.forEach(s=>{if(s.srcId)have[s.srcId]=s});
+  if(!list.length){$('#glMsg').textContent='אין עדיין שירים במאגר. במחולל לחץ "שלח ל-StagePromt" ליד שיר.';return}
+  $('#glMsg').textContent=list.length+' שירים במאגר. סמן מה להוסיף או לעדכן.';
+  $('#glList').innerHTML='<div class="glRows">'+list.map((x,i)=>{const h=have[x.id];const st=!h?'חדש':((x.updatedAt||0)>(h.srcUpd||0)?'עודכן במחולל':'כבר בספרייה');
+   return '<label class="glRow"><input type="checkbox" data-gl="'+i+'"'+(st==='כבר בספרייה'?'':' checked')+'><span class="flex1"><b>'+esc(x.title)+'</b><small>'+esc([x.artist,x.list].filter(Boolean).join(' · '))+'</small></span><span class="glSt">'+st+'</span></label>'}).join('')+'</div>';
+  $('#glGo').disabled=false;
+ }).catch(err=>{if(err.message==='signin'||/40[13]/.test(err.message)){localStorage.removeItem(FB.LS);$('#glMsg').textContent='צריך להתחבר מחדש. סגור ופתח שוב.'}else $('#glMsg').textContent='לא הצלחתי לטעון את המאגר. בדוק את החיבור לאינטרנט.'});
+ $('#glGo').onclick=async()=>{
+  const picks=[...document.querySelectorAll('#glList [data-gl]')].filter(c=>c.checked).map(c=>list[+c.dataset.gl]);if(!picks.length)return toast('לא נבחרו שירים');
+  closeModal();toast('מוסיף '+picks.length+' שירים…');let added=0,upd=0;
+  for(const x of picks){
+   const parts=GENBG.parts(x.text);let s=S.songs.find(q=>q.srcId===x.id);
+   if(!s){const fname=x.list||'מהמחולל';let f=S.folders.find(q=>q.name===fname);if(!f){f={id:uid(),name:fname};S.folders.push(f)}
+    s=newSongObj({title:x.title||'שיר',artist:x.artist||'',folderId:f.id,kind:'text'});S.songs.push(s);added++}else upd++;
+   s.title=x.title||s.title;s.artist=x.artist||'';s.parts=parts;s.srcId=x.id;s.srcUpd=x.updatedAt||Date.now();
+   try{const d=GENBG.render(x.bg);const id='bg-'+uid();await IDB.put(id,d);BG[id]=d;const old=s.bg&&s.bg.type==='img'?s.bg.id:null;s.bg={type:'img',id,dim:(s.bg&&s.bg.dim!=null)?s.bg.dim:.45};if(old&&old!==id)dropBgImg(old)}catch(e){}
+   touch(s);await sleep(0)}
+  save(true);renderLib();toast((added?'נוספו '+added+' שירים':'')+(added&&upd?', ':'')+(upd?'עודכנו '+upd:''));
  };
 }
 
