@@ -1229,9 +1229,10 @@ function summarize(parts){
 }
 const lineTxt=n=>n===1?'שורה אחת':n+' שורות';
 const pagesTxt=s=>(!s.to||s.from===s.to)?'עמוד '+(s.from||1):'עמודים '+s.from+'–'+s.to;
+function newStyle(){const st=clone(S.defStyle||DEF_STYLE);st.stroke=Object.assign({c:'#000000',w:3},st.stroke||{},{on:true});st.shadow=Object.assign({c:'#000000',k:5},st.shadow||{},{on:true});return st}
 function newSongObj(o){
  const mo=S.songs.reduce((m,s)=>Math.max(m,s.order||0),0);
- return Object.assign({id:uid(),title:'שיר חדש',artist:'',folderId:null,kind:'text',parts:[],style:clone(S.defStyle),fav:false,order:mo+1,created:Date.now(),updated:Date.now()},o);
+ return Object.assign({id:uid(),title:'שיר חדש',artist:'',folderId:null,kind:'text',parts:[],style:newStyle(),fav:false,order:mo+1,created:Date.now(),updated:Date.now()},o);
 }
 
 /* ========= auto split ========= */
