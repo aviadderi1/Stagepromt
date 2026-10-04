@@ -1000,6 +1000,7 @@ function load(){
  d.speed=d.speed||1;
  d.defStyle=d.defStyle||clone(DEF_STYLE);
  if(!d.mig2){d.songs.forEach(s=>(s.parts||[]).forEach(p=>{if(p.text)p.text=p.text.split('\n').map(l=>/\[[A-H]/.test(l)?stripChords(l):l).join('\n')}));d.mig2=true}
+ d.songs=d.songs.filter(s=>!s.draft);
  d.songs.forEach(s=>{s.parts=s.parts||[];s.style=Object.assign(clone(DEF_STYLE),s.style||{});s.style.colors=Object.assign(clone(DEF_STYLE.colors),s.style.colors||{})});
  return d;
 }
@@ -1245,7 +1246,7 @@ const isPhone=()=>Math.min(innerWidth,screen.width||innerWidth)<=600;
 function navHid(){return isPhone()?!LIB.navOpen:!!S.ui.navHidden}
 function folderName(id){if(id==='all')return T('כל השירים');if(id==='fav')return T('מועדפים');if(id==='none')return T('ללא תיקייה');const f=S.folders.find(f=>f.id===id);return f?f.name:'כל השירים'}
 function songsIn(fid){
- let a=S.songs;
+ let a=S.songs.filter(s=>!s.draft);
  if(fid==='fav')a=a.filter(s=>s.fav);
  else if(fid==='none')a=a.filter(s=>!s.folderId||!S.folders.some(f=>f.id===s.folderId));
  else if(fid!=='all')a=a.filter(s=>s.folderId===fid);
@@ -1317,7 +1318,7 @@ function moveSong(id,dir){
 }
 function newSong(){
  const f=S.folders.some(x=>x.id===S.ui.folder)?S.ui.folder:null;
- const s=newSongObj({folderId:f});S.songs.push(s);save(true);
+ const s=newSongObj({folderId:f,draft:true});S.songs.push(s);
  openEditor(s.id);setTimeout(()=>{const t=$('#edTitle');t.focus();t.select()},80);
 }
 function cloneSong(s){
@@ -1396,7 +1397,15 @@ $('#q').addEventListener('input',()=>{LIB.reorder=false;renderLib()});
 const ED={id:null,chords:false};
 function curSong(){return S.songs.find(s=>s.id===ED.id)}
 function openEditor(id){ED.id=id;ED.chords=false;$('#edChords').classList.remove('act');$('#edit').classList.remove('chordMode');show('edit');renderEditor();$('#blocks').scrollTop=0}
-function closeEditor(){save(true);show('lib');renderLib()}
+function closeEditor(force){
+ const s=curSong();
+ if(s&&s.draft&&!force){
+  const dirty=(s.title&&s.title!=='שיר חדש')||resolve(s).some(p=>p.text.trim())||s.artist;
+  if(dirty){openModal('<h2>השיר לא נשמר</h2><p class="mTxt">לשמור את השיר לפני היציאה?</p><div class="acts"><button class="btn pri" id="mOk">שמור</button><button class="btn" id="mNo" style="color:#E0675C">אל תשמור</button><button class="btn" id="mCancel">ביטול</button></div>');
+   $('#mOk').onclick=()=>{closeModal();delete s.draft;touch(s);closeEditor(true)};$('#mNo').onclick=()=>{closeModal();closeEditor(true)};$('#mCancel').onclick=closeModal;return}
+ }
+ if(s&&s.draft){S.songs=S.songs.filter(x=>x!==s);ED.id=null}
+ save(true);show('lib');renderLib()}
 function renderEditor(){
  const s=curSong();if(!s)return closeEditor();
  $('#edAv').innerHTML=avatarHtml(s.img,s.artist||s.title,'edAvI');
@@ -1483,9 +1492,9 @@ $('#struct').addEventListener('click',e=>{
 $('#edTitle').addEventListener('input',e=>{const s=curSong();s.title=e.target.value;touch(s)});
 $('#edKey').addEventListener('change',e=>{const s=curSong();s.key=e.target.value||'';touch(s)});
 $('#edArtist').addEventListener('input',e=>{const s=curSong();s.artist=e.target.value;touch(s)});
-$('#edBack').onclick=closeEditor;
+$('#edBack').onclick=()=>closeEditor();
 $('#edAv').onclick=()=>{const s=curSong();menu('תמונת האמן',[{icon:'search',label:'חפש תמונה לפי שם האמן',fn:()=>imgPickModal(s)}].concat(s.img?[{icon:'trash',label:'הסר תמונה',danger:true,fn:()=>{delete s.img;touch(s);renderEditor();renderLib()}}]:[]))};
-$('#edSave').onclick=()=>{save(true);toast('השיר נשמר')};
+$('#edSave').onclick=()=>{const s=curSong();if(s&&s.draft){delete s.draft;touch(s)}save(true);toast('השיר נשמר')};
 $('#edPlay').onclick=()=>{const s=curSong();save(true);if(s.kind!=='pdf'&&!resolve(s).some(p=>p.text.trim()))return toast('הוסף מילים לפני מצב הופעה');startShow([s.id],0)};
 $('#edPaste').onclick=pasteModal;
 function pasteModal(){
@@ -2543,7 +2552,7 @@ function psRowHtml(x,attr,cls,n){return '<button class="psRow'+cls+'" '+attr+'><
 function renderPsList(){
  const L=$('#psList');if(!L)return;const q=stripNik((PSQ.q||'').trim().toLowerCase());
  if(!q){L.innerHTML='<div class="psCap">שירי ההופעה · '+P.list.length+'</div>'+P.list.map((id,j)=>{const x=S.songs.find(s=>s.id===id);return x?psRowHtml(x,'data-go="'+j+'"',(j===P.i?' on':'')+(j<P.i?' done':''),j+1):''}).join('');return}
- const r=S.songs.filter(s=>stripNik((s.title||'')+' '+(s.artist||'')+' '+(s.parts||[]).map(p=>p.text||'').join(' ')).toLowerCase().includes(q)).sort((a,b)=>(a.title||'').localeCompare(b.title||'','he'));
+ const r=S.songs.filter(s=>!s.draft&&stripNik((s.title||'')+' '+(s.artist||'')+' '+(s.parts||[]).map(p=>p.text||'').join(' ')).toLowerCase().includes(q)).sort((a,b)=>(a.title||'').localeCompare(b.title||'','he'));
  L.innerHTML='<div class="psCap">'+(r.length?r.length+' תוצאות מכל השירים':'לא נמצאו שירים')+'</div>'+r.map(x=>{const j=P.list.indexOf(x.id);return psRowHtml(x,'data-song="'+x.id+'"',j===P.i?' on':'',j>=0?j+1:'+')}).join('');
 }
 function toggleSetPanel(v){S.ui.setOpen=v==null?!S.ui.setOpen:v;save();renderSetPanel();fitBar();setTimeout(()=>{if(S.ui.manual)fitPage(P.parts[P.pi]);else{measure();P.cur=-1;onPScroll()}},30)}
@@ -3391,7 +3400,7 @@ function onSugInput(field){
 const PDFX={W:1240,H:1754};
 function expSongs(kind,arg){
  const ok=s=>s.kind!=='pdf'&&resolve(s).some(p=>String(p.text||'').trim());
- if(kind==='all')return S.songs.filter(ok).slice().sort((a,b)=>a.title.localeCompare(b.title,'he'));
+ if(kind==='all')return S.songs.filter(s=>!s.draft&&ok(s)).slice().sort((a,b)=>a.title.localeCompare(b.title,'he'));
  if(kind==='set')return songsIn(arg).filter(ok).slice().sort((x,y)=>(x.order||0)-(y.order||0));
  return S.songs.filter(s=>s.id===arg&&ok(s));
 }
