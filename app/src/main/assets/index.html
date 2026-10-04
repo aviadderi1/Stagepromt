@@ -653,6 +653,12 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
 .glRow{cursor:pointer}.glRow .glAv{width:44px;height:44px;border-radius:50%;object-fit:cover;flex-shrink:0}
 .glRow .glAv.ph{display:inline-flex;align-items:center;justify-content:center;background:#2A2D33;color:var(--mu);font-weight:700;font-size:18px}
 .glRows{max-height:56vh}
+.pfRows{display:flex;flex-direction:column;gap:6px;max-height:52vh;overflow:auto;margin:6px 0}
+.pfRow{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--ln2);border-radius:12px;background:#202227;cursor:pointer}
+.pfRow b{display:flex;align-items:center;gap:6px;font-size:15.5px}.pfRow small{display:block;color:var(--mu);font-size:12.5px;margin-top:2px}
+.pfRow input{width:20px;height:20px;accent-color:#E8A23A}
+.pfRow:has(input:checked){border-color:#E8A23A;background:#2A2419}
+.pfNew{padding:0 4px 4px}.pfNew[hidden]{display:none}
 /* ---- phone ---- */
 @media (max-width:600px){
  .hdr{padding:10px 12px!important;gap:6px!important}
@@ -3847,6 +3853,24 @@ function newChooser(){
   '<div class="acts"><span class="flex1"></span><button class="btn" id="mCancel">ביטול</button></div>');
  $('#mCancel').onclick=closeModal;$('#ncNew').onclick=()=>{closeModal();newSong()};$('#ncLib').onclick=()=>{closeModal();genLibModal(true)};
 }
+function pickFolderFor(n){return new Promise(done=>{
+ const cur=S.folders.some(f=>f.id===S.ui.folder)?S.ui.folder:'';
+ const opt=(v,label,sub,on)=>'<label class="pfRow"><input type="radio" name="pf" value="'+v+'"'+(on?' checked':'')+'><span class="flex1"><b>'+label+'</b>'+(sub?'<small>'+sub+'</small>':'')+'</span></label>';
+ const back=$('#modal').innerHTML;
+ $('#modal').innerHTML='<h2>לאן להוסיף?</h2><p class="mTxt">'+(n===1?'שיר אחד נבחר':n+' שירים נבחרו')+'. בחר תיקייה:</p><div class="pfRows">'+
+  opt('new',ic('plus',16)+' תיקייה חדשה','',!S.folders.length)+'<div class="pfNew" id="pfNewBox"'+(S.folders.length?' hidden':'')+'><input class="field" id="pfName" placeholder="שם התיקייה" dir="auto"></div>'+
+  S.folders.map(f=>opt(f.id,ic('folder',16)+' '+esc(f.name),songsIn(f.id).length+' שירים',f.id===cur)).join('')+
+  opt('cat','לפי הקטגוריה במאגר','כל שיר לתיקייה בשם הקטגוריה שלו',S.folders.length&&!cur)+
+  opt('none','בלי תיקייה','רק ב"כל השירים"',false)+
+  '</div><div class="acts"><button class="btn pri" id="pfOk">'+ic('check',18)+'הוסף</button><span class="flex1"></span><button class="btn" id="pfBack">חזור</button></div>';
+ const sel=()=>(document.querySelector('input[name=pf]:checked')||{}).value;
+ $('#modal').onchange=e=>{if(e.target.name==='pf'){$('#pfNewBox').hidden=sel()!=='new';if(sel()==='new')$('#pfName').focus()}};
+ $('#pfBack').onclick=()=>{$('#modal').onchange=null;$('#modal').innerHTML=back;closeModal();genLibModal(true);done(null)};
+ $('#pfOk').onclick=()=>{const v=sel();if(!v)return toast('בחר תיקייה');let r;
+  if(v==='new'){const nm=$('#pfName').value.trim();if(!nm){$('#pfName').focus();return toast('כתוב שם לתיקייה')}let f=S.folders.find(q=>q.name===nm);if(!f){f={id:uid(),name:nm};S.folders.push(f)}r={mode:'folder',id:f.id}}
+  else if(v==='cat')r={mode:'cat'};else if(v==='none')r={mode:'none'};else r={mode:'folder',id:v};
+  $('#modal').onchange=null;closeModal();if(r.mode==='folder')S.ui.folder=r.id;done(r)};
+})}
 function genLibModal(pick){
  openModal('<h2>מאגר שירים</h2><label class="glSearch">'+ic('search',18)+'<input id="glQ" type="search" dir="auto" enterkeyhint="search" placeholder="חפש שיר או אמן במאגר…"></label><p class="mTxt" id="glMsg">טוען את המאגר…</p><div id="glList"></div>'+
   '<div class="acts"><button class="btn pri" id="glGo" disabled>'+ic('check',18)+'הוסף לספרייה</button><span class="flex1"></span><button class="btn" id="mCancel">סגור</button></div>',true);
@@ -3865,11 +3889,14 @@ function genLibModal(pick){
   $('#glMsg').innerHTML=(/HTTP 403|PERMISSION_DENIED/.test(m)?'המאגר לא זמין כרגע.':'לא הצלחתי לטעון את המאגר. בדוק את החיבור לאינטרנט.')+'<br><small dir="ltr" style="opacity:.6">'+esc(det)+'</small>'});
  $('#glGo').onclick=async()=>{
   const picks=[...document.querySelectorAll('#glList [data-gl]')].filter(c=>c.checked).map(c=>list[+c.dataset.gl]);if(!picks.length)return toast('לא נבחרו שירים');
-  closeModal();toast('מוסיף '+picks.length+' שירים…');let added=0,upd=0;
+  const dest=await pickFolderFor(picks.length);if(!dest)return;
+  toast('מוסיף '+picks.length+' שירים…');let added=0,upd=0;
   for(const x of picks){
    const parts=GENBG.parts(x.text);let s=S.songs.find(q=>q.srcId===x.id);
-   if(!s){const fname=x.list||'מהמאגר';let f=S.folders.find(q=>q.name===fname);if(!f){f={id:uid(),name:fname};S.folders.push(f)}
-    s=newSongObj({title:x.title||'שיר',artist:x.artist||'',folderId:f.id,kind:'text'});S.songs.push(s);added++}else upd++;
+   if(!s){let fid=null;
+    if(dest.mode==='cat'){const fname=x.list||'מהמאגר';let f=S.folders.find(q=>q.name===fname);if(!f){f={id:uid(),name:fname};S.folders.push(f)}fid=f.id}
+    else if(dest.mode==='folder')fid=dest.id;
+    s=newSongObj({title:x.title||'שיר',artist:x.artist||'',folderId:fid,kind:'text'});S.songs.push(s);added++}else{upd++;if(dest.mode==='folder')s.folderId=dest.id}
    s.title=x.title||s.title;s.artist=x.artist||'';s.parts=parts;s.srcId=x.id;s.srcUpd=x.updatedAt||Date.now();
    if(x.artistImg&&x.artistImg!==s.srcImg){try{const d=await shrinkImage((await httpGet(x.artistImg,true,12000)).text);if(d){s.img=d;s.srcImg=x.artistImg}}catch(e){}}
    if(!s.img&&s.artist&&x.artistImg!==''){try{const d=await findArtistImage(s.artist,'');if(d)s.img=d}catch(e){}}
