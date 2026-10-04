@@ -402,16 +402,25 @@ function toFS(v){if(v===null||v===undefined)return{nullValue:null};if(typeof v==
 function fromFS(v){if(!v)return null;if("stringValue"in v)return v.stringValue;if("integerValue"in v)return +v.integerValue;if("doubleValue"in v)return v.doubleValue;if("booleanValue"in v)return v.booleanValue;if("nullValue"in v)return null;
   if("mapValue"in v){const o={};for(const[k,x]of Object.entries(v.mapValue.fields||{}))o[k]=fromFS(x);return o}if("arrayValue"in v)return(v.arrayValue.values||[]).map(fromFS);return null}
 const newId=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
+const OWNER="aviadderi1@gmail.com";
+const pub={
+  isOwner(){const st=FB.mem||fbAuthState();return !!(st&&st.email&&st.email.toLowerCase()===OWNER)},
+  async put(s){if(!this.isOwner())return;const st=await fbToken();const d={title:s.title||"",artist:s.artist||"",list:s.list||"",text:s.text||"",bg:s.bg||{},order:s.order||0,updatedAt:s.updatedAt||Date.now()};
+    await fbReq("PATCH",FB.base+"/library/"+s.id,{fields:toFS(d).mapValue.fields},{Authorization:"Bearer "+st.token})},
+  async del(id){if(!this.isOwner())return;const st=await fbToken();try{await fbReq("DELETE",FB.base+"/library/"+id,null,{Authorization:"Bearer "+st.token})}catch(e){}},
+  async sync(list){if(!this.isOwner())return;for(const s of list){try{if(s.stage&&s.text)await this.put(s)}catch(e){console.warn("pub",e);if(e.status===403){toast("אין הרשאה לכתוב למאגר הציבורי. בדקו את חוקי Firestore.");return}}}}
+};
 const store={list:[],cb:null,
   async col(){const st=await fbToken();return{url:FB.base+"/users/"+st.uid+"/songs",h:{Authorization:"Bearer "+st.token}}},
   async init(cb){this.cb=cb;const{url,h}=await this.col();const out=[];let pt="";
     do{const j=await fbReq("GET",url+"?pageSize=300"+(pt?"&pageToken="+encodeURIComponent(pt):""),null,h);for(const d of j.documents||[]){const o={id:d.name.split("/").pop()};for(const[k,x]of Object.entries(d.fields||{}))o[k]=fromFS(x);out.push(o)}pt=j.nextPageToken||""}while(pt);
-    this.list=out.sort((a,b)=>(a.order||0)-(b.order||0));cb(this.list.slice())},
+    this.list=out.sort((a,b)=>(a.order||0)-(b.order||0));cb(this.list.slice());pub.sync(this.list.slice())},
   emit(){this.list.sort((a,b)=>(a.order||0)-(b.order||0));this.cb(this.list.slice())},
   async add(d){const id=newId();d={...d,stage:false,updatedAt:Date.now()};const{url,h}=await this.col();await fbReq("POST",url+"?documentId="+id,{fields:toFS(d).mapValue.fields},h);this.list.push({id,...d});this.emit()},
   async update(id,p){p={...p,updatedAt:Date.now()};const{url,h}=await this.col();const mask=Object.keys(p).map(k=>"updateMask.fieldPaths="+encodeURIComponent(k)).join("&");
-    await fbReq("PATCH",url+"/"+id+"?"+mask,{fields:toFS(p).mapValue.fields},h);const i=this.list.findIndex(x=>x.id===id);if(i>=0)this.list[i]={...this.list[i],...p};this.emit()},
-  async remove(id){const{url,h}=await this.col();await fbReq("DELETE",url+"/"+id,null,h);this.list=this.list.filter(x=>x.id!==id);this.emit()}
+    await fbReq("PATCH",url+"/"+id+"?"+mask,{fields:toFS(p).mapValue.fields},h);const i=this.list.findIndex(x=>x.id===id);if(i>=0)this.list[i]={...this.list[i],...p};this.emit();
+    const cur=this.list.find(x=>x.id===id);try{if(cur&&cur.stage&&cur.text)await pub.put(cur);else if(cur&&'stage'in p&&!p.stage)await pub.del(id)}catch(e){if(e.status===403)toast("אין הרשאה לכתוב למאגר הציבורי. בדקו את חוקי Firestore.")}},
+  async remove(id){const{url,h}=await this.col();await fbReq("DELETE",url+"/"+id,null,h);this.list=this.list.filter(x=>x.id!==id);this.emit();pub.del(id)}
 };
 function demoSong(){return{title:"שיר לדוגמה",artist:"דוגמה בלבד",list:"דוגמה",order:1,credits:"",
   text:"הגלים חוזרים אל החוף בערב\nוהירח שוכב על המים\nאני הולך לאורך החול\nושומע אותך קוראת לי\n\nפזמון:\nים של לילה, ים שלי\nשומר לי את השקט\nים של לילה, ים שלי\nעד שיעלה האור\n\nהסירות נחות ליד הנמל\nוהרוח מביאה מלח ושיר\nמחר נצא שוב אל הדרך\nאבל הלילה אני כאן",

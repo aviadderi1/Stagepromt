@@ -3627,7 +3627,7 @@ function renderSetCat(){
   M.innerHTML='<h3>'+ic('qr',20)+' שיתוף עם הלהקה</h3>'+
    '<div class="stCard"><div class="flex1"><b>שתף הופעה</b><p>שולח את השירים של "'+esc(folderName(S.ui.folder))+'" ('+(n===1?'שיר אחד':n+' שירים')+') לחבר להקה, בקוד QR או כקובץ.</p></div><button class="btn pri" id="stShare"'+(n?'':' disabled')+'>'+ic('qr',18)+'שתף הופעה</button></div>'+
    '<div class="stCard"><div class="flex1"><b>קבלת סט מחבר להקה</b><p>סורקים את הקוד שמופיע אצל חבר הלהקה, או פותחים קובץ סט ששלח לך.</p></div><button class="btn" id="stRecv">'+ic('qr',18)+'קבל סט</button></div>'+
-   '<div class="stCard"><div class="flex1"><b>מאגר מהמחולל</b><p>שירים ששלחת ממחולל השקופיות, עם הבתים, הפזמונים והרקע.</p></div><button class="btn pri" id="stGen">'+ic('upload',18)+'פתח מאגר</button></div>'+
+   '<div class="stCard"><div class="flex1"><b>מאגר שירים</b><p>שירים מוכנים עם בתים, פזמונים ורקע. בחר ולחץ "הוסף לספרייה".</p></div><button class="btn pri" id="stGen">'+ic('upload',18)+'פתח מאגר</button></div>'+
    '<p class="hint">כדי לשתף הופעה אחרת, בחר קודם את התיקייה שלה בספרייה.</p>';
   $('#stShare').onclick=()=>shareSetModal();
   $('#stRecv').onclick=()=>importSetModal();
@@ -3826,40 +3826,30 @@ window.__fbAuth=async function(url){
   localStorage.setItem(FB.LS,JSON.stringify({uid:q.get('u')||'',email:q.get('e')||'',refresh:r,token:'',exp:0}));
   const st=await fbToken();if(!st.uid){}toast('התחברת'+(st.email?' בתור '+st.email:''));closeModal();genLibModal()}
  catch(e){localStorage.removeItem(FB.LS);toast('ההתחברות עם Google נכשלה')}};
+async function fbPublicSongs(){const out=[];let pt='';
+ do{const j=await fbReq('GET',FB.base+'/library?pageSize=300&key='+FB.key+(pt?'&pageToken='+encodeURIComponent(pt):''),null,null);
+  for(const d of j.documents||[]){const o={};for(const[k,x]of Object.entries(d.fields||{}))o[k]=fbVal(x);o.id=d.name.split('/').pop();if(o.text)out.push(o)}
+  pt=j.nextPageToken||''}while(pt);
+ return out.sort((a,b)=>(a.list||'').localeCompare(b.list||'','he')||(a.order||0)-(b.order||0))}
 function genLibModal(){
- const st=fbAuthState();
- if(!st){
-  openModal('<h2>מאגר מהמחולל</h2><p class="mTxt">התחבר עם אותו משתמש שאיתו אתה נכנס למחולל השקופיות.</p>'+
-   '<button class="btn gBtn" id="fbGoogle"><svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>התחברות עם Google</button><div class="orSep"><span>או עם אימייל וסיסמה</span></div>'+
-   '<input class="field" id="fbEm" type="email" placeholder="אימייל" dir="ltr" autocomplete="username"><input class="field" id="fbPw" type="password" placeholder="סיסמה" dir="ltr" autocomplete="current-password" style="margin-top:8px">'+
-   '<p class="hint" id="fbErr"></p><div class="acts"><button class="btn pri" id="fbGo">התחבר</button><button class="btn" id="mCancel">ביטול</button></div>',true);
-  $('#mCancel').onclick=closeModal;
-  $('#fbGoogle').onclick=()=>{const sch=window.Android&&window.Android.authScheme?window.Android.authScheme():'';const u='https://aviadderi1.github.io/Stagepromt/generator/'+(sch?'?app='+sch:'');
-   if(window.Android&&window.Android.openUrl)window.Android.openUrl(u);else window.open(u,'_blank');$('#fbErr').textContent='התחבר בדפדפן, ואז לחץ "חזור ל-StagePromt".'};
-  $('#fbGo').onclick=async()=>{const e=$('#fbEm').value.trim(),p=$('#fbPw').value;if(!e||!p){$('#fbErr').textContent='מלא אימייל וסיסמה';return}
-   $('#fbErr').textContent='מתחבר…';try{await fbSignIn(e,p);closeModal();genLibModal()}catch(err){$('#fbErr').textContent=/INVALID|PASSWORD|EMAIL/.test(err.message)?'האימייל או הסיסמה שגויים':'ההתחברות נכשלה. בדוק את החיבור לאינטרנט'}};
-  return}
- openModal('<h2>מאגר מהמחולל</h2><p class="mTxt" id="glMsg">טוען את השירים ששלחת מהמחולל…</p><div id="glList"></div>'+
-  '<div class="acts"><button class="btn pri" id="glGo" disabled>'+ic('check',18)+'הוסף לספרייה</button><button class="btn" id="glOut">התנתק</button><span class="flex1"></span><button class="btn" id="mCancel">סגור</button></div>',true);
+ openModal('<h2>מאגר שירים</h2><p class="mTxt" id="glMsg">טוען את המאגר…</p><div id="glList"></div>'+
+  '<div class="acts"><button class="btn pri" id="glGo" disabled>'+ic('check',18)+'הוסף לספרייה</button><span class="flex1"></span><button class="btn" id="mCancel">סגור</button></div>',true);
  $('#mCancel').onclick=closeModal;
- $('#glOut').onclick=()=>{localStorage.removeItem(FB.LS);closeModal();toast('התנתקת מהמאגר')};
  let list=[];
- fbStageSongs().then(l=>{list=l;const have={};S.songs.forEach(s=>{if(s.srcId)have[s.srcId]=s});
-  if(!list.length){$('#glMsg').textContent='אין עדיין שירים במאגר. במחולל לחץ "שלח ל-StagePromt" ליד שיר.';return}
+ fbPublicSongs().then(l=>{list=l;const have={};S.songs.forEach(s=>{if(s.srcId)have[s.srcId]=s});
+  if(!list.length){$('#glMsg').textContent='אין עדיין שירים במאגר.';return}
   $('#glMsg').textContent=list.length+' שירים במאגר. סמן מה להוסיף או לעדכן.';
-  $('#glList').innerHTML='<div class="glRows">'+list.map((x,i)=>{const h=have[x.id];const st=!h?'חדש':((x.updatedAt||0)>(h.srcUpd||0)?'עודכן במחולל':'כבר בספרייה');
+  $('#glList').innerHTML='<div class="glRows">'+list.map((x,i)=>{const h=have[x.id];const st=!h?'חדש':((x.updatedAt||0)>(h.srcUpd||0)?'עודכן במאגר':'כבר בספרייה');
    return '<label class="glRow"><input type="checkbox" data-gl="'+i+'"'+(st==='כבר בספרייה'?'':' checked')+'><span class="flex1"><b>'+esc(x.title)+'</b><small>'+esc([x.artist,x.list].filter(Boolean).join(' · '))+'</small></span><span class="glSt">'+st+'</span></label>'}).join('')+'</div>';
   $('#glGo').disabled=false;
  }).catch(err=>{const m=String(err&&err.message||err);const det=(m.match(/"message"\s*:\s*"([^"]+)"/)||[])[1]||m.slice(0,140);
-  if(m==='signin'||/HTTP 40[01]|INVALID_REFRESH|TOKEN_EXPIRED|USER_NOT_FOUND|UNAUTHENTICATED/.test(m)){localStorage.removeItem(FB.LS);$('#glMsg').innerHTML='ההתחברות פגה. <button class="btn sm" id="glRe">התחבר מחדש</button><br><small dir="ltr" style="opacity:.6">'+esc(det)+'</small>';$('#glRe').onclick=()=>{closeModal();genLibModal()}}
-  else if(/HTTP 403|PERMISSION_DENIED/.test(m)){$('#glMsg').innerHTML='אין הרשאה לקרוא את המאגר.<br><small dir="ltr" style="opacity:.6">'+esc(det)+'</small>'}
-  else $('#glMsg').innerHTML='לא הצלחתי לטעון את המאגר.<br><small dir="ltr" style="opacity:.6">'+esc(det)+'</small>'});
+  $('#glMsg').innerHTML=(/HTTP 403|PERMISSION_DENIED/.test(m)?'המאגר לא זמין כרגע.':'לא הצלחתי לטעון את המאגר. בדוק את החיבור לאינטרנט.')+'<br><small dir="ltr" style="opacity:.6">'+esc(det)+'</small>'});
  $('#glGo').onclick=async()=>{
   const picks=[...document.querySelectorAll('#glList [data-gl]')].filter(c=>c.checked).map(c=>list[+c.dataset.gl]);if(!picks.length)return toast('לא נבחרו שירים');
   closeModal();toast('מוסיף '+picks.length+' שירים…');let added=0,upd=0;
   for(const x of picks){
    const parts=GENBG.parts(x.text);let s=S.songs.find(q=>q.srcId===x.id);
-   if(!s){const fname=x.list||'מהמחולל';let f=S.folders.find(q=>q.name===fname);if(!f){f={id:uid(),name:fname};S.folders.push(f)}
+   if(!s){const fname=x.list||'מהמאגר';let f=S.folders.find(q=>q.name===fname);if(!f){f={id:uid(),name:fname};S.folders.push(f)}
     s=newSongObj({title:x.title||'שיר',artist:x.artist||'',folderId:f.id,kind:'text'});S.songs.push(s);added++}else upd++;
    s.title=x.title||s.title;s.artist=x.artist||'';s.parts=parts;s.srcId=x.id;s.srcUpd=x.updatedAt||Date.now();
    try{const d=GENBG.render(x.bg);const id='bg-'+uid();await IDB.put(id,d);BG[id]=d;const old=s.bg&&s.bg.type==='img'?s.bg.id:null;s.bg={type:'img',id,dim:(s.bg&&s.bg.dim!=null)?s.bg.dim:.45};if(old&&old!==id)dropBgImg(old)}catch(e){}
