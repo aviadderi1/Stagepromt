@@ -675,6 +675,7 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
 .aeTxt{min-height:34vh;font-size:15px;line-height:1.5;resize:vertical}
 .admHead{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.admHead h2{flex:1}
 .admRow{width:100%;text-align:right;background:transparent;color:var(--tx)}
+.dupTag{display:inline-block;font-size:11px;font-weight:700;color:#17120A;background:#E8A23A;border-radius:6px;padding:1px 6px;margin-inline-start:6px;vertical-align:middle}
 /* ---- phone ---- */
 @media (max-width:600px){
  .hdr{padding:10px 12px!important;gap:6px!important}
@@ -3957,6 +3958,9 @@ function songToText(s){const out=[];
   out.push(src.type==='chorus'?'פזמון:\n'+src.text.trim():src.text.trim())});
  return out.join('\n\n')}
 function shrinkData(d,max){return new Promise(res=>{if(!d||!/^data:image/.test(d))return res('');const im=new Image();im.onload=()=>{const k=Math.min(1,max/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.8))};im.onerror=()=>res('');im.src=d})}
+function dupKey(t){return normTxt(String(t||'').replace(/\([^)]*\)/g,' '))}
+function findDup(list,title,artist,skipId){const t=dupKey(title),a=dupKey(artist);if(!t)return null;
+ return list.find(x=>x.id!==skipId&&dupKey(x.title)===t&&(!a||!dupKey(x.artist)||dupKey(x.artist)===a))||null}
 function submitSongModal(id){
  const s=S.songs.find(x=>x.id===id);if(!s)return;const text=songToText(s);if(!text.trim())return toast('אין מילים בשיר');
  openModal('<h2>'+ic('upload',22)+' שליחה למאגר השירים</h2><p class="mTxt">השיר יישלח לבדיקה, ואחרי אישור יופיע במאגר לכל המשתמשים.</p>'+
@@ -3966,7 +3970,9 @@ function submitSongModal(id){
   '<div class="acts"><button class="btn pri" id="sbGo">'+ic('upload',18)+'שלח</button><span class="flex1"></span><button class="btn" id="mCancel">ביטול</button></div>',true);
  $('#mCancel').onclick=closeModal;
  $('#sbGo').onclick=async()=>{const t=$('#sbT').value.trim(),a=$('#sbA').value.trim(),by=$('#sbBy').value.trim();if(!t)return $('#sbT').focus();
-  try{localStorage.setItem('sbBy',by)}catch(e){}$('#sbGo').disabled=true;$('#sbErr').textContent='שולח…';
+  try{localStorage.setItem('sbBy',by)}catch(e){}$('#sbGo').disabled=true;$('#sbErr').textContent='בודק אם השיר כבר במאגר…';
+  try{const d=findDup(await fbPublicSongs(),t,a);if(d){$('#sbGo').disabled=false;$('#sbErr').innerHTML='<b style="color:#E8A23A">השיר "'+esc(d.title)+'"'+(d.artist?' של '+esc(d.artist):'')+' כבר קיים במאגר.</b> אפשר להוסיף אותו לספרייה דרך + ← חפש במאגר.';return}}catch(e){}
+  $('#sbErr').textContent='שולח…';
   try{const img=await shrinkData(s.img,240);
    await fbReq('POST',FB.base+'/submissions?key='+FB.key,{fields:fsFields({title:t.slice(0,190),artist:a.slice(0,190),text:text.slice(0,19000),by:by.slice(0,80),artistImg:img,localId:s.id,at:Date.now()})},null);
    closeModal();toast('השיר נשלח לבדיקה. תודה!')}
@@ -3996,7 +4002,7 @@ function renderAdmin(){const B=$('#admBody');if(!B)return;
  const L=ADM.tab==='pend'?ADM.pend:ADM.lib;
  if(!L.length){B.innerHTML='<p class="mTxt">'+(ADM.tab==='pend'?'אין שירים שממתינים לאישור.':'המאגר ריק.')+'</p>';return}
  B.innerHTML='<div class="glRows">'+L.map((x,i)=>'<button class="glRow admRow" data-ai="'+i+'">'+(x.artistImg?'<img class="glAv" alt="" referrerpolicy="no-referrer" src="'+esc(x.artistImg)+'">':avatarHtml('',x.artist||x.title,'glAv'))+
-  '<span class="flex1"><b>'+esc(x.title||'ללא שם')+'</b><small>'+esc([x.artist,ADM.tab==='pend'?(x.by?'נשלח ע"י '+x.by:'')+(x.at?' · '+agoTxt(x.at):''):x.list].filter(Boolean).join(' · '))+'</small></span>'+ic('edit',18)+'</button>').join('')+'</div>';
+  '<span class="flex1"><b>'+esc(x.title||'ללא שם')+(ADM.tab==='pend'&&findDup(ADM.lib,x.title,x.artist)?' <span class="dupTag">כבר במאגר</span>':'')+'</b><small>'+esc([x.artist,ADM.tab==='pend'?(x.by?'נשלח ע"י '+x.by:'')+(x.at?' · '+agoTxt(x.at):''):x.list].filter(Boolean).join(' · '))+'</small></span>'+ic('edit',18)+'</button>').join('')+'</div>';
  B.onclick=e=>{const r=e.target.closest('[data-ai]');if(r)adminEdit(L[+r.dataset.ai])};
 }
 function adminEdit(x){const pend=ADM.tab==='pend';const B=$('#admBody');
@@ -4006,6 +4012,8 @@ function adminEdit(x){const pend=ADM.tab==='pend';const B=$('#admBody');
   '<div class="acts"><button class="btn pri" id="aeOk">'+ic('check',18)+(pend?'אשר ופרסם':'שמור')+'</button><button class="btn" id="aeDel" style="color:#E0675C">'+ic('trash',18)+(pend?'דחה':'מחק מהמאגר')+'</button><span class="flex1"></span><button class="btn" id="aeBack">חזור</button></div>';
  $('#aeBack').onclick=renderAdmin;
  $('#aeOk').onclick=async()=>{const t=$('#aeT').value.trim();if(!t)return $('#aeT').focus();$('#aeErr').textContent='שומר…';
+  const d=findDup(ADM.lib,t,$('#aeA').value.trim(),pend?'u'+x.id:x.id);
+  if(d){$('#aeErr').innerHTML='<b style="color:#E8A23A">שיר בשם הזה כבר קיים במאגר: "'+esc(d.title)+'"'+(d.artist?' של '+esc(d.artist):'')+'.</b> '+(pend?'דחה את השיר או שנה את השם.':'שנה את השם.');return}
   const img=$('#aeI').value.trim()||(/^data:/.test(x.artistImg||'')?x.artistImg:'');
   const sc=GENBG.scenes,tm=GENBG.times;const bg=x.bg&&x.bg.scene?x.bg:{scene:sc[Math.floor(Math.random()*sc.length)],time:tm[Math.floor(Math.random()*tm.length)],seed:1+Math.floor(Math.random()*999)};
   const doc={title:t,artist:$('#aeA').value.trim(),list:$('#aeL').value.trim(),text:$('#aeX').value,artistImg:img,bg,order:x.order||0,updatedAt:Date.now(),by:x.by||''};
