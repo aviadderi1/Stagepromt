@@ -3901,7 +3901,7 @@ async function fbPublicSongs(){const out=[];let pt='';
  do{const j=await fbReq('GET',FB.base+'/library?pageSize=300&key='+FB.key+(pt?'&pageToken='+encodeURIComponent(pt):''),null,null);
   for(const d of j.documents||[]){const o={};for(const[k,x]of Object.entries(d.fields||{}))o[k]=fbVal(x);o.id=d.name.split('/').pop();if(o.text)out.push(o)}
   pt=j.nextPageToken||''}while(pt);
- return out.sort((a,b)=>(a.list||'').localeCompare(b.list||'','he')||(a.order||0)-(b.order||0))}
+ return out.sort((a,b)=>(a.title||'').trim().localeCompare((b.title||'').trim(),'he',{sensitivity:'base',numeric:true})||(a.artist||'').localeCompare(b.artist||'','he'))}
 function newChooser(){
  openModal('<h2>הוספת שיר</h2><div class="ncGrid"><button class="ncOpt" id="ncNew"><span class="ncIc" style="background:#E8A23A;color:#17120A">'+ic('plus',26)+'</span><b>שיר חדש</b><small>כתוב או הדבק מילים</small></button>'+
   '<button class="ncOpt" id="ncLib"><span class="ncIc" style="background:#7C5CD6;color:#fff">'+ic('search',24)+'</span><b>חפש במאגר</b><small>שירים מוכנים עם רקע ותמונה</small></button>'+
