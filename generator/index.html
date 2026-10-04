@@ -115,7 +115,7 @@ textarea{line-height:1.6;resize:vertical}
 <div class="wrap" dir="rtl">
   <header>
     <h1>מחולל השקופיות</h1>
-    <p class="hint" style="margin:2px 0 0;font-variant-numeric:tabular-nums">גרסה 2026-10-04.5</p>
+    <p class="hint" style="margin:2px 0 0;font-variant-numeric:tabular-nums">גרסה 2026-10-04.6</p>
     <p class="sub">כותבים מה רוצים, מקבלים רשימת שירים, מדביקים את המילים מכל אתר, וכל שיר הופך לשקופית עם רקע שנבחר לפי המילים.</p>
   </header>
 
@@ -160,6 +160,7 @@ textarea{line-height:1.6;resize:vertical}
       <div class="res-list" id="reslist"></div>
       <div class="toolbar">
         <button class="primary" id="resadd">הוסף למאגר</button>
+        <button id="resmore" hidden>מצא עוד שירים</button>
         <button class="ghost" id="resclose">סגור</button>
       </div>
     </div>
@@ -579,7 +580,7 @@ $("#spbtn").onclick=async()=>{const list=visibleSongs().filter(s=>s.text&&!s.sta
 
 /* ---------- list generation ---------- */
 let RES=[],RESLIST="";
-let RESSRC="";function showResults(items,listName,src){RES=items;RESLIST=listName;RESSRC=src||"";const have=new Set(SONGS.map(s=>norm(s.title)));
+let RESSRC="";function showResults(items,listName,src){$("#resmore").hidden=!!src||!GEMKEY;RES=items;RESLIST=listName;RESSRC=src||"";const have=new Set(SONGS.map(s=>norm(s.title)));
   $("#restitle").textContent=`${items.length} שירים${src?" · "+src:""}`;
   $("#reslist").innerHTML=items.map((it,i)=>{const dup=have.has(norm(it.title));return`<label class="res-item${dup?" dup":""}" for="r${i}"><input type="checkbox" id="r${i}" ${dup?"":"checked"}><span>${esc(it.title)}<small>${esc(it.artist||"")}${it.era?" · "+esc(it.era):""}${dup?" · כבר במאגר":""}</small></span></label>`}).join("");
   $("#results").hidden=false}
@@ -587,7 +588,7 @@ $("#genbtn").onclick=async()=>{const q=$("#genq").value.trim();const er=$("#gene
   const btn=$("#genbtn");btn.disabled=true;btn.textContent="מכין רשימה…";
   try{
     const key=await gemKey();
-    if(key){const items=await gemList(q,key);if(!items.length)throw new Error("empty");showResults(items,q,"")}
+    if(key){const items=await gemList(q,key);if(!items.length)throw new Error("empty");showResults(dedupe(items),q,"");$("#resmore").hidden=false}
     else if(/ארץ ישראל|ארץ-ישראל|א"י|ישראלי|עברי/.test(q)){showResults(BUILTIN,q,"מהרשימה המובנית");er.textContent="כדי לחפש כל נושא, הוסיפו מפתח Gemini (למטה)."}
     else{er.textContent="כדי לחפש רשימה לפי כל נושא, הוסיפו מפתח Gemini למטה. אפשר גם להדביק רשימה.";$("#gemd").open=true}
   }catch(e){
@@ -610,9 +611,10 @@ async function gemModels(key){if(GEMMODELS)return GEMMODELS;let names=[];
   GEMMODELS=[...new Set([...names.slice(0,4),"gemini-flash-latest","gemini-2.5-flash"])];return GEMMODELS}
 function parseSongs(t){t=String(t||"").replace(/^```(?:json)?\s*|\s*```$/g,"").trim();let j;try{j=JSON.parse(t)}catch(e){const m=t.match(/[\[{][\s\S]*[\]}]/);j=m?JSON.parse(m[0]):{}}
   const arr=Array.isArray(j)?j:(j.songs||[]);return arr.filter(x=>x&&x.title).map(x=>({title:String(x.title).slice(0,80),artist:String(x.artist||"").slice(0,80),era:String(x.era||"").slice(0,20)}))}
-async function gemList(q,key){
-  const prompt=`אתה עוזר לבנות רשימת שירים עבריים לערב שירה וליווי מוזיקלי.\nהבקשה: "${q}"\nהחזר JSON בלבד במבנה {"songs":[{"title":"שם השיר","artist":"מבצע","era":"עשור"}]}.\nעד 40 שירים אמיתיים ומוכרים שמתאימים לבקשה. רק שם שיר, מבצע ועשור. אל תכלול מילים של שירים או ציטוטים מהם בשום שדה.`;
-  const body={contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{responseMimeType:"application/json",temperature:.4}};
+async function gemList(q,key,exclude){exclude=exclude||[];
+  const ex=exclude.length?`\nאל תחזור על השירים האלה, שכבר נמצאו: ${exclude.slice(-150).join(" | ")}`:"";
+  const prompt=`אתה עוזר לבנות רשימת שירים עבריים לערב שירה וליווי מוזיקלי.\nהבקשה: "${q}"\nהחזר JSON בלבד במבנה {"songs":[{"title":"שם השיר","artist":"מבצע","era":"עשור"}]}.\nהחזר כמה שיותר שירים אמיתיים ומוכרים שמתאימים לבקשה, בין 60 ל-100, מתקופות ומבצעים מגוונים. רק שם שיר, מבצע ועשור. אל תמציא שירים, ואל תכלול מילים של שירים או ציטוטים מהם בשום שדה.${ex}`;
+  const body={contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{responseMimeType:"application/json",temperature:.5,maxOutputTokens:16384}};
   let last=null;
   for(const m of await gemModels(key)){
     try{const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${encodeURIComponent(key)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
@@ -628,6 +630,16 @@ $("#bulkbtn").onclick=()=>{const lines=$("#bulk").value.split("\n").map(l=>l.rep
   showResults(items,$("#bulkname").value.trim()||"רשימה מודבקת","")};
 $("#resall").onclick=()=>$("#reslist").querySelectorAll("input").forEach(i=>i.checked=true);
 $("#resnone").onclick=()=>$("#reslist").querySelectorAll("input").forEach(i=>i.checked=false);
+function dedupe(arr){const seen=new Set();return arr.filter(x=>{const k=norm(x.title)+"|"+norm(x.artist);if(seen.has(k))return false;seen.add(k);return true})}
+$("#resmore").onclick=async()=>{const b=$("#resmore");const er=$("#generr");er.textContent="";b.disabled=true;b.textContent="מחפש עוד…";
+  const checked=new Set(RES.map((x,i)=>$("#r"+i)?.checked?i:-1).filter(i=>i>=0));
+  try{const key=await gemKey();const more=await gemList(RESLIST,key,RES.map(x=>x.title));const before=RES.length;
+    const all=dedupe(RES.concat(more));const added=all.length-before;showResults(all,RESLIST,RESSRC);
+    RES.forEach((x,i)=>{const c=$("#r"+i);if(c&&i<before&&!c.closest(".dup"))c.checked=checked.has(i)});
+    toast(added?`נמצאו עוד ${added} שירים`:"לא נמצאו שירים נוספים");if(!added)b.hidden=true;
+    const first=$("#r"+before);if(first)first.closest(".res-item").scrollIntoView({block:"nearest",behavior:"smooth"})}
+  catch(e){er.textContent=e.status===429?"עברתם את מכסת Gemini לרגע. נסו שוב בעוד דקה.":"החיפוש הנוסף נכשל: "+String(e.message||e).slice(0,140)}
+  finally{b.disabled=false;b.textContent="מצא עוד שירים"}};
 $("#resclose").onclick=()=>{$("#results").hidden=true};
 $("#resadd").onclick=async()=>{const picks=RES.filter((_,i)=>$("#r"+i)?.checked);const have=new Set(SONGS.map(s=>norm(s.title)));const todo=picks.filter(p=>!have.has(norm(p.title)));
   if(!todo.length){toast("לא נבחרו שירים חדשים");return}const btn=$("#resadd");btn.disabled=true;let o=Date.now();
