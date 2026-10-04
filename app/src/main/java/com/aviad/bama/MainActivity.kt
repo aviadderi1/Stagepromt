@@ -48,6 +48,23 @@ class MainActivity : ComponentActivity() {
     private var pageReady = false
     private var pendingUri: Uri? = null
     private var pendingJs: String? = null
+    private var pendingInstall: java.io.File? = null
+
+    private fun startInstall(f: java.io.File) {
+        try {
+            val uri = androidx.core.content.FileProvider.getUriForFile(this, "$packageName.files", f)
+            val i = Intent(Intent.ACTION_VIEW).setDataAndType(uri, "application/vnd.android.package-archive")
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(i)
+            js("window.__updProg&&window.__updProg(101)")
+        } catch (e: Exception) { js("window.__updErr&&window.__updErr(" + JSONObject.quote(e.message ?: "install") + ")") }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val f = pendingInstall
+        if (f != null && (Build.VERSION.SDK_INT < 26 || packageManager.canRequestPackageInstalls())) { pendingInstall = null; startInstall(f) }
+    }
     private var fileCallback: ValueCallback<Array<Uri>>? = null
 
     private val cast by lazy { CastServer(applicationContext) }
@@ -527,6 +544,57 @@ class MainActivity : ComponentActivity() {
                 val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
                 imm.showSoftInput(web, InputMethodManager.SHOW_IMPLICIT)
                 web.postDelayed({ imm.showSoftInput(web, InputMethodManager.SHOW_IMPLICIT) }, 150)
+            }
+        }
+
+        @JavascriptInterface
+        fun appInfo(): String {
+            val code = try {
+                val pi = packageManager.getPackageInfo(packageName, 0)
+                if (Build.VERSION.SDK_INT >= 28) pi.longVersionCode.toInt() else @Suppress("DEPRECATION") pi.versionCode
+            } catch (_: Exception) { 0 }
+            return JSONObject().put("code", code).put("pkg", packageName).put("phone", packageName.endsWith(".mobile")).toString()
+        }
+
+        @JavascriptInterface
+        fun installUpdate(url: String) {
+            thread {
+                try {
+                    val dir = java.io.File(cacheDir, "updates"); dir.mkdirs()
+                    dir.listFiles()?.forEach { it.delete() }
+                    val out = java.io.File(dir, "update.apk")
+                    var u = URL(url); var conn: HttpURLConnection
+                    var hops = 0
+                    while (true) {
+                        conn = u.openConnection() as HttpURLConnection
+                        conn.instanceFollowRedirects = false
+                        conn.connectTimeout = 20000; conn.readTimeout = 60000
+                        conn.setRequestProperty("User-Agent", "StagePromt/1.0 (Android)")
+                        val c = conn.responseCode
+                        if (c in 300..399 && hops < 6) { u = URL(u, conn.getHeaderField("Location")); conn.disconnect(); hops++; continue }
+                        if (c >= 400) throw IllegalStateException("HTTP $c")
+                        break
+                    }
+                    val total = conn.contentLengthLong
+                    var done = 0L; var last = -1
+                    conn.inputStream.use { inp -> out.outputStream().use { o ->
+                        val buf = ByteArray(65536)
+                        while (true) { val n = inp.read(buf); if (n < 0) break; o.write(buf, 0, n); done += n
+                            val pct = if (total > 0) (done * 100 / total).toInt() else -1
+                            if (pct != last) { last = pct; runOnUiThread { js("window.__updProg&&window.__updProg($pct)") } } }
+                    } }
+                    conn.disconnect()
+                    runOnUiThread {
+                        if (Build.VERSION.SDK_INT >= 26 && !packageManager.canRequestPackageInstalls()) {
+                            js("window.__updProg&&window.__updProg(-2)")
+                            try { startActivity(Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName"))) } catch (_: Exception) { }
+                            pendingInstall = out
+                        } else startInstall(out)
+                    }
+                } catch (e: Exception) {
+                    val msg = e.message ?: "error"
+                    runOnUiThread { js("window.__updErr&&window.__updErr(" + JSONObject.quote(msg) + ")") }
+                }
             }
         }
 

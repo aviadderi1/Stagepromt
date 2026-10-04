@@ -660,6 +660,9 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
 .pfRow:has(input:checked){border-color:#E8A23A;background:#2A2419}
 .pfNew{padding:0 4px 4px}.pfNew[hidden]{display:none}
 #lib>.hdr #libWeb,#lib>.hdr #libImport{display:none!important}
+.updBar{position:fixed;left:50%;transform:translateX(-50%);top:calc(12px + env(safe-area-inset-top,0px));z-index:45;display:flex;align-items:center;gap:10px;padding:12px 14px 12px 18px;border:0;border-radius:14px;background:#E8A23A;color:#17120A;font-size:15px;box-shadow:0 10px 40px rgba(0,0,0,.5);max-width:calc(100vw - 24px)}
+.updBar b{font-weight:800}.updX{display:inline-flex;margin-inline-start:6px;opacity:.7;padding:4px;font-style:normal}
+.updProg{height:10px;border-radius:6px;background:#2A2D33;overflow:hidden;margin:6px 0 4px}.updProg i{display:block;height:100%;width:0;background:#E8A23A;transition:width .2s}
 /* ---- phone ---- */
 @media (max-width:600px){
  .hdr{padding:10px 12px!important;gap:6px!important}
@@ -746,15 +749,16 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
  .modal-wrap{padding:10px}
  .modal.stModal{height:92vh}
  .stWrap{flex-direction:column}
- .stNav{order:-1;width:auto;display:grid;grid-template-columns:repeat(6,1fr);align-items:center;padding:10px;border-right:0;border-bottom:1px solid #26292F;gap:6px}
- .stNav h2{grid-column:span 3;margin:0 2px;font-size:18px}
- .stNav .langRow{grid-column:span 2;justify-self:center;margin:0}
+ .stNav{order:-1;width:auto;display:grid;grid-template-columns:repeat(12,1fr);align-items:center;padding:10px;border-right:0;border-bottom:1px solid #26292F;gap:6px}
+ .stNav h2{grid-column:span 6;margin:0 2px;font-size:18px}
+ .stNav .langRow{grid-column:span 4;justify-self:center;margin:0}
  .stNav .flex1{display:none}
- .stNav .stClose{grid-column:span 1;order:0;align-self:center;padding:0 6px;height:34px}
- .stNav .stCat{grid-column:span 2;order:5}
- .stCat{height:38px;padding:0 6px;gap:5px;font-size:12.5px;background:#1E2024;justify-content:center;white-space:nowrap;overflow:hidden;min-width:0}
+ .stNav .stClose{grid-column:span 2;order:0;align-self:center;padding:0 6px;height:34px}
+ .stNav .stCat{grid-column:span 3;order:5}
+ .stCat{height:38px;padding:0 4px;gap:5px;font-size:11.5px;background:#1E2024;justify-content:center;white-space:nowrap;overflow:hidden;min-width:0}
  .stCat svg{display:none}
- .stCat span{overflow:hidden;text-overflow:ellipsis}
+ .stCat span{overflow:hidden;white-space:normal;line-height:1.1;text-align:center}
+ .stCat{height:42px!important}
  .stMain{padding:16px}
  .mhead{justify-content:space-between}
  .mhead>.flex1{flex-basis:100%;order:-1;text-align:center}
@@ -956,6 +960,7 @@ const ICON={
  qr:SV+'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 17h4v4h-4"/></svg>',
  chord:SV+'<path d="M6 3v18"/><path d="M10 3v18"/><path d="M14 3v18"/><path d="M18 3v18"/><path d="M4 8h16"/><path d="M4 13h16"/><circle cx="10" cy="10.5" r="1.6" fill="currentColor"/><circle cx="14" cy="15.5" r="1.6" fill="currentColor"/></svg>',
  setlist:SV+'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path d="M12 9h6"/><path d="M12 13h6"/><path d="M12 17h4"/></svg>',
+ dl:SV+'<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>',
  undo:SV+'<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>',
  pedal:SV+'<path d="M5 20h14"/><path d="M7 20l3-12 8-3 1 3-7 4-1 8"/><circle cx="17.5" cy="4.5" r="1"/></svg>',
  gauge:SV+'<path d="M12 14l4-4"/><path d="M3.5 17a9 9 0 1 1 17 0"/></svg>',
@@ -3624,7 +3629,7 @@ async function restoreBackup(){
  };
 }
 /* ---- settings ---- */
-const SET_CATS=[['share','qr','שיתוף עם הלהקה'],['drive','','Google Drive'],['pedal','pedal','Bluetooth pedal']];
+const SET_CATS=[['share','qr','שיתוף עם הלהקה'],['drive','','Google Drive'],['pedal','pedal','Bluetooth pedal'],['update','dl','עדכון']];
 let SETCAT='share';
 function settingsModal(cat){
  if(cat)SETCAT=cat;PEDAL.learn=null;PEDAL.last='';
@@ -3649,6 +3654,8 @@ function renderSetCat(){
    '<p class="hint">כדי לשתף הופעה אחרת, בחר קודם את התיקייה שלה בספרייה.</p>';
   $('#stShare').onclick=()=>shareSetModal();
   $('#stRecv').onclick=()=>importSetModal();
+ }else if(SETCAT==='update'){
+  renderUpdCat();
  }else if(SETCAT==='drive'){
   const B=S.backup||{};
   M.innerHTML='<h3 class="gdH">'+gdriveIcon(22)+'<span dir="ltr">Google Drive</span></h3><p class="mTxt">כל השירים, התיקיות וקובצי ה-PDF נשמרים בקובץ אחד. בחלון שייפתח בחר <b>Google Drive</b> ותיקייה. גם אם תסיר את האפליקציה או תחליף טאבלט, תוכל לשחזר מהקובץ.</p>'+
@@ -3660,6 +3667,40 @@ function renderSetCat(){
   const a=$('#bkAuto');if(a)a.onchange=()=>{S.backup=Object.assign(S.backup||{},{auto:a.checked});save(true);toast(a.checked?'גיבוי אוטומטי מופעל':'גיבוי אוטומטי כבוי')};
  }
 }
+
+/* ---- app updates (GitHub releases) ---- */
+const UPD={info:null,latest:0,url:'',busy:false,pct:0,err:'',checked:0,state:''};
+function updInfo(){if(UPD.info)return UPD.info;try{UPD.info=JSON.parse(window.Android.appInfo())}catch(e){UPD.info={code:0,phone:isPhone()}}return UPD.info}
+async function updCheck(){
+ const r=await httpGet('https://api.github.com/repos/aviadderi1/Stagepromt/releases/latest',false,15000);const j=JSON.parse(r.text);
+ const n=+(String(j.tag_name||'').match(/\d+/)||[0])[0];const want=updInfo().phone?'StagePromt-Mobile.apk':'StagePromt.apk';
+ const a=(j.assets||[]).find(x=>x.name===want);UPD.latest=n;UPD.url=a?a.browser_download_url:'';UPD.checked=Date.now();
+ return n>(updInfo().code||0)&&!!UPD.url}
+function updBanner(show){let b=$('#updBar');if(!show){if(b)b.remove();return}
+ if(!b){b=document.createElement('button');b.id='updBar';b.className='updBar';document.body.appendChild(b);b.onclick=()=>{b.remove();updStart()}}
+ b.innerHTML=ic('dl',20)+'<span><b>קיים עדכון חדש</b> · לחץ כדי לעדכן</span><i class="updX" aria-label="סגור">'+ic('close',16)+'</i>';
+ b.querySelector('.updX').onclick=e=>{e.stopPropagation();sessionStorage.setItem('updSkip',UPD.latest);b.remove()}}
+function updStart(){if(!UPD.url)return;UPD.busy=true;UPD.pct=0;UPD.err='';UPD.state='dl';
+ openModal('<h2>'+ic('dl',22)+' עדכון האפליקציה</h2><p class="mTxt" id="updTxt">מוריד את גרסה '+UPD.latest+'…</p><div class="updProg"><i id="updBarIn"></i></div><div class="acts"><span class="flex1"></span><button class="btn" id="mCancel">סגור</button></div>');
+ $('#mCancel').onclick=closeModal;
+ try{window.Android.installUpdate(UPD.url)}catch(e){window.__updErr('nonative')}}
+window.__updProg=p=>{UPD.pct=p;const t=$('#updTxt'),bi=$('#updBarIn');
+ if(p===101){UPD.busy=false;if(t)t.textContent='פותח את ההתקנה… אשר "עדכן" בחלון של Android.';if(bi)bi.style.width='100%';return}
+ if(p===-2){if(t)t.textContent='צריך לאשר פעם אחת התקנה מהאפליקציה: הפעל "אפשר מהמקור הזה" וחזור לכאן.';return}
+ if(bi&&p>=0)bi.style.width=p+'%';if(t&&p>=0)t.textContent='מוריד את גרסה '+UPD.latest+'… '+p+'%'};
+window.__updErr=m=>{UPD.busy=false;const t=$('#updTxt');if(t)t.innerHTML='ההורדה נכשלה. בדוק את החיבור לאינטרנט ונסה שוב.<br><small dir="ltr" style="opacity:.6">'+esc(m)+'</small>';else toast('העדכון נכשל')};
+function renderUpdCat(){const M=$('#stMain');if(!M)return;const inf=updInfo();
+ const has=UPD.latest>(inf.code||0)&&UPD.url;
+ M.innerHTML='<h3>'+ic('dl',20)+' עדכון</h3>'+
+  '<div class="stCard"><div class="flex1"><b>הגרסה שלך: '+(inf.code||'—')+'</b><p id="updSt">'+(UPD.checked?(has?'גרסה '+UPD.latest+' זמינה להורדה.':'יש לך את הגרסה האחרונה.'):'בודק אם יש עדכון…')+'</p></div>'+
+  '<button class="btn'+(has?' pri':'')+'" id="updGo">'+ic('dl',18)+(has?'עדכן עכשיו':'בדוק עדכון')+'</button></div>'+
+  '<p class="hint">האפליקציה בודקת בכל פתיחה אם יש גרסה חדשה ומציגה הודעה. ההתקנה מחליפה את הגרסה הקיימת וכל השירים נשמרים.</p>';
+ $('#updGo').onclick=async()=>{if(UPD.latest>(inf.code||0)&&UPD.url){closeModal();return updStart()}
+  $('#updSt').textContent='בודק…';try{await updCheck()}catch(e){$('#updSt').textContent='לא הצלחתי לבדוק. בדוק את החיבור לאינטרנט.';return}renderUpdCat()};
+ if(!UPD.checked)updCheck().then(()=>{if(SETCAT==='update')renderUpdCat()}).catch(()=>{const e=$('#updSt');if(e)e.textContent='לא הצלחתי לבדוק. בדוק את החיבור לאינטרנט.'});
+}
+setTimeout(()=>{if(!(window.Android&&window.Android.installUpdate))return;
+ updCheck().then(has=>{if(has&&sessionStorage.getItem('updSkip')!=String(UPD.latest))updBanner(true)}).catch(()=>{})},4000);
 
 /* ---- share a set ---- */
 async function buildSet(){
