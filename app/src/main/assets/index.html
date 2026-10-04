@@ -638,6 +638,7 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
 #lib>.hdr #libWeb .hideS,#lib>.hdr #libImport .hideS{display:none}
 #lib>.hdr #libNew{width:56px;height:56px;min-width:56px}
 #lib>.hdr .btn.newRound{padding:0!important;border-radius:50%;justify-content:center;flex:none}
+#libFold,.mhTog{display:none}
 /* ---- phone ---- */
 @media (max-width:600px){
  .hdr{padding:10px 12px!important;gap:6px!important}
@@ -651,14 +652,32 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
  #lib>.hdr{display:grid!important;grid-template-columns:repeat(5,1fr);align-items:center;row-gap:10px!important}
  #lib>.hdr .brand{display:contents}
  #lib>.hdr .logoImg{grid-row:1;grid-column:1/4;justify-self:start}
- #lib>.hdr .expBtn{grid-row:1;grid-column:4/6;justify-self:end}
- #lib>.hdr #libWeb{grid-row:2;grid-column:1}
- #lib>.hdr #libImport{grid-row:2;grid-column:2}
+ #lib>.hdr .expBtn{grid-row:2;grid-column:5;justify-self:center}
+ #lib>.hdr #libFold{grid-row:2;grid-column:1;display:inline-flex;justify-self:center;width:50px;height:50px;min-width:50px;padding:0!important;border-radius:50%;justify-content:center;border:0;background:#4A4E57;color:#fff}
+ #lib>.hdr #libWeb{grid-row:2;grid-column:2}
+ #lib>.hdr #libImport{grid-row:2;grid-column:4}
+ #navShow{display:none!important}
+ .mhead{gap:8px;row-gap:8px;justify-content:flex-start!important}
+ .mhead>.flex1{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:nowrap}
+ .mhead h1{font-size:21px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+ .mhead .sub{margin:0;font-size:13px;white-space:nowrap}
+ .mhTog{display:inline-flex;width:34px;height:34px;flex-shrink:0;transition:transform .2s}
+ .mhead.open .mhTog{transform:rotate(180deg)}
+ .mhead:not(.open) .seg,.mhead:not(.open) #reorderBtn,.mhead:not(.open) #selBtn:not(.pri){display:none}
+ .mhead .seg{order:1}
+ .mhead #reorderBtn{order:3}
+ .mhead #selBtn{order:2}
+ .mhead .btn{height:36px;padding:0 10px;font-size:14px}
+ .mhead .seg button{padding:0 9px;font-size:13.5px;height:34px}
+ .mhead #reorderBtn{font-size:0;gap:0;width:36px;padding:0;justify-content:center}
+ .mhead #selBtn{padding:0 8px;gap:4px;font-size:13.5px}
+ .main{gap:10px}
  #lib>.hdr #libNew{grid-row:2;grid-column:3}
- #lib>.hdr #gearBtn{grid-row:2;grid-column:5;justify-self:end}
+ #lib>.hdr #gearBtn{grid-row:1;grid-column:4/6;justify-self:end}
  #lib>.hdr .search{grid-row:3;grid-column:1/6;width:100%}
- #lib>.hdr #libWeb,#lib>.hdr #libImport,#lib>.hdr #libNew{justify-self:center;width:50px;height:50px;min-width:50px;padding:0!important;border-radius:50%;justify-content:center;border:0;color:#fff}
+ #lib>.hdr #libWeb,#lib>.hdr #libImport,#lib>.hdr #libNew,#lib>.hdr .expBtn{justify-self:center;width:50px;height:50px;min-width:50px;padding:0!important;border-radius:50%;justify-content:center;border:0;color:#fff}
  #lib>.hdr #libWeb{background:#2E9E62}
+ #lib>.hdr .expBtn{color:#17120A;background:#F4F1EA}
  #lib>.hdr #libImport{background:#2F7BE0}
  #lib>.hdr #libWeb .hideS,#lib>.hdr #libImport .hideS{display:none}
  #lib>.hdr #libNew{width:58px;height:58px;min-width:58px;color:#17120A}
@@ -741,6 +760,7 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
     <div class="brand"><img class="logoImg" src="logo.svg" alt="StagePromt"><button class="ib gearBtn" id="gearBtn" aria-label="הגדרות"><i data-ic="gear" data-s="22"></i></button><button class="expBtn" id="expBtn" aria-label="ייצוא ל-PDF"><i data-ic="upload" data-s="17"></i>Export</button></div>
     <div class="flex1"></div>
     <label class="search"><i data-ic="search" data-s="18"></i><input id="q" type="search" placeholder="חיפוש שיר, אמן או שורה…" aria-label="חיפוש"></label>
+    <button class="btn" id="libFold" aria-label="תיקיות"><i data-ic="folder" data-s="20"></i></button>
     <button class="btn" id="libWeb"><i data-ic="globe" data-s="18"></i><span class="hideS">חיפוש ברשת</span></button>
     <button class="btn" id="libImport"><i data-ic="upload" data-s="18"></i><span class="hideS">ייבוא PDF</span></button>
     <button class="btn pri newRound" id="libNew" aria-label="שיר חדש" title="שיר חדש"><i data-ic="plus" data-s="26"></i></button>
@@ -1253,7 +1273,7 @@ function renderLib(){
  const list=visibleSongs(),all=songsIn(S.ui.folder);
  const reorder=S.ui.sort==='set'&&LIB.reorder;
  const sb=(k,l)=>'<button data-sort="'+k+'" class="'+(S.ui.sort===k?'on':'')+'">'+l+'</button>';
- $('#mhead').innerHTML=(navHid()?'<button class="btn" id="navShow">'+ic('folder',18)+'תיקיות</button>':'')+'<div class="flex1"><h1>'+esc(folderName(S.ui.folder))+'</h1><div class="sub">'+(all.length===1?'שיר אחד':all.length+' שירים')+'</div></div>'+
+ $('#mhead').innerHTML=(navHid()?'<button class="btn" id="navShow">'+ic('folder',18)+'תיקיות</button>':'')+'<div class="flex1"><h1>'+esc(folderName(S.ui.folder))+'</h1><div class="sub">'+(all.length===1?'שיר אחד':all.length+' שירים')+'</div><button class="ib mhTog" id="mhTog" aria-label="מיון ובחירה" aria-expanded="'+(LIB.mhOpen?'true':'false')+'">'+ic('down',20)+'</button></div>'+
   (list.length&&!reorder?'<button class="btn'+(LIB.sel?' pri':'')+'" id="selBtn">'+ic('check',18)+(LIB.sel?'סיום בחירה':'בחירה')+'</button>':'')+
   (S.ui.sort==='set'&&list.length>1&&!$('#q').value&&!LIB.sel?'<button class="btn'+(reorder?' pri':'')+'" id="reorderBtn">'+ic('sort',18)+(reorder?'סיום':'שנה סדר')+'</button>':'')+
   '<div class="seg">'+sb('set','סדר הופעה')+sb('az','א–ת')+sb('recent','אחרונים')+'</div>';
@@ -1264,7 +1284,7 @@ function renderLib(){
    '<div class="emptyLib"><h2>אין עדיין שירים כאן</h2><p>כתוב שיר חדש או ייבא קובץ PDF עם מילים.</p><div><button class="btn pri" id="emptyNew">'+ic('plus',18)+'שיר חדש</button><button class="btn" id="emptyWeb">'+ic('globe',18)+'חיפוש ברשת</button><button class="btn" id="emptyImp">'+ic('upload',18)+'ייבוא PDF</button></div></div>';
  }else G.innerHTML=list.map((s,i)=>listRow(s,i,list.length,reorder)).join('');
  G.classList.add('asList');
- $('#lib').classList.toggle('navHidden',navHid());$('#lib').classList.toggle('navOver',isPhone()&&!!LIB.navOpen);
+ $('#lib').classList.toggle('navHidden',navHid());$('#mhead').classList.toggle('open',!!LIB.mhOpen);$('#lib').classList.toggle('navOver',isPhone()&&!!LIB.navOpen);
 
  if(LIB.sel){const k=[...LIB.sel].filter(id=>list.some(x=>x.id===id)).length,inSet=S.folders.some(f=>f.id===S.ui.folder);
   $('#setbar').innerHTML='<div class="setbar selbar"><b class="flex1">'+(k?(k===1?'שיר אחד נבחר':k+' שירים נבחרו'):'סמן שירים')+'</b><button class="btn" id="selAll">'+(k===list.length?'בטל הכל':'בחר הכל')+'</button>'+(inSet?'<button class="btn" id="selOut"'+(k?'':' disabled')+'>'+ic('folder',16)+'הוצא מההופעה</button>':'')+'<button class="btn danger" id="selDel"'+(k?'':' disabled')+'>'+ic('trash',16)+'מחק</button></div>';return}
@@ -1345,6 +1365,8 @@ $('#lib').addEventListener('click',e=>{
  if(d.fm)return folderMenu(d.fm);
  if(t.id==='newFold')return ask('תיקייה חדשה','','צור תיקייה',v=>{const f={id:uid(),name:v};S.folders.push(f);S.ui.folder=f.id;save();renderLib()});
  if(d.sort){S.ui.sort=d.sort;LIB.reorder=false;save();renderLib();return}
+ if(t.id==='mhTog'){LIB.mhOpen=!LIB.mhOpen;renderLib();return}
+ if(t.id==='libFold'){LIB.navOpen=true;renderLib();return}
  if(t.id==='navHide'||t.id==='navShow'){if(isPhone())LIB.navOpen=t.id==='navShow';else{S.ui.navHidden=t.id==='navHide';save()}renderLib();return}
  if(t.id==='reorderBtn'){LIB.reorder=!LIB.reorder;renderLib();return}
  if(t.id==='selBtn'){LIB.sel=LIB.sel?null:new Set();LIB.reorder=false;renderLib();return}
