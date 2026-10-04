@@ -3649,11 +3649,12 @@ async function restoreBackup(){
  };
 }
 /* ---- settings ---- */
+function setCats(){return SET_CATS.concat(isOwner()?[['admin','gear','ניהול מאגר']]:[])}
 const SET_CATS=[['share','qr','שיתוף עם הלהקה'],['drive','','Google Drive'],['pedal','pedal','Bluetooth pedal'],['update','dl','עדכון']];
 let SETCAT='share';
 function settingsModal(cat){
  if(cat)SETCAT=cat;PEDAL.learn=null;PEDAL.last='';
- openModal('<div class="stWrap"><div class="stMain" id="stMain"></div><aside class="stNav"><h2>'+ic('gear',20)+' הגדרות</h2><div class="langRow" role="group" aria-label="שפת הממשק"><button class="langB he'+(LANG==='he'?' on':'')+'" data-lang="he" aria-label="עברית">HE</button><button class="langB us'+(LANG==='en'?' on':'')+'" data-lang="en" aria-label="English">US</button></div>'+SET_CATS.map(([k,i,n])=>'<button class="stCat'+(SETCAT===k?' on':'')+'" data-cat="'+k+'">'+(k==='drive'?gdriveIcon(18):ic(i,18))+'<span'+(k!=='share'?' dir="ltr"':'')+'>'+n+'</span></button>').join('')+'<div class="flex1"></div><button class="btn sm stClose" id="stClose">סגור</button></aside></div>','settings');
+ openModal('<div class="stWrap"><div class="stMain" id="stMain"></div><aside class="stNav"><h2>'+ic('gear',20)+' הגדרות</h2><div class="langRow" role="group" aria-label="שפת הממשק"><button class="langB he'+(LANG==='he'?' on':'')+'" data-lang="he" aria-label="עברית">HE</button><button class="langB us'+(LANG==='en'?' on':'')+'" data-lang="en" aria-label="English">US</button></div>'+setCats().map(([k,i,n])=>'<button class="stCat'+(SETCAT===k?' on':'')+'" data-cat="'+k+'">'+(k==='drive'?gdriveIcon(18):ic(i,18))+'<span'+(k!=='share'?' dir="ltr"':'')+'>'+n+'</span></button>').join('')+'<div class="flex1"></div><button class="btn sm stClose" id="stClose">סגור</button></aside></div>','settings');
  $('#modal').classList.add('stModal');
  $('#modal .stNav').onclick=e=>{const lb=e.target.closest('[data-lang]');if(lb){if(lb.dataset.lang!==LANG)setLang(lb.dataset.lang);return}const b=e.target.closest('[data-cat]');if(b){SETCAT=b.dataset.cat;PEDAL.learn=null;$$('#modal .stCat').forEach(x=>x.classList.toggle('on',x===b));renderSetCat()}else if(e.target.closest('#stClose')){PEDAL.learn=null;closeModal();renderLib()}};
  renderSetCat();
@@ -3676,6 +3677,10 @@ function renderSetCat(){
   $('#stRecv').onclick=()=>importSetModal();
  }else if(SETCAT==='update'){
   renderUpdCat();
+ }else if(SETCAT==='admin'){
+  M.innerHTML='<h3>'+ic('gear',20)+' ניהול מאגר</h3><div class="stCard"><div class="flex1"><b>שירים ממשתמשים</b><p>אישור, עריכה ודחייה של שירים שנשלחו, ועריכת שירים במאגר.</p></div><button class="btn pri" id="admGo">פתח ניהול</button></div>'+
+   '<div class="stCard"><div class="flex1"><b>מחובר כמנהל</b><p>'+esc((fbAuthState()||{}).email||'')+'</p></div><button class="btn" id="admOut2">התנתק</button></div>';
+  $('#admGo').onclick=()=>{closeModal();openAdmin()};$('#admOut2').onclick=()=>{localStorage.removeItem(FB.LS);adminSync();SETCAT='update';closeModal();toast('התנתקת')};
  }else if(SETCAT==='drive'){
   const B=S.backup||{};
   M.innerHTML='<h3 class="gdH">'+gdriveIcon(22)+'<span dir="ltr">Google Drive</span></h3><p class="mTxt">כל השירים, התיקיות וקובצי ה-PDF נשמרים בקובץ אחד. בחלון שייפתח בחר <b>Google Drive</b> ותיקייה. גם אם תסיר את האפליקציה או תחליף טאבלט, תוכל לשחזר מהקובץ.</p>'+
@@ -3714,9 +3719,8 @@ function renderUpdCat(){const M=$('#stMain');if(!M)return;const inf=updInfo();
  M.innerHTML='<h3>'+ic('dl',20)+' עדכון</h3>'+
   '<div class="stCard"><div class="flex1"><b>הגרסה שלך: '+(inf.code||'—')+'</b><p id="updSt">'+(UPD.checked?(has?'גרסה '+UPD.latest+' זמינה להורדה.':'יש לך את הגרסה האחרונה.'):'בודק אם יש עדכון…')+'</p></div>'+
   '<button class="btn'+(has?' pri':'')+'" id="updGo">'+ic('dl',18)+(has?'עדכן עכשיו':'בדוק עדכון')+'</button></div>'+
-  '<p class="hint">האפליקציה בודקת בכל פתיחה אם יש גרסה חדשה ומציגה הודעה. ההתקנה מחליפה את הגרסה הקיימת וכל השירים נשמרים.</p>'+
-  '<div class="stCard"><div class="flex1"><b>ניהול מאגר השירים</b><p>'+(isOwner()?'מחובר כמנהל':'למנהל המאגר בלבד')+'</p></div><button class="btn" id="admGo">'+(isOwner()?'פתח ניהול':'כניסת מנהל')+'</button></div>';
- $('#admGo').onclick=()=>{closeModal();openAdmin()};
+  '<p class="hint">האפליקציה בודקת בכל פתיחה אם יש גרסה חדשה ומציגה הודעה. ההתקנה מחליפה את הגרסה הקיימת וכל השירים נשמרים.</p>';
+ let taps=0,tt=0;M.querySelector('.stCard b').onclick=()=>{const n=Date.now();taps=n-tt<700?taps+1:1;tt=n;if(taps>=7){taps=0;closeModal();openAdmin()}};
  $('#updGo').onclick=async()=>{if(UPD.latest>(inf.code||0)&&UPD.url){closeModal();return updStart()}
   $('#updSt').textContent='בודק…';try{await updCheck()}catch(e){$('#updSt').textContent='לא הצלחתי לבדוק. בדוק את החיבור לאינטרנט.';return}renderUpdCat()};
  if(!UPD.checked)updCheck().then(()=>{if(SETCAT==='update')renderUpdCat()}).catch(()=>{const e=$('#updSt');if(e)e.textContent='לא הצלחתי לבדוק. בדוק את החיבור לאינטרנט.'});
