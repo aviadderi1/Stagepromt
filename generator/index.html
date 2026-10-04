@@ -75,6 +75,12 @@ textarea{line-height:1.6;resize:vertical}
 .pnav button{background:transparent;color:#fff;border:0;min-height:30px;padding:2px 10px;font-size:18px}
 .song-body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:10px}
 .song-head{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.av{width:44px;height:44px;border-radius:50%;padding:0;overflow:hidden;flex:0 0 44px;min-height:0;border:1px solid var(--line);background:var(--accent-soft);color:var(--accent);font:700 16px var(--f-ui);justify-content:center}
+.av img{width:100%;height:100%;object-fit:cover;display:block}
+.avpick{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:8px;border-top:1px solid var(--line);padding-top:10px}
+.avpick button{flex-direction:column;padding:4px;min-height:0;font-size:11px;gap:4px;text-align:center;line-height:1.2}
+.avpick img{width:56px;height:56px;border-radius:50%;object-fit:cover}
+.avpick button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
 .song-title{font-family:var(--f-display);font-weight:700;font-size:20px;line-height:1.2;margin:0;min-width:0;overflow-wrap:anywhere}
 .song-artist{font-size:14px;color:var(--ink-2);overflow-wrap:anywhere}
 .pill{font:700 12px var(--f-ui);padding:3px 10px;border-radius:999px;white-space:nowrap;letter-spacing:.02em}
@@ -432,7 +438,7 @@ function demoSong(){return{title:"שיר לדוגמה",artist:"דוגמה בלב
   bg:{scene:"sea",time:"night",seed:7}}}
 
 /* ---------- UI state ---------- */
-const UI={confirmUnsend:null,page:{},filter:"הכול",q:"",openBg:new Set(),openEdit:new Set(),bgRound:{},confirmDel:null};
+const UI={openAv:null,confirmUnsend:null,page:{},filter:"הכול",q:"",openBg:new Set(),openEdit:new Set(),bgRound:{},confirmDel:null};
 let SONGS=[];
 const grid=$("#grid");
 const previewCache=new Map();
@@ -451,14 +457,14 @@ function renderAll(){
 }
 function updateCard(el,s){
   const focus=el.contains(document.activeElement)&&/INPUT|TEXTAREA/.test(document.activeElement.tagName);
-  const key=JSON.stringify([s,pg(s),UI.openBg.has(s.id),UI.openEdit.has(s.id),UI.bgRound[s.id]||0,UI.confirmDel===s.id]);
+  const key=JSON.stringify([s,pg(s),UI.openAv===s.id,UI.openBg.has(s.id),UI.openEdit.has(s.id),UI.bgRound[s.id]||0,UI.confirmDel===s.id]);
   if(el.dataset.key===key)return;if(focus&&el.dataset.key)return;el.dataset.key=key;
   const ready=!!s.text;const q=encodeURIComponent(`מילים ${s.title} ${s.artist||""}`.trim());
   el.innerHTML=`
    ${ready?`<div class="pwrap"><button class="prev" data-act="show" aria-label="הצג במצגת: ${esc(s.title)}"><img alt="" data-prev></button>
      <div class="pnav"><button data-act="pprev" aria-label="הדף הקודם">›</button><span>${esc((pages(s)[pg(s)]||{}).label||"")} · ${pg(s)+1}/${pages(s).length}</span><button data-act="pnext" aria-label="הדף הבא">‹</button></div></div>`:`<div class="prev empty">השקופיות יופיעו אחרי הדבקת המילים</div>`}
    <div class="song-body">
-    <div class="song-head"><div style="min-width:0"><h2 class="song-title">${esc(s.title)}</h2><div class="song-artist">${esc(s.artist||"")}${s.credits?` · ${esc(s.credits)}`:""}</div></div>
+    <div class="song-head"><button class="av" data-act="av" aria-label="תמונת האמן">${s.artistImg?`<img alt="" src="${esc(s.artistImg)}" referrerpolicy="no-referrer">`:esc((s.artist||s.title||"?").trim().charAt(0))}</button><div style="min-width:0;flex:1"><h2 class="song-title">${esc(s.title)}</h2><div class="song-artist">${esc(s.artist||"")}${s.credits?` · ${esc(s.credits)}`:""}</div></div>
      <span class="pill ${ready?"ok":"wait"}">${ready?pages(s).length+" דפים":"ממתין למילים"}</span></div>
     ${ready?"":`<div class="actions"><a class="btn" href="https://www.google.com/search?q=${q}" target="_blank" rel="noopener">חפש מילים ↗</a></div>
       <label class="hint" for="paste-${s.id}">העתיקו את המילים מהאתר והדביקו כאן. האקורדים והשאריות יוסרו לבד.</label>
@@ -466,12 +472,15 @@ function updateCard(el,s){
       <div class="err" data-err></div>
       <div class="actions"><button class="primary" data-act="process">סדר לשקופית</button><button class="ghost" data-act="edit">ערוך פרטים</button><button class="ghost danger" data-act="del">${UI.confirmDel===s.id?"למחוק? לחצו שוב":"מחק"}</button></div>`}
     ${ready?`<div class="actions"><button class="primary" data-act="bg">תמונת רקע</button><button data-act="edit">ערוך מילים</button><button data-act="sp"${s.stage?' class="sent"':''}>${s.stage?"נשלח ל-StagePromt ✓":"שלח ל-StagePromt"}</button><button data-act="dl">הורד דפים</button><button class="ghost danger" data-act="del">${UI.confirmDel===s.id?"למחוק? לחצו שוב":"מחק"}</button></div>`:""}
+    ${UI.openAv===s.id?`<div><div class="hint">בחרו את תמונת האמן שתעלה למאגר עם השיר.</div><div class="avpick" data-avpick><span class="hint">מחפש…</span></div></div>`:""}
     ${ready&&UI.openBg.has(s.id)?`<div class="bgpanel"><div class="hint">רקעים שנבחרו לפי המילים. לחצו על אחד כדי לבחור.</div><div class="bgopts" data-opts></div><div class="actions"><button data-act="more">עוד אפשרויות</button><button class="ghost" data-act="bg">סגור</button></div></div>`:""}
     ${UI.openEdit.has(s.id)?`<div class="editp"><div class="two"><input id="et-${s.id}" value="${esc(s.title)}" aria-label="שם השיר"><input id="ea-${s.id}" value="${esc(s.artist||"")}" aria-label="מבצע או יוצרים" placeholder="מבצע / יוצרים"></div>
       ${ready?`<textarea id="ex-${s.id}" rows="10" aria-label="מילים">${esc(s.text)}</textarea><div class="hint">כל בית הוא דף נפרד. שורה ריקה מפרידה בין בתים, "פזמון:" בראש בית מסמן אותו כפזמון, ושורה "[פזמון]" לבדה חוזרת על הפזמון באותו מקום.</div>`:""}
       <div class="actions"><button class="primary" data-act="save">שמור</button><button class="ghost" data-act="edit">ביטול</button></div></div>`:""}
    </div>`;
   if(ready)queuePreview(el,s);
+  if(UI.openAv===s.id)fillAvatars(el,s);
+  if(s.artist&&s.artistImg==null)queueArtist(s);
   if(ready&&UI.openBg.has(s.id))fillOptions(el,s);
 }
 /* previews: render lazily to images */
@@ -492,6 +501,7 @@ grid.addEventListener("click",async e=>{
   const a=b.dataset.act;
   if(a!=="del")UI.confirmDel=null;
   if(a==="show")openShow(id,pg(s));
+  if(a==="av"){if(!s.artist){toast("הוסיפו קודם שם מבצע בעריכת הפרטים");return}UI.openAv=UI.openAv===id?null:id;renderAll();return}
   if(a==="pnext"||a==="pprev"){const n=pages(s).length;UI.page[id]=(pg(s)+(a==="pnext"?1:-1)+n)%n;renderAll();return}
   if(a==="bg"){UI.openBg.has(id)?UI.openBg.delete(id):UI.openBg.add(id);renderAll()}
   if(a==="more"){UI.bgRound[id]=(UI.bgRound[id]||0)+1;renderAll()}
@@ -500,8 +510,29 @@ grid.addEventListener("click",async e=>{
   if(a==="dl")downloadPng(s);
   if(a==="sp"){if(UI.confirmUnsend===id){UI.confirmUnsend=null;await store.update(id,{stage:false});toast("הוסר מהמאגר של StagePromt")}else if(s.stage){UI.confirmUnsend=id;toast("לחצו שוב כדי להסיר מהמאגר של StagePromt")}else{await store.update(id,{stage:true});toast("נשלח. ב-StagePromt: שיתוף עם הלהקה ← מאגר מהמחולל")}}
   if(a==="process")processPaste(el,s);
-  if(a==="save"){const p={title:el.querySelector(`#et-${id}`).value.trim()||s.title,artist:el.querySelector(`#ea-${id}`).value.trim()};const tx=el.querySelector(`#ex-${id}`);if(tx)p.text=tx.value.trim();UI.openEdit.delete(id);el.dataset.key="";await store.update(id,p);toast("נשמר")}
+  if(a==="save"){const p={title:el.querySelector(`#et-${id}`).value.trim()||s.title,artist:el.querySelector(`#ea-${id}`).value.trim()};if(p.artist!==(s.artist||"")){p.artistImg=null;artistSeen.delete(id)}const tx=el.querySelector(`#ex-${id}`);if(tx)p.text=tx.value.trim();UI.openEdit.delete(id);el.dataset.key="";await store.update(id,p);toast("נשמר")}
 });
+grid.addEventListener("click",async e=>{const b=e.target.closest("[data-avsel]");if(!b)return;const el=b.closest(".song");const id=el.dataset.id;UI.openAv=null;
+  await store.update(id,{artistImg:b.dataset.avsel});toast(b.dataset.avsel?"תמונת האמן עודכנה":"התמונה הוסרה")});
+/* artist photos: Deezer search through JSONP (the API sends no CORS headers) */
+let dzN=0;const DZC={};
+function deezerArtists(name){const k=norm(name);if(DZC[k])return DZC[k];
+  return DZC[k]=new Promise(res=>{const cb="__dz"+(++dzN);const sc=document.createElement("script");const done=v=>{delete window[cb];sc.remove();res(v)};
+    window[cb]=j=>done(((j&&j.data)||[]).filter(a=>a.picture_big&&!/\/artist\/\//.test(a.picture_big)).slice(0,8).map(a=>({name:a.name,img:a.picture_big,thumb:a.picture_medium})));
+    sc.onerror=()=>done([]);setTimeout(()=>{if(window[cb])done([])},9000);
+    sc.src="https://api.deezer.com/search/artist?q="+encodeURIComponent(name)+"&limit=8&output=jsonp&callback="+cb;document.head.appendChild(sc)})}
+const sameName=(a,b)=>{a=norm(a).toLowerCase();b=norm(b).toLowerCase();return!!a&&!!b&&(a===b||a.includes(b)||b.includes(a))};
+const artistQ=[];let artistBusy=false;const artistSeen=new Set();
+function queueArtist(s){if(artistSeen.has(s.id))return;artistSeen.add(s.id);artistQ.push(s.id);runArtistQ()}
+async function runArtistQ(){if(artistBusy)return;artistBusy=true;
+  while(artistQ.length){const id=artistQ.shift();const s=SONGS.find(x=>x.id===id);if(!s||!s.artist||s.artistImg!=null)continue;
+    const main=s.artist.split(/\s*(?:,|&|\bו(?=[א-ת])|feat\.?|ft\.?|עם)\s*/)[0]||s.artist;
+    const list=await deezerArtists(main);const hit=list.find(a=>sameName(a.name,main));
+    try{await store.update(id,{artistImg:hit?hit.img:""})}catch(e){}await new Promise(r=>setTimeout(r,250))}
+  artistBusy=false}
+async function fillAvatars(el,s){const box=el.querySelector("[data-avpick]");const list=await deezerArtists(s.artist);if(!box.isConnected)return;
+  box.innerHTML=list.map(a=>`<button data-avsel="${esc(a.img)}" aria-pressed="${s.artistImg===a.img}"><img alt="" src="${esc(a.thumb)}" referrerpolicy="no-referrer">${esc(a.name)}</button>`).join("")+`<button data-avsel="" aria-pressed="${!s.artistImg}">ללא תמונה</button>`;
+  if(!list.length)box.insertAdjacentHTML("afterbegin",`<span class="hint" style="grid-column:1/-1">לא נמצאו תמונות של ${esc(s.artist)}</span>`)}
 grid.addEventListener("paste",e=>{const ta=e.target.closest("[data-paste]");if(!ta)return;const el=ta.closest(".song");setTimeout(()=>{const s=SONGS.find(x=>x.id===el.dataset.id);if(s&&ta.value.trim())processPaste(el,s)},60)});
 grid.addEventListener("input",e=>{const el=e.target.closest(".song");const er=el&&el.querySelector("[data-err]");if(er)er.textContent=""});
 async function processPaste(el,s){const ta=el.querySelector("[data-paste]");const er=el.querySelector("[data-err]");const raw=ta.value;
