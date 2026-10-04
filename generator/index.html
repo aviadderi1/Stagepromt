@@ -115,7 +115,7 @@ textarea{line-height:1.6;resize:vertical}
 <div class="wrap" dir="rtl">
   <header>
     <h1>מחולל השקופיות</h1>
-    <p class="hint" style="margin:2px 0 0;font-variant-numeric:tabular-nums">גרסה 2026-10-04.10</p>
+    <p class="hint" style="margin:2px 0 0;font-variant-numeric:tabular-nums">גרסה 2026-10-04.11</p>
     <p class="sub">כותבים מה רוצים, מקבלים רשימת שירים, מדביקים את המילים מכל אתר, וכל שיר הופך לשקופית עם רקע שנבחר לפי המילים.</p>
   </header>
 
@@ -472,7 +472,7 @@ function updateCard(el,s){
     <div class="song-head"><button class="av" data-act="av" aria-label="תמונת האמן">${s.artistImg?`<img alt="" src="${esc(s.artistImg)}" referrerpolicy="no-referrer">`:esc((s.artist||s.title||"?").trim().charAt(0))}</button><div style="min-width:0;flex:1"><h2 class="song-title">${esc(s.title)}</h2>${UI.editArtist===s.id?`<div class="gen-row" style="margin-top:4px;gap:6px"><input id="ar-${s.id}" value="${esc(s.artist||"")}" placeholder="שם האמן" aria-label="שם האמן" style="flex:1 1 140px;min-width:0;padding:6px 10px"><button class="primary" data-act="arsave" style="min-height:34px;padding:4px 10px">שמור</button><button class="ghost" data-act="artist" style="min-height:34px;padding:4px 8px">ביטול</button></div>`:`<button class="song-artist artbtn" data-act="artist" title="שינוי שם האמן">${esc(s.artist||"הוסף שם אמן")}<span aria-hidden="true"> ✎</span></button>${s.credits?`<div class="song-artist">${esc(s.credits)}</div>`:""}`}
      ${UI.editCat===s.id?`<div class="gen-row" style="margin-top:4px;gap:6px"><input id="ct-${s.id}" list="catlist" value="${esc(s.list||"")}" placeholder="קטגוריה, למשל ים תיכוני" aria-label="קטגוריה" style="flex:1 1 140px;min-width:0;padding:6px 10px"><button class="primary" data-act="catsave" style="min-height:34px;padding:4px 10px">שמור</button><button class="ghost" data-act="cat" style="min-height:34px;padding:4px 8px">ביטול</button></div>`:`<button class="catchip" data-act="cat" title="שינוי קטגוריה">${esc(s.list||"הוסף קטגוריה")}<span aria-hidden="true"> ✎</span></button>`}</div>
      <span class="pill ${ready?"ok":"wait"}">${ready?pages(s).length+" דפים":"ממתין למילים"}</span></div>
-    ${ready?"":`<div class="actions"><a class="btn" href="https://www.google.com/search?q=${encodeURIComponent("site:shironet.mako.co.il "+s.title+" "+(s.artist||""))}" target="_blank" rel="noopener">מילים בשירונט ↗</a><button data-act="clip">הדבק מהלוח</button></div>
+    ${ready?"":`<div class="actions"><a class="btn" href="https://shironet.mako.co.il/search?q=${encodeURIComponent(s.title.trim()).replace(/%20/g,"+")}" target="_blank" rel="noopener">מילים בשירונט ↗</a><a class="btn" href="https://www.google.com/search?q=${encodeURIComponent("site:shironet.mako.co.il "+s.title+" "+(s.artist||""))}" target="_blank" rel="noopener">בגוגל ↗</a><button data-act="clip">הדבק מהלוח</button></div>
       <label class="hint" for="paste-${s.id}">העתיקו את המילים מהאתר והדביקו כאן. האקורדים והשאריות יוסרו לבד.</label>
       <textarea id="paste-${s.id}" rows="4" data-paste placeholder="הדבק כאן את המילים"></textarea>
       <div class="err" data-err></div>
