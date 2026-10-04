@@ -123,9 +123,14 @@ textarea{line-height:1.6;resize:vertical}
   <section class="gen" aria-label="יצירת רשימת שירים">
     <label for="genq" style="font-weight:700">מה להכין?</label>
     <div class="gen-row">
-      <input id="genq" placeholder="שירי ארץ ישראל מכל הזמנים" value="שירי ארץ ישראל מכל הזמנים">
+      <input id="genq" placeholder="שירי אהבה, ים תיכוני, מזרחית, שירי חפלה…" value="שירי ארץ ישראל מכל הזמנים">
       <button class="primary" id="genbtn">צור רשימת שירים</button>
     </div>
+    <details id="gemd">
+      <summary class="hint" style="cursor:pointer">מפתח Gemini לחיפוש רשימות</summary>
+      <p class="hint" style="margin:8px 0 0">החיפוש לפי נושא נעשה דרך Gemini. אפשר להשתמש באותו מפתח שמוגדר ב-StagePromt, או ליצור מפתח חינמי ב-<a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>. המפתח נשמר בחשבון שלך במאגר.</p>
+      <div class="gen-row" style="margin-top:6px"><input id="gemkey" dir="ltr" placeholder="AIza…" autocomplete="off"><button id="gemsave">שמור מפתח</button></div>
+    </details>
     <details>
       <summary class="hint" style="cursor:pointer">הדבקת רשימת שירים</summary>
       <textarea id="bulk" rows="5" style="margin-top:8px" placeholder="שיר בכל שורה, למשל: שם השיר – מבצע"></textarea>
@@ -534,9 +539,28 @@ function showResults(items,listName,src){RES=items;RESLIST=listName;const have=n
 $("#genbtn").onclick=async()=>{const q=$("#genq").value.trim();const er=$("#generr");er.textContent="";if(!q){er.textContent="כתבו איזה שירים להכין.";return}
   const btn=$("#genbtn");btn.disabled=true;btn.textContent="מכין רשימה…";
   try{
-    if(/ארץ ישראל|ארץ-ישראל|א"י|ישראלי|עברי/.test(q))showResults(BUILTIN,q,"מהרשימה המובנית");
-    else er.textContent="לבקשה הזו אין רשימה מובנית. אפשר להדביק רשימת שירים ב\"הדבקת רשימת שירים\".";
+    const key=await gemKey();
+    if(key){const items=await gemList(q,key);if(!items.length)throw new Error("empty");showResults(items,q,"")}
+    else if(/ארץ ישראל|ארץ-ישראל|א"י|ישראלי|עברי/.test(q)){showResults(BUILTIN,q,"מהרשימה המובנית");er.textContent="כדי לחפש כל נושא, הוסיפו מפתח Gemini (למטה)."}
+    else{er.textContent="כדי לחפש רשימה לפי כל נושא, הוסיפו מפתח Gemini למטה. אפשר גם להדביק רשימה.";$("#gemd").open=true}
+  }catch(e){
+    er.textContent=e.message==="empty"?"לא נמצאו שירים לבקשה הזו. נסו לנסח אחרת.":(e.status===400||e.status===403)?"מפתח Gemini לא תקין או לא פעיל. בדקו אותו למטה.":e.status===429?"עברתם את מכסת Gemini לרגע. נסו שוב בעוד דקה.":"החיפוש נכשל. בדקו את החיבור לאינטרנט ונסו שוב.";
   }finally{btn.disabled=false;btn.textContent="צור רשימת שירים"}};
+let GEMKEY=null;
+async function settingsDoc(){const{url,h}=await store.col();return{url:url.replace(/\/songs$/,"/settings/main"),h}}
+async function gemKey(){if(GEMKEY!==null)return GEMKEY;try{const{url,h}=await settingsDoc();const j=await fbReq("GET",url,null,h);GEMKEY=(j.fields&&j.fields.gemKey&&j.fields.gemKey.stringValue)||""}catch(e){GEMKEY=""}$("#gemkey").value=GEMKEY;return GEMKEY}
+$("#gemsave").onclick=async()=>{const k=$("#gemkey").value.trim();try{const{url,h}=await settingsDoc();await fbReq("PATCH",url+"?updateMask.fieldPaths=gemKey",{fields:{gemKey:{stringValue:k}}},h);GEMKEY=k;toast(k?"המפתח נשמר":"המפתח נמחק");$("#gemd").open=false}catch(e){toast("לא הצלחתי לשמור את המפתח")}};
+async function gemList(q,key){
+  const prompt=`אתה עוזר לבנות רשימת שירים עבריים לערב שירה וליווי מוזיקלי.\nהבקשה: "${q}"\nהחזר עד 40 שירים אמיתיים ומוכרים שמתאימים לבקשה. לכל שיר: שם השיר, המבצע המוכר, ועשור.\nהחזר רק שם שיר, מבצע ועשור. אל תכלול מילים של שירים או ציטוטים מהם בשום שדה.`;
+  const body={contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{responseMimeType:"application/json",responseSchema:{type:"OBJECT",properties:{songs:{type:"ARRAY",items:{type:"OBJECT",properties:{title:{type:"STRING"},artist:{type:"STRING"},era:{type:"STRING"}},required:["title"]}}},required:["songs"]},temperature:.4}};
+  let last=null;
+  for(const m of["gemini-2.5-flash","gemini-2.0-flash"]){
+    try{const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${encodeURIComponent(key)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+      const j=await r.json();if(!r.ok){last=new Error((j.error&&j.error.message)||("HTTP "+r.status));last.status=r.status;if(r.status===400||r.status===403)throw last;continue}
+      const t=(((j.candidates||[])[0]||{}).content||{}).parts?.map(x=>x.text||"").join("")||"{}";const arr=(JSON.parse(t).songs)||[];
+      return arr.filter(x=>x&&x.title).map(x=>({title:String(x.title).slice(0,80),artist:String(x.artist||"").slice(0,80),era:String(x.era||"").slice(0,20)}))}
+    catch(e){last=e;if(e.status===400||e.status===403)break}}
+  throw last||new Error("failed")}
 $("#bulkbtn").onclick=()=>{const lines=$("#bulk").value.split("\n").map(l=>l.replace(/^\s*[\d.)\-•*]+\s*/,"").trim()).filter(Boolean);const er=$("#generr");
   if(!lines.length){er.textContent="הדביקו קודם רשימה, שיר בכל שורה.";return}er.textContent="";
   const items=lines.map(l=>{const[t,...a]=l.split(/\s+[–—-]\s+/);return{title:t.trim().slice(0,80),artist:a.join(" - ").trim().slice(0,80)}});
