@@ -3883,7 +3883,9 @@ const FB={key:'AIzaSyAQj76Gha9yGidawfxbouvrE47teuzIsO4',project:'stagepromt',LS:
 FB.base='https://firestore.googleapis.com/v1/projects/'+FB.project+'/databases/(default)/documents';
 function fbAuthState(){try{return JSON.parse(localStorage.getItem(FB.LS))||null}catch(e){return null}}
 async function fbReq(method,url,body,headers){
- if(window.Android&&window.Android.aiReq){const h=Object.assign({Referer:'https://aviadderi1.github.io/','X-Client-Version':'StagePromt-Android'},headers||{});const r=await aiReq(method,url,body?JSON.stringify(body):'',h,false,30000);return r.text?JSON.parse(r.text):{}}
+ if(window.Android&&window.Android.aiReq){const h=Object.assign({Referer:'https://aviadderi1.github.io/','X-Client-Version':'StagePromt-Android'},headers||{});
+  if(method==='PATCH'||method==='PUT'){h['X-HTTP-Method-Override']=method;method='POST'}
+  const r=await aiReq(method,url,body?JSON.stringify(body):'',h,false,30000);return r.text?JSON.parse(r.text):{}}
  const r=await fetch(url,{method,headers:Object.assign({'Content-Type':'application/json'},headers||{}),body:body?JSON.stringify(body):undefined});
  const t=await r.text();if(!r.ok)throw new Error('HTTP '+r.status+': '+t.slice(0,300));return t?JSON.parse(t):{}}
 async function fbSignIn(email,password){
