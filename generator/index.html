@@ -83,6 +83,7 @@ textarea{line-height:1.6;resize:vertical}
 .avpick button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
 .artbtn{background:none;border:0;padding:0;min-height:0;font:inherit;font-size:14px;color:var(--ink-2);cursor:pointer;text-align:right;display:inline;border-radius:4px}
 .artbtn:hover{color:var(--accent)}
+.catchip{background:var(--accent-soft);color:var(--accent);border:0;border-radius:999px;padding:2px 10px;min-height:0;font:600 12px var(--f-ui);margin-top:4px;cursor:pointer}
 .song-title{font-family:var(--f-display);font-weight:700;font-size:20px;line-height:1.2;margin:0;min-width:0;overflow-wrap:anywhere}
 .song-artist{font-size:14px;color:var(--ink-2);overflow-wrap:anywhere}
 .pill{font:700 12px var(--f-ui);padding:3px 10px;border-radius:999px;white-space:nowrap;letter-spacing:.02em}
@@ -114,7 +115,7 @@ textarea{line-height:1.6;resize:vertical}
 <div class="wrap" dir="rtl">
   <header>
     <h1>מחולל השקופיות</h1>
-    <p class="hint" style="margin:2px 0 0;font-variant-numeric:tabular-nums">גרסה 2026-10-04.4</p>
+    <p class="hint" style="margin:2px 0 0;font-variant-numeric:tabular-nums">גרסה 2026-10-04.5</p>
     <p class="sub">כותבים מה רוצים, מקבלים רשימת שירים, מדביקים את המילים מכל אתר, וכל שיר הופך לשקופית עם רקע שנבחר לפי המילים.</p>
   </header>
 
@@ -441,14 +442,14 @@ function demoSong(){return{title:"שיר לדוגמה",artist:"דוגמה בלב
   bg:{scene:"sea",time:"night",seed:7}}}
 
 /* ---------- UI state ---------- */
-const UI={editArtist:null,openAv:null,confirmUnsend:null,page:{},filter:"הכול",q:"",openBg:new Set(),openEdit:new Set(),bgRound:{},confirmDel:null};
+const UI={editCat:null,editArtist:null,openAv:null,confirmUnsend:null,page:{},filter:"הכול",q:"",openBg:new Set(),openEdit:new Set(),bgRound:{},confirmDel:null};
 let SONGS=[];
 const grid=$("#grid");
 const previewCache=new Map();
 const sigOf=s=>JSON.stringify([s.title,s.artist,s.text,s.bg]);
 
 function pg(s){const n=pages(s).length;return Math.max(0,Math.min(n-1,UI.page[s.id]||0))}
-function visibleSongs(){const q=norm(UI.q);return SONGS.filter(s=>(UI.filter==="הכול"||(s.list||"ללא קטגוריה")===UI.filter)&&(!q||norm(s.title+" "+s.artist).includes(q)))}
+function visibleSongs(){const q=norm(UI.q);return SONGS.filter(s=>(UI.filter==="הכול"||(s.list||"ללא קטגוריה")===UI.filter)&&(!q||norm(s.title+" "+s.artist+" "+(s.list||"")).includes(q)))}
 function renderAll(){
   const lists=["הכול",...new Set(SONGS.map(s=>s.list||"ללא קטגוריה"))];if(!lists.includes(UI.filter))UI.filter="הכול";
   $("#chips").innerHTML=lists.map(l=>`<button class="chip" aria-pressed="${l===UI.filter}" data-chip="${esc(l)}">${esc(l)}</button>`).join("");
@@ -460,14 +461,15 @@ function renderAll(){
 }
 function updateCard(el,s){
   const focus=el.contains(document.activeElement)&&/INPUT|TEXTAREA/.test(document.activeElement.tagName);
-  const key=JSON.stringify([s,pg(s),UI.editArtist===s.id,UI.openAv===s.id,UI.openBg.has(s.id),UI.openEdit.has(s.id),UI.bgRound[s.id]||0,UI.confirmDel===s.id]);
+  const key=JSON.stringify([s,pg(s),UI.editCat===s.id,UI.editArtist===s.id,UI.openAv===s.id,UI.openBg.has(s.id),UI.openEdit.has(s.id),UI.bgRound[s.id]||0,UI.confirmDel===s.id]);
   if(el.dataset.key===key)return;if(focus&&el.dataset.key)return;el.dataset.key=key;
   const ready=!!s.text;const q=encodeURIComponent(`מילים ${s.title} ${s.artist||""}`.trim());
   el.innerHTML=`
    ${ready?`<div class="pwrap"><button class="prev" data-act="show" aria-label="הצג במצגת: ${esc(s.title)}"><img alt="" data-prev></button>
      <div class="pnav"><button data-act="pprev" aria-label="הדף הקודם">›</button><span>${esc((pages(s)[pg(s)]||{}).label||"")} · ${pg(s)+1}/${pages(s).length}</span><button data-act="pnext" aria-label="הדף הבא">‹</button></div></div>`:`<div class="prev empty">השקופיות יופיעו אחרי הדבקת המילים</div>`}
    <div class="song-body">
-    <div class="song-head"><button class="av" data-act="av" aria-label="תמונת האמן">${s.artistImg?`<img alt="" src="${esc(s.artistImg)}" referrerpolicy="no-referrer">`:esc((s.artist||s.title||"?").trim().charAt(0))}</button><div style="min-width:0;flex:1"><h2 class="song-title">${esc(s.title)}</h2>${UI.editArtist===s.id?`<div class="gen-row" style="margin-top:4px;gap:6px"><input id="ar-${s.id}" value="${esc(s.artist||"")}" placeholder="שם האמן" aria-label="שם האמן" style="flex:1 1 140px;min-width:0;padding:6px 10px"><button class="primary" data-act="arsave" style="min-height:34px;padding:4px 10px">שמור</button><button class="ghost" data-act="artist" style="min-height:34px;padding:4px 8px">ביטול</button></div>`:`<button class="song-artist artbtn" data-act="artist" title="שינוי שם האמן">${esc(s.artist||"הוסף שם אמן")}<span aria-hidden="true"> ✎</span></button>${s.credits?`<div class="song-artist">${esc(s.credits)}</div>`:""}`}</div>
+    <div class="song-head"><button class="av" data-act="av" aria-label="תמונת האמן">${s.artistImg?`<img alt="" src="${esc(s.artistImg)}" referrerpolicy="no-referrer">`:esc((s.artist||s.title||"?").trim().charAt(0))}</button><div style="min-width:0;flex:1"><h2 class="song-title">${esc(s.title)}</h2>${UI.editArtist===s.id?`<div class="gen-row" style="margin-top:4px;gap:6px"><input id="ar-${s.id}" value="${esc(s.artist||"")}" placeholder="שם האמן" aria-label="שם האמן" style="flex:1 1 140px;min-width:0;padding:6px 10px"><button class="primary" data-act="arsave" style="min-height:34px;padding:4px 10px">שמור</button><button class="ghost" data-act="artist" style="min-height:34px;padding:4px 8px">ביטול</button></div>`:`<button class="song-artist artbtn" data-act="artist" title="שינוי שם האמן">${esc(s.artist||"הוסף שם אמן")}<span aria-hidden="true"> ✎</span></button>${s.credits?`<div class="song-artist">${esc(s.credits)}</div>`:""}`}
+     ${UI.editCat===s.id?`<div class="gen-row" style="margin-top:4px;gap:6px"><input id="ct-${s.id}" list="catlist" value="${esc(s.list||"")}" placeholder="קטגוריה, למשל ים תיכוני" aria-label="קטגוריה" style="flex:1 1 140px;min-width:0;padding:6px 10px"><button class="primary" data-act="catsave" style="min-height:34px;padding:4px 10px">שמור</button><button class="ghost" data-act="cat" style="min-height:34px;padding:4px 8px">ביטול</button></div>`:`<button class="catchip" data-act="cat" title="שינוי קטגוריה">${esc(s.list||"הוסף קטגוריה")}<span aria-hidden="true"> ✎</span></button>`}</div>
      <span class="pill ${ready?"ok":"wait"}">${ready?pages(s).length+" דפים":"ממתין למילים"}</span></div>
     ${ready?"":`<div class="actions"><a class="btn" href="https://www.google.com/search?q=${q}" target="_blank" rel="noopener">חפש מילים ↗</a></div>
       <label class="hint" for="paste-${s.id}">העתיקו את המילים מהאתר והדביקו כאן. האקורדים והשאריות יוסרו לבד.</label>
@@ -504,6 +506,9 @@ grid.addEventListener("click",async e=>{
   const a=b.dataset.act;
   if(a!=="del")UI.confirmDel=null;
   if(a==="show")openShow(id,pg(s));
+  if(a==="cat"){UI.editCat=UI.editCat===id?null:id;el.dataset.key="";fillCatList();renderAll();if(UI.editCat===id){const i=el.querySelector(`#ct-${id}`);if(i){i.focus();i.select()}}return}
+  if(a==="catsave"){const v=el.querySelector(`#ct-${id}`).value.trim();UI.editCat=null;el.dataset.key="";if(v===(s.list||"")){renderAll();return}
+    await store.update(id,{list:v});toast(v?"הקטגוריה עודכנה":"הקטגוריה הוסרה");return}
   if(a==="artist"){UI.editArtist=UI.editArtist===id?null:id;el.dataset.key="";renderAll();if(UI.editArtist===id){const i=el.querySelector(`#ar-${id}`);if(i){i.focus();i.select()}}return}
   if(a==="arsave"){const v=el.querySelector(`#ar-${id}`).value.trim();UI.editArtist=null;el.dataset.key="";if(v===(s.artist||"")){renderAll();return}
     artistSeen.delete(id);await store.update(id,{artist:v,artistImg:null});toast(v?"שם האמן עודכן, מחפש תמונה…":"שם האמן הוסר");return}
@@ -540,6 +545,9 @@ async function runArtistQ(){if(artistBusy)return;artistBusy=true;
 async function fillAvatars(el,s,q){const box=el.querySelector("[data-avpick]");q=q||s.artist;const list=await deezerArtists(q);if(!box.isConnected)return;
   box.innerHTML=list.map(a=>`<button data-avsel="${esc(a.img)}" aria-pressed="${s.artistImg===a.img}"><img alt="" src="${esc(a.thumb)}" referrerpolicy="no-referrer">${esc(a.name)}</button>`).join("")+`<button data-avsel="" aria-pressed="${!s.artistImg}">ללא תמונה</button>`;
   if(!list.length)box.insertAdjacentHTML("afterbegin",`<span class="hint" style="grid-column:1/-1">לא נמצאו תמונות של ${esc(q)}</span>`)}
+function fillCatList(){let dl=document.getElementById("catlist");if(!dl){dl=document.createElement("datalist");dl.id="catlist";document.body.appendChild(dl)}
+  dl.innerHTML=[...new Set(SONGS.map(x=>x.list).filter(Boolean))].map(c=>`<option value="${esc(c)}">`).join("")}
+grid.addEventListener("keydown",e=>{if(e.target.id&&e.target.id.startsWith("ct-")){if(e.key==="Enter"){e.preventDefault();e.target.closest(".song").querySelector('[data-act="catsave"]').click()}if(e.key==="Escape")e.target.closest(".song").querySelector('[data-act="cat"]').click()}});
 grid.addEventListener("keydown",e=>{if(e.target.id&&e.target.id.startsWith("ar-")){if(e.key==="Enter"){e.preventDefault();e.target.closest(".song").querySelector('[data-act="arsave"]').click()}if(e.key==="Escape")e.target.closest(".song").querySelector('[data-act="artist"]').click()}});
 grid.addEventListener("paste",e=>{const ta=e.target.closest("[data-paste]");if(!ta)return;const el=ta.closest(".song");setTimeout(()=>{const s=SONGS.find(x=>x.id===el.dataset.id);if(s&&ta.value.trim())processPaste(el,s)},60)});
 grid.addEventListener("input",e=>{const el=e.target.closest(".song");const er=el&&el.querySelector("[data-err]");if(er)er.textContent=""});

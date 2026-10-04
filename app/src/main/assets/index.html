@@ -1275,7 +1275,7 @@ function songsIn(fid){
 function visibleSongs(){
  let a=songsIn(S.ui.folder).slice();
  const q=($('#q').value||'').trim().toLowerCase();
- if(q)a=a.filter(s=>stripNik(s.title+' '+(s.artist||'')+' '+s.parts.map(p=>p.text).join(' ')).toLowerCase().includes(stripNik(q)));
+ if(q)a=a.filter(s=>stripNik(s.title+' '+(s.artist||'')+' '+(s.cat||'')+' '+s.parts.map(p=>p.text).join(' ')).toLowerCase().includes(stripNik(q)));
  if(S.ui.sort==='az')a.sort((x,y)=>x.title.localeCompare(y.title,'he'));
  else if(S.ui.sort==='recent')a.sort((x,y)=>(y.updated||0)-(x.updated||0));
  else a.sort((x,y)=>(x.order||0)-(y.order||0));
@@ -3897,7 +3897,7 @@ function genLibModal(pick){
     if(dest.mode==='cat'){const fname=x.list||'מהמאגר';let f=S.folders.find(q=>q.name===fname);if(!f){f={id:uid(),name:fname};S.folders.push(f)}fid=f.id}
     else if(dest.mode==='folder')fid=dest.id;
     s=newSongObj({title:x.title||'שיר',artist:x.artist||'',folderId:fid,kind:'text'});S.songs.push(s);added++}else{upd++;if(dest.mode==='folder')s.folderId=dest.id}
-   s.title=x.title||s.title;s.artist=x.artist||'';s.parts=parts;s.srcId=x.id;s.srcUpd=x.updatedAt||Date.now();
+   s.title=x.title||s.title;s.artist=x.artist||'';s.cat=x.list||'';s.parts=parts;s.srcId=x.id;s.srcUpd=x.updatedAt||Date.now();
    if(x.artistImg&&x.artistImg!==s.srcImg){try{const d=await shrinkImage((await httpGet(x.artistImg,true,12000)).text);if(d){s.img=d;s.srcImg=x.artistImg}}catch(e){}}
    if(!s.img&&s.artist&&x.artistImg!==''){try{const d=await findArtistImage(s.artist,'');if(d)s.img=d}catch(e){}}
    try{const d=GENBG.render(x.bg);const id='bg-'+uid();await IDB.put(id,d);BG[id]=d;const old=s.bg&&s.bg.type==='img'?s.bg.id:null;s.bg={type:'img',id,dim:(s.bg&&s.bg.dim!=null)?s.bg.dim:.45};if(old&&old!==id)dropBgImg(old)}catch(e){}
