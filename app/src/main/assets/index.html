@@ -3688,10 +3688,11 @@ function previewSet(j){
   closeModal();
   const map={};for(const [id,b] of Object.entries(j.pdfs||{})){const nid=uid();try{await IDB.put(nid,b64ToBuf(b));map[id]=nid}catch(e){}}
   const f={id:uid(),name:j.name||'סט'};S.folders.push(f);
-  j.songs.forEach(x=>{const s=newSongObj({title:x.title||'שיר',artist:x.artist||'',key:x.key||'',folderId:f.id,kind:x.kind==='pdf'&&map[x.pdfId]?'pdf':'text'});
+  for(const x of j.songs){const s=newSongObj({title:x.title||'שיר',artist:x.artist||'',key:x.key||'',folderId:f.id,kind:x.kind==='pdf'&&map[x.pdfId]?'pdf':'text'});
    s.parts=(x.parts||[]).map(p=>Object.assign({},p));if(x.style)s.style=Object.assign(clone(DEF_STYLE),x.style);if(x.img)s.img=x.img;
    if(s.kind==='pdf'){s.pdfId=map[x.pdfId];s.from=x.from;s.to=x.to;s.pdfName=x.pdfName}
-   S.songs.push(s)});
+   if(typeof x.bgData==='string'&&/^data:image\//.test(x.bgData)){const id='bg-'+uid();try{await IDB.put(id,x.bgData);BG[id]=x.bgData;s.bg={type:'img',id,dim:typeof x.bgDim==='number'?x.bgDim:.45}}catch(e){}}
+   S.songs.push(s)}
   S.ui.folder=f.id;S.ui.sort='set';save(true);renderLib();toast('הסט "'+f.name+'" נוסף');
  };
 }
