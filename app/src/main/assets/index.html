@@ -3804,7 +3804,7 @@ const FB={key:'AIzaSyAQj76Gha9yGidawfxbouvrE47teuzIsO4',project:'stagepromt',LS:
 FB.base='https://firestore.googleapis.com/v1/projects/'+FB.project+'/databases/(default)/documents';
 function fbAuthState(){try{return JSON.parse(localStorage.getItem(FB.LS))||null}catch(e){return null}}
 async function fbReq(method,url,body,headers){
- if(window.Android&&window.Android.aiReq){const r=await aiReq(method,url,body?JSON.stringify(body):'',headers||null,false,30000);return r.text?JSON.parse(r.text):{}}
+ if(window.Android&&window.Android.aiReq){const h=Object.assign({Referer:'https://aviadderi1.github.io/','X-Client-Version':'StagePromt-Android'},headers||{});const r=await aiReq(method,url,body?JSON.stringify(body):'',h,false,30000);return r.text?JSON.parse(r.text):{}}
  const r=await fetch(url,{method,headers:Object.assign({'Content-Type':'application/json'},headers||{}),body:body?JSON.stringify(body):undefined});
  const t=await r.text();if(!r.ok)throw new Error('HTTP '+r.status+': '+t.slice(0,300));return t?JSON.parse(t):{}}
 async function fbSignIn(email,password){
@@ -3850,7 +3850,10 @@ function genLibModal(){
   $('#glList').innerHTML='<div class="glRows">'+list.map((x,i)=>{const h=have[x.id];const st=!h?'חדש':((x.updatedAt||0)>(h.srcUpd||0)?'עודכן במחולל':'כבר בספרייה');
    return '<label class="glRow"><input type="checkbox" data-gl="'+i+'"'+(st==='כבר בספרייה'?'':' checked')+'><span class="flex1"><b>'+esc(x.title)+'</b><small>'+esc([x.artist,x.list].filter(Boolean).join(' · '))+'</small></span><span class="glSt">'+st+'</span></label>'}).join('')+'</div>';
   $('#glGo').disabled=false;
- }).catch(err=>{if(err.message==='signin'||/40[13]/.test(err.message)){localStorage.removeItem(FB.LS);$('#glMsg').textContent='צריך להתחבר מחדש. סגור ופתח שוב.'}else $('#glMsg').textContent='לא הצלחתי לטעון את המאגר. בדוק את החיבור לאינטרנט.'});
+ }).catch(err=>{const m=String(err&&err.message||err);const det=(m.match(/"message"\s*:\s*"([^"]+)"/)||[])[1]||m.slice(0,140);
+  if(m==='signin'||/HTTP 40[01]|INVALID_REFRESH|TOKEN_EXPIRED|USER_NOT_FOUND|UNAUTHENTICATED/.test(m)){localStorage.removeItem(FB.LS);$('#glMsg').innerHTML='ההתחברות פגה. <button class="btn sm" id="glRe">התחבר מחדש</button><br><small dir="ltr" style="opacity:.6">'+esc(det)+'</small>';$('#glRe').onclick=()=>{closeModal();genLibModal()}}
+  else if(/HTTP 403|PERMISSION_DENIED/.test(m)){$('#glMsg').innerHTML='אין הרשאה לקרוא את המאגר.<br><small dir="ltr" style="opacity:.6">'+esc(det)+'</small>'}
+  else $('#glMsg').innerHTML='לא הצלחתי לטעון את המאגר.<br><small dir="ltr" style="opacity:.6">'+esc(det)+'</small>'});
  $('#glGo').onclick=async()=>{
   const picks=[...document.querySelectorAll('#glList [data-gl]')].filter(c=>c.checked).map(c=>list[+c.dataset.gl]);if(!picks.length)return toast('לא נבחרו שירים');
   closeModal();toast('מוסיף '+picks.length+' שירים…');let added=0,upd=0;
