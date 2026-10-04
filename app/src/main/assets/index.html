@@ -663,6 +663,13 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
 .updBar{position:fixed;left:50%;transform:translateX(-50%);top:calc(12px + env(safe-area-inset-top,0px));z-index:45;display:flex;align-items:center;gap:10px;padding:12px 14px 12px 18px;border:0;border-radius:14px;background:#E8A23A;color:#17120A;font-size:15px;box-shadow:0 10px 40px rgba(0,0,0,.5);max-width:calc(100vw - 24px)}
 .updBar b{font-weight:800}.updX{display:inline-flex;margin-inline-start:6px;opacity:.7;padding:4px;font-style:normal}
 .updProg{height:10px;border-radius:6px;background:#2A2D33;overflow:hidden;margin:6px 0 4px}.updProg i{display:block;height:100%;width:0;background:#E8A23A;transition:width .2s}
+.edStyleBtn,.styleBack{display:none}
+@media (max-width:760px){
+ .edStyleBtn{display:inline-flex}
+ #edit.styleOpen .style{display:flex!important;position:fixed;left:0;right:0;bottom:0;width:auto;max-height:72vh;z-index:31;border-right:0;border-top:1px solid var(--ln2);border-radius:20px 20px 0 0;box-shadow:0 -20px 60px rgba(0,0,0,.6);padding:18px 16px calc(24px + env(safe-area-inset-bottom,0px));overflow-y:auto}
+ #edit.styleOpen .styleBack{display:block;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:30}
+ #edit.styleOpen .edStyleBtn{background:#2A2419;color:#F4C77A;border-color:#E8A23A}
+}
 /* ---- phone ---- */
 @media (max-width:600px){
  .hdr{padding:10px 12px!important;gap:6px!important}
@@ -722,6 +729,8 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
  #edit>.hdr .btn{height:38px;padding:0 10px;font-size:14px}
  #edit>.hdr #edPlay{flex:1;justify-content:center}
  #edit>.hdr .chUndo{font-size:0;gap:0;width:38px;padding:0!important;justify-content:center}
+ #edit>.hdr .edStyleBtn span{display:none}
+ #edit>.hdr .edStyleBtn{width:38px;padding:0!important;justify-content:center}
  .titleIn{font-size:20px;width:100%}
  .pTop{padding-left:12px!important;padding-right:12px!important}
  .pInner{padding-left:14px!important;padding-right:14px!important}
@@ -809,6 +818,7 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
       <div class="edSub"><input id="edArtist" placeholder="שם האמן" aria-label="שם האמן"><span>·</span><select id="edKey" aria-label="סולם" dir="ltr"></select></div>
     </div>
     <div class="flex1"></div>
+    <button class="btn edStyleBtn" id="edStyleBtn" aria-label="עיצוב"><i data-ic="text" data-s="18"></i><span>עיצוב</span></button>
     <button class="btn chUndo" id="chUndo" aria-label="בטל פעולה אחרונה" disabled><i data-ic="undo" data-s="18"></i>Undo</button>
     <button class="btn" id="edNik" aria-pressed="false"><span>ניקוד</span></button>
     <button class="btn" id="edChords" aria-pressed="false"><i data-ic="chord" data-s="18"></i>אקורדים</button>
@@ -819,6 +829,7 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
   <div class="edBody">
     <aside class="struct scroll" id="struct"></aside>
     <main class="edMain scroll" id="blocks"></main>
+<div class="styleBack" id="styleBack"></div>
     <aside class="style scroll" id="style"></aside>
   </div>
 </section>
@@ -1423,7 +1434,7 @@ $('#q').addEventListener('input',()=>{LIB.reorder=false;renderLib()});
 /* ========= editor ========= */
 const ED={id:null,chords:false};
 function curSong(){return S.songs.find(s=>s.id===ED.id)}
-function openEditor(id){ED.id=id;ED.chords=false;$('#edChords').classList.remove('act');$('#edit').classList.remove('chordMode');show('edit');renderEditor();$('#blocks').scrollTop=0}
+function openEditor(id){$('#edit').classList.remove('styleOpen');ED.id=id;ED.chords=false;$('#edChords').classList.remove('act');$('#edit').classList.remove('chordMode');show('edit');renderEditor();$('#blocks').scrollTop=0}
 function closeEditor(force){
  const s=curSong();
  if(s&&s.draft&&!force){
@@ -1972,6 +1983,7 @@ function setChordMode(on){
  renderBlocks();
 }
 $('#chUndo').onclick=()=>chUndo();
+$('#edStyleBtn').onclick=()=>$('#edit').classList.toggle('styleOpen');$('#styleBack').onclick=()=>$('#edit').classList.remove('styleOpen');
 $('#edChords').onclick=()=>{const s=curSong();if(!s||s.kind==='pdf')return;if(!resolve(s).some(p=>p.text.trim()))return toast('הוסף קודם מילים לשיר');setChordMode(!ED.chords)};
 
 /* ========= nikud (Dicta Nakdan) ========= */
