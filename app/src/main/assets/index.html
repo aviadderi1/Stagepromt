@@ -3856,7 +3856,7 @@ function genLibModal(pick){
   if(!list.length){$('#glMsg').textContent='אין עדיין שירים במאגר.';return}
   $('#glMsg').textContent=list.length+' שירים במאגר. סמן מה להוסיף.';
   $('#glList').innerHTML='<div class="glRows">'+list.map((x,i)=>{const h=have[x.id];const st=!h?'חדש':((x.updatedAt||0)>(h.srcUpd||0)?'עודכן במאגר':'כבר בספרייה');
-   return '<label class="glRow" data-glq="'+esc(normTxt((x.title||'')+' '+(x.artist||'')+' '+(x.list||'')))+'"><input type="checkbox" data-gl="'+i+'"'+(pick||st==='כבר בספרייה'?'':' checked')+'>'+avatarHtml(x.artistImg?esc(x.artistImg):'',x.artist||x.title,'glAv')+'<span class="flex1"><b>'+esc(x.title)+'</b><small>'+esc([x.artist,x.list].filter(Boolean).join(' · '))+'</small></span><span class="glSt">'+st+'</span></label>'}).join('')+'</div>';
+   return '<label class="glRow" data-glq="'+esc(normTxt((x.title||'')+' '+(x.artist||'')+' '+(x.list||'')))+'"><input type="checkbox" data-gl="'+i+'"'+(pick||st==='כבר בספרייה'?'':' checked')+'>'+(x.artistImg?'<img class="glAv" alt="" referrerpolicy="no-referrer" src="'+esc(x.artistImg)+'" onerror="this.outerHTML=\'<span class=&quot;glAv ph&quot;>'+esc((x.artist||x.title||'♪').trim().charAt(0))+'</span>\'">':avatarHtml('',x.artist||x.title,'glAv'))+'<span class="flex1"><b>'+esc(x.title)+'</b><small>'+esc([x.artist,x.list].filter(Boolean).join(' · '))+'</small></span><span class="glSt">'+st+'</span></label>'}).join('')+'</div>';
   $('#glGo').disabled=false;
   const upd=()=>{const n=[...document.querySelectorAll('#glList [data-gl]')].filter(c=>c.checked).length;$('#glGo').innerHTML=ic('check',18)+(n?'הוסף '+(n===1?'שיר אחד':n+' שירים'):'הוסף לספרייה')};
   $('#glList').addEventListener('change',upd);upd();

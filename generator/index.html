@@ -416,7 +416,7 @@ const newId=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
 const OWNER="aviadderi1@gmail.com";
 const pub={
   isOwner(){const st=FB.mem||fbAuthState();return !!(st&&st.email&&st.email.toLowerCase()===OWNER)},
-  async put(s){if(!this.isOwner())return;const st=await fbToken();const d={title:s.title||"",artist:s.artist||"",list:s.list||"",text:s.text||"",bg:s.bg||{},order:s.order||0,updatedAt:s.updatedAt||Date.now()};
+  async put(s){if(!this.isOwner())return;const st=await fbToken();const d={title:s.title||"",artist:s.artist||"",list:s.list||"",text:s.text||"",bg:s.bg||{},artistImg:s.artistImg||"",order:s.order||0,updatedAt:s.updatedAt||Date.now()};
     await fbReq("PATCH",FB.base+"/library/"+s.id,{fields:toFS(d).mapValue.fields},{Authorization:"Bearer "+st.token})},
   async del(id){if(!this.isOwner())return;const st=await fbToken();try{await fbReq("DELETE",FB.base+"/library/"+id,null,{Authorization:"Bearer "+st.token})}catch(e){}},
   async sync(list){if(!this.isOwner())return;for(const s of list){try{if(s.stage&&s.text)await this.put(s)}catch(e){console.warn("pub",e);if(e.status===403){toast("אין הרשאה לכתוב למאגר הציבורי. בדקו את חוקי Firestore.");return}}}}
