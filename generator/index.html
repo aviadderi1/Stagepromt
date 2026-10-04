@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Assistant:wght@400;600;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <style>
 /* Layout: a songbook workbench — generator bar on top, a wall of slide cards below, each card a 16:9 slide with its own tools */
 :root{
@@ -109,10 +111,13 @@ textarea{line-height:1.6;resize:vertical}
 
   <section class="gen" id="login" hidden aria-label="התחברות">
     <strong style="font-family:var(--f-display);font-size:22px">התחברות למאגר</strong>
-    <p class="hint" style="margin:0">אותו משתמש Firebase שאיתו נכנסים במסך "מאגר מהמחולל" ב-StagePromt.</p>
+    <button class="primary" id="ggo" style="align-self:flex-start"><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>התחבר עם Google</button>
+    <details><summary class="hint" style="cursor:pointer">או התחברות עם אימייל וסיסמה</summary>
+    <p class="hint" style="margin:8px 0 0">אותם פרטים שאיתם נכנסים במסך "מאגר מהמחולל" ב-StagePromt.</p>
     <div class="gen-row"><input id="lem" type="email" dir="ltr" placeholder="אימייל" autocomplete="username"><input id="lpw" type="password" dir="ltr" placeholder="סיסמה" autocomplete="current-password"></div>
     <div class="err" id="lerr" role="alert"></div>
-    <div class="gen-row"><button class="primary" id="lgo">התחבר</button></div>
+    <div class="gen-row"><button id="lgo">התחבר</button></div>
+    </details>
   </section>
   <div id="app" hidden style="display:contents">
   <section class="gen" aria-label="יצירת רשימת שירים">
@@ -153,7 +158,14 @@ textarea{line-height:1.6;resize:vertical}
     <button id="bkbtn">גיבוי</button>
     <label class="btn" for="imp">ייבוא גיבוי</label>
     <input type="file" id="imp" accept=".json,application/json" hidden>
+    <button class="ghost" id="apppw">סיסמה לאפליקציה</button>
     <button class="ghost" id="logout">התנתק</button>
+  </section>
+  <section class="gen" id="pwbox" hidden aria-label="סיסמה לאפליקציה">
+    <strong>סיסמה ל-StagePromt</strong>
+    <p class="hint" style="margin:0">באפליקציה מתחברים עם האימייל <b id="pwmail" dir="ltr"></b> והסיסמה שתקבע כאן. כך שתיהן רואות את אותו מאגר.</p>
+    <div class="gen-row"><input id="newpw" type="password" dir="ltr" placeholder="סיסמה חדשה, 6 תווים לפחות" autocomplete="new-password"><button class="primary" id="setpw">שמור סיסמה</button></div>
+    <div class="err" id="pwerr" role="alert"></div>
   </section>
   <div class="toolbar"><div class="chips" id="chips"></div><span class="stats" id="stats"></span></div>
 
@@ -553,8 +565,23 @@ function start(){$("#login").hidden=true;$("#app").hidden=false;$("#app").style.
 function showLogin(){try{localStorage.removeItem(FB.LS)}catch(e){}FB.mem=null;$("#app").hidden=true;$("#login").hidden=false}
 $("#lgo").onclick=async()=>{const e=$("#lem").value.trim(),p=$("#lpw").value;const er=$("#lerr");if(!e||!p){er.textContent="מלאו אימייל וסיסמה.";return}
   er.textContent="מתחבר…";try{await fbSignIn(e,p);er.textContent="";start()}catch(x){er.textContent=/INVALID|PASSWORD|EMAIL|USER/.test(x.message)?"האימייל או הסיסמה שגויים.":"ההתחברות נכשלה. בדקו את החיבור לאינטרנט."}};
+let fbApp=null;function fbSdk(){if(!window.firebase)return null;if(!fbApp)fbApp=firebase.initializeApp({apiKey:FB.key,authDomain:"stagepromt.firebaseapp.com",projectId:FB.project});return fbApp}
+async function useSdkUser(u){const t=await u.getIdTokenResult();const st={uid:u.uid,email:u.email,refresh:u.refreshToken,token:t.token,exp:new Date(t.expirationTime).getTime()-60000};try{localStorage.setItem(FB.LS,JSON.stringify(st))}catch(e){}FB.mem=st;start()}
+$("#ggo").onclick=async()=>{const er=$("#lerr");const app=fbSdk();if(!app){er.textContent="רכיב ההתחברות של גוגל לא נטען. בדקו את החיבור לאינטרנט.";return}
+  er.textContent="";const auth=app.auth();const prov=new firebase.auth.GoogleAuthProvider();prov.setCustomParameters({prompt:"select_account"});
+  try{const r=await auth.signInWithPopup(prov);await useSdkUser(r.user)}catch(x){
+    if(x.code==="auth/popup-blocked"||x.code==="auth/operation-not-supported-in-this-environment"){try{await auth.signInWithRedirect(prov)}catch(y){er.textContent="ההתחברות נכשלה: "+(y.code||y.message)}return}
+    if(x.code==="auth/popup-closed-by-user"||x.code==="auth/cancelled-popup-request")return;
+    er.textContent=x.code==="auth/unauthorized-domain"?"צריך להוסיף את הדומיין aviadderi1.github.io ב-Firebase ← Authentication ← Settings ← Authorized domains.":x.code==="auth/operation-not-allowed"?"צריך להפעיל את Google ב-Firebase ← Authentication ← Sign-in method.":"ההתחברות נכשלה: "+(x.code||x.message)}};
+(async()=>{const app=fbSdk();if(!app)return;try{const r=await app.auth().getRedirectResult();if(r&&r.user)await useSdkUser(r.user)}catch(e){}})();
+$("#apppw").onclick=()=>{const b=$("#pwbox");b.hidden=!b.hidden;const st=FB.mem||fbAuthState();$("#pwmail").textContent=st&&st.email||""};
+$("#setpw").onclick=async()=>{const p=$("#newpw").value;const er=$("#pwerr");if(p.length<6){er.textContent="הסיסמה צריכה להיות באורך 6 תווים לפחות.";return}
+  er.textContent="שומר…";try{const st=await fbToken();const j=await fbReq("POST","https://identitytoolkit.googleapis.com/v1/accounts:update?key="+FB.key,{idToken:st.token,password:p,returnSecureToken:true});
+    if(j.idToken){Object.assign(st,{token:j.idToken,refresh:j.refreshToken||st.refresh,exp:Date.now()+(+j.expiresIn||3600)*1000-60000});try{localStorage.setItem(FB.LS,JSON.stringify(st))}catch(e){}}
+    $("#newpw").value="";er.textContent="";$("#pwbox").hidden=true;toast("הסיסמה נשמרה. התחברו איתה ב-StagePromt")}
+  catch(x){er.textContent=/CREDENTIAL_TOO_OLD|TOKEN_EXPIRED/.test(x.message)?"צריך להתחבר מחדש לפני שינוי סיסמה. התנתקו והתחברו שוב.":/WEAK_PASSWORD/.test(x.message)?"הסיסמה חלשה מדי.":"לא הצלחתי לשמור את הסיסמה."}};
 $("#lpw").addEventListener("keydown",e=>{if(e.key==="Enter")$("#lgo").click()});
-$("#logout").onclick=()=>{showLogin();SONGS=[];renderAll()};
+$("#logout").onclick=()=>{try{fbSdk()&&fbApp.auth().signOut()}catch(e){}showLogin();SONGS=[];renderAll()};
 if(fbAuthState())start();else showLogin();
 </script>
 </body>
