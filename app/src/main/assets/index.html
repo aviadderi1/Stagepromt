@@ -3956,6 +3956,15 @@ function pickFolderFor(n){return new Promise(done=>{
 /* ========= account sync (Firestore, per user) ========= */
 const SY={busy:false,t:null,applying:false,last:0,err:''};
 function syncState(){S.sync=S.sync||{at:0,push:0,del:[],delF:[],blobs:{}};S.sync.del=S.sync.del||[];S.sync.delF=S.sync.delF||[];S.sync.blobs=S.sync.blobs||{};return S.sync}
+function dedupeLocal(){const out={songs:[],folders:[]};
+ const fg={};S.folders.forEach(f=>{const k=normTxt(f.name||'');(fg[k]=fg[k]||[]).push(f)});
+ const remap={};Object.values(fg).forEach(g=>{if(g.length<2)return;g.sort((a,b)=>a.id<b.id?-1:1);g.slice(1).forEach(f=>{remap[f.id]=g[0].id;out.folders.push(f.id)})});
+ if(out.folders.length){S.folders=S.folders.filter(f=>!remap[f.id]);S.songs.forEach(s=>{if(remap[s.folderId]){s.folderId=remap[s.folderId];s.updated=Date.now()}})}
+ const sg={};S.songs.forEach(s=>{if(s.draft||pristineSample(s))return;const k=(s.kind||'text')+'|'+normTxt(s.title)+'|'+normTxt(s.artist);(sg[k]=sg[k]||[]).push(s)});
+ Object.values(sg).forEach(g=>{if(g.length<2)return;g.sort((a,b)=>(b.updated||0)-(a.updated||0)||(a.id<b.id?-1:1));const keep=g[0];
+  g.slice(1).forEach(s=>{if(!keep.folderId&&s.folderId)keep.folderId=s.folderId;if(!keep.img&&s.img)keep.img=s.img;if(s.fav)keep.fav=true;out.songs.push(s.id)})});
+ if(out.songs.length)S.songs=S.songs.filter(s=>!out.songs.includes(s.id));
+ return out}
 function pristineSample(s){return s.title==='אור ראשון (שיר לדוגמה)'&&(s.updated||0)<=(s.created||0)+2000}
 function syncTomb(k,ids){const y=syncState(),t=Date.now();ids.forEach(id=>{y[k]=y[k].filter(x=>x.id!==id);y[k].push({id,t})})}
 function signedIn(){const st=fbAuthState();return !!(st&&st.refresh)}
@@ -3993,10 +4002,11 @@ async function fullSync(manual){if(!signedIn()||SY.busy)return;SY.busy=true;SY.e
    if(delMap[c.id]&&delMap[c.id]>=(c.u||0)){writes.push({delete:FS_NAME()+'/users/'+st.uid+'/appSongs/'+c.id});continue}
    const loc=S.songs.find(x=>x.id===c.id);
    if(!loc||(c.u||0)>(loc.updated||0)){try{const ns=JSON.parse(c.j);ns.parts=ns.parts||[];ns.style=Object.assign(clone(DEF_STYLE),ns.style||{});ns.updated=c.u||ns.updated;if(loc)Object.assign(loc,ns);else S.songs.push(ns);changed=true}catch(e){}}}
-  for(const s of S.songs){if(s.draft||pristineSample(s))continue;const c=cloud[s.id];if(!c||(s.updated||0)>(c.u||0))writes.push(songWrite(st,await cloudSongJson(s),s.id,s.updated||Date.now()))}
   const delFMap={};delF.forEach(x=>delFMap[x.id]=1);
   const cf=meta.folders?JSON.parse(meta.folders):[];const fm={};S.folders.forEach(f=>fm[f.id]=f);cf.forEach(f=>{if(!fm[f.id]){S.folders.push(f);fm[f.id]=f;changed=true}});
   const fb=S.folders.length;S.folders=S.folders.filter(f=>!delFMap[f.id]);if(S.folders.length!==fb)changed=true;
+  {const now=Date.now(),rm=dedupeLocal();rm.songs.forEach(id=>{del.push({id,t:now});if(cloud[id])writes.push({delete:FS_NAME()+'/users/'+st.uid+'/appSongs/'+id})});rm.folders.forEach(id=>delF.push({id,t:now}));if(rm.songs.length||rm.folders.length)changed=true}
+  for(const s of S.songs){if(s.draft||pristineSample(s))continue;const c=cloud[s.id];if(!c||(s.updated||0)>(c.u||0))writes.push(songWrite(st,await cloudSongJson(s),s.id,s.updated||Date.now()))}
   if(meta.styleU&&meta.styleU>(S.defStyleU||0)&&meta.defStyle){S.defStyle=JSON.parse(meta.defStyle);S.defStyleU=meta.styleU}
   if(meta.pedalU&&meta.pedalU>(S.pedalU||0)&&meta.pedal){S.pedal=JSON.parse(meta.pedal);S.pedalU=meta.pedalU}
   const m2={folders:JSON.stringify(S.folders),del:JSON.stringify(del),delF:JSON.stringify(delF),defStyle:JSON.stringify(S.defStyle||{}),styleU:S.defStyleU||0,pedal:JSON.stringify(S.pedal||{}),pedalU:S.pedalU||0,blobs:meta.blobs||{},u:Date.now()};
