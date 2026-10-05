@@ -39,6 +39,7 @@ select option{background:#1A1C20;color:#F2EEE6}
 .seg button{height:38px;padding:0 14px;background:transparent;color:var(--mu);border:0;border-radius:8px;font-size:14px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap}
 .seg button.on{background:var(--ln2);color:var(--tx);font-weight:700}
 .seg.full button{flex:1}
+.seg #selBtn.selOn{background:#2A2419;color:#F4C77A}
 .field{height:46px;padding:0 14px;background:var(--fld);border:1px solid var(--ln2);border-radius:12px;font-size:16px;color:var(--tx);outline:none;width:100%}
 .pill{width:24px;height:24px;border-radius:6px;color:#111214;font-size:13px;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
 .t-verse{background:var(--ve)}.t-chorus{background:var(--ch)}.t-bridge{background:var(--br)}.t-note{background:var(--no)}
@@ -726,14 +727,12 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
  .mhead .sub{margin:0;font-size:13px;white-space:nowrap}
  .mhTog{display:inline-flex;width:34px;height:34px;flex-shrink:0;transition:transform .2s}
  .mhead.open .mhTog{transform:rotate(180deg)}
- .mhead:not(.open) .seg,.mhead:not(.open) #reorderBtn,.mhead:not(.open) #selBtn:not(.pri){display:none}
+ .mhead:not(.open) .seg:not(:has(.selOn)),.mhead:not(.open) #reorderBtn{display:none}
  .mhead .seg{order:1}
  .mhead #reorderBtn{order:3}
- .mhead #selBtn{order:2}
  .mhead .btn{height:36px;padding:0 10px;font-size:14px}
  .mhead .seg button{padding:0 9px;font-size:13.5px;height:34px}
  .mhead #reorderBtn{font-size:0;gap:0;width:36px;padding:0;justify-content:center}
- .mhead #selBtn{padding:0 8px;gap:4px;font-size:13.5px}
  .main{gap:10px}
  #lib>.hdr #libNew{grid-row:2;grid-column:3}
  #lib>.hdr #gearBtn{grid-row:1;grid-column:5;justify-self:end;margin-inline-end:50px}
@@ -1354,9 +1353,9 @@ function renderLib(){
  const reorder=S.ui.sort==='set'&&LIB.reorder;
  const sb=(k,l)=>'<button data-sort="'+k+'" class="'+(S.ui.sort===k?'on':'')+'">'+l+'</button>';
  $('#mhead').innerHTML=(navHid()?'<button class="btn" id="navShow">'+ic('folder',18)+'תיקיות</button>':'')+'<div class="flex1"><h1>'+esc(folderName(S.ui.folder))+'</h1><div class="sub">'+(all.length===1?'שיר אחד':all.length+' שירים')+'</div><button class="ib mhTog" id="mhTog" aria-label="מיון ובחירה" aria-expanded="'+(LIB.mhOpen?'true':'false')+'">'+ic('down',20)+'</button></div>'+
-  (list.length&&!reorder?'<button class="btn'+(LIB.sel?' pri':'')+'" id="selBtn">'+ic('check',18)+(LIB.sel?'סיום בחירה':'בחירה')+'</button>':'')+
+
   (S.ui.sort==='set'&&list.length>1&&!$('#q').value&&!LIB.sel?'<button class="btn'+(reorder?' pri':'')+'" id="reorderBtn">'+ic('sort',18)+(reorder?'סיום':'שנה סדר')+'</button>':'')+
-  '<div class="seg">'+sb('set','סדר הופעה')+sb('az','א–ת')+sb('recent','אחרונים')+'</div>';
+  '<div class="seg">'+(list.length&&!reorder?'<button id="selBtn" class="'+(LIB.sel?'on selOn':'')+'">'+(LIB.sel?'סיום בחירה':'בחירה')+'</button>':'')+sb('set','סדר הופעה')+sb('az','א–ת')+sb('recent','אחרונים')+'</div>';
 
  const G=$('#grid');
  if(!list.length){
