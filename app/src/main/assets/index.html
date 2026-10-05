@@ -3262,7 +3262,7 @@ async function siteSongs(q,onPart){
  const E=encodeURIComponent,kw=q.replace(/^\s*שירי\s+/,''),out=[],seen=new Set();
  const clean=t=>String(t||'').replace(/\s*[|｜]\s*.*$/,'').replace(/^(?:מילים|אקורדים)\s+ל?שיר\s+/,'').replace(/\s*[-–]\s*(?:מילים|אקורדים|שירונט|זמרשת|נגנו|tab4u).*$/i,'').trim();
  const push=(list,site)=>{let n=0;list.forEach(r=>{let t=r.title,a=r.artist||'';if(!a){const m=t.match(/(?:אקורדים|מילים)\s+ל?שיר\s+(.+)\s+של\s+(.+?)(?:\s*[|｜].*)?$/);if(m){t=m[1];a=m[2]}}if(!a){const pt=parseTitle(t);if(pt.title){t=pt.title;a=pt.artist||''}}t=clean(t);a=clean(a);
-   const k=normTxt(t);if(!k||k.length<2||t.length>60||seen.has(k)||/[\u0590-\u05FF]/.test(q)&&!/[\u0590-\u05FF]/.test(t))return;seen.add(k);out.push({title:t,artist:a.slice(0,40),url:r.url,era:site.n,site:1});n++});if(n&&onPart)onPart(out.slice())};
+   const k=normTxt(t);if(!k||k.length<2||t.length>60||seen.has(k)||/[\u0590-\u05FF]/.test(q)&&!/[\u0590-\u05FF]/.test(t))return;seen.add(k);out.push({title:t,artist:a.slice(0,40),url:r.url,era:'נמצאו ברשת',site:1});n++});if(n&&onPart)onPart(out.slice())};
  const fromEngine=(h,u,site)=>{if(site.d.startsWith('shironet'))return shironetFrom(h,u);const b=/bing/.test(u)?parseBing(h):parseDDG(h);
    return b.filter(r=>r.url.includes(site.d)&&site.ok(r.url))};
  const jobs=[];
@@ -3331,7 +3331,7 @@ function renderCatPrev0(E){
  if(WCAT.lib.length)h+='<section class="catSec lib"><div class="catSecH">'+ic('music',18)+'<b>במאגר השירים</b><span>'+WCAT.lib.length+'</span><small>מוכנים עם רקע · הוספה בלחיצה</small></div><div class="catGrid">'+
   WCAT.lib.map((x,i)=>'<div class="catCard"><div class="catInfo">'+(x.artistImg?'<img class="catAv" alt="" referrerpolicy="no-referrer" src="'+esc(x.artistImg)+'">':avatarHtml('',x.artist||x.title,'catAv'))+'<span><b>'+esc(x.title)+'</b><small>'+esc(x.artist||'')+'</small></span></div><button class="btn sm pri" data-catlib="'+i+'">'+ic('plus',16)+'הוסף</button></div>').join('')+'</div></section>';
  if(WCAT.ai.length){const g={};WCAT.ai.forEach((x,i)=>{const k=x.era||'שונות';(g[k]=g[k]||[]).push(i)});
-  Object.keys(g).sort((a,b)=>{const sa=LSITES.findIndex(x=>x.n===a),sb=LSITES.findIndex(x=>x.n===b);return (sa<0?99:sa)-(sb<0?99:sb)||eraNum(a)-eraNum(b)||g[b].length-g[a].length}).forEach(k=>{h+='<section class="catSec"><div class="catSecH"><b>'+esc(k)+'</b><span>'+g[k].length+'</span></div><div class="catGrid">'+
+  Object.keys(g).sort((a,b)=>{const sa=a==='נמצאו ברשת'?0:99,sb=b==='נמצאו ברשת'?0:99;return sa-sb||eraNum(a)-eraNum(b)||g[b].length-g[a].length}).forEach(k=>{h+='<section class="catSec"><div class="catSecH"><b>'+esc(k)+'</b><span>'+g[k].length+'</span></div><div class="catGrid">'+
    g[k].map(i=>{const x=WCAT.ai[i];return '<button class="catCard song" data-catai="'+i+'"><div class="catInfo">'+avatarHtml('',x.artist||x.title,'catAv')+'<span><b>'+esc(x.title)+'</b><small>'+esc(x.artist||'')+'</small></span></div>'+ic('search',18)+'</button>'}).join('')+'</div></section>'})}
  if(!WCAT.busy){if(WCAT.err){const[a,b]=WCAT.err.split('|');h+='<p class="catErr">'+esc(a)+(b?'<br><small dir="ltr" style="opacity:.55">'+esc(b)+'</small>':'')+'</p>'}
   if(WCAT.ai.length)h+='<div class="catMore"><button class="btn" id="catMore">'+ic('plus',16)+'מצא עוד שירים</button></div>';
@@ -3361,6 +3361,14 @@ function songOfArtist(i){
  if(r.url){WEB.artistMode='';WEB.songs=[];WEB.res=[r];renderWebRes();return pickWeb(0)}
  $('#wq').value=r.title;$('#wa').value=r.artist||WEB.back.artist;doWebSearch(true);
 }
+const SITE_RX=/\s*[|｜–—-]\s*(?:שירונט|shironet|tab4u|נגנו|nagnu|זמרשת|zemereshet|mako|genius|azlyrics|musixmatch|lyrics\.com|letras|songlyrics|lyricsfreak|lyricstranslate)(?![A-Za-z]).*$/i;
+function resDisp(r){let t=String(r.title||'').replace(/\s+/g,' ').trim(),a='',m;
+ t=t.replace(SITE_RX,'').replace(/\s*[|｜].*$/,'').replace(/\s*[-–]\s*(?:מילים לשיר|מילים|אקורדים|lyrics|chords|tabs)\s*$/i,'').trim();
+ if((m=t.match(/^(?:אקורדים|מילים)\s+ל?שיר\s+(.+)\s+של\s+(.+)$/)))[t,a]=[m[1],m[2]];
+ else if((m=t.match(/^(.+?)\s+(?:lyrics|chords)\s*(?:[-–]|by)\s*(.+)$/i)))[t,a]=[m[1],m[2]];
+ else if((m=t.match(/^(.+?)\s+[-–]\s+(.+)$/)))[t,a]=[m[1],m[2]];
+ t=t.replace(/^(?:מילים|אקורדים)\s+ל?שיר\s+/,'').replace(/\s+lyrics$/i,'').trim()||r.title;
+ a=String(r.artist||a).replace(SITE_RX,'').replace(/\s*·.*$/,'').replace(/\s*[-–]\s*(?:מילים.*|אקורדים.*)$/,'').trim();if(/^https?:|\.(com|co\.il|net|org)\b/i.test(a))a='';return {t,a}}
 function renderWebRes(){
  const E=$('#wRes');
  const back=WEB.back&&!WEB.artistMode?'<button class="btn sm wBack" id="wBack">'+ic('back',16)+'חזרה לשירים של '+esc(WEB.back.artist)+'</button>':'';
@@ -3370,10 +3378,10 @@ function renderWebRes(){
  let top='';
  if(WEB.artistMode&&WEB.songs&&WEB.songs.length){
   top='<div class="wHead">'+ic('music',18)+'<b>השירים של '+esc(WEB.artistMode)+'</b><span>'+WEB.songs.length+'</span></div>'+
-   WEB.songs.map((r,i)=>'<button class="wItem song" data-ws="'+i+'"><b>'+esc(r.title)+'</b><span class="dom known">'+esc(r.snippet)+'</span></button>').join('')+
+   WEB.songs.map((r,i)=>'<button class="wItem song" data-ws="'+i+'"><b>'+esc(r.title)+'</b><span class="sn">'+esc(r.artist||WEB.artistMode)+'</span></button>').join('')+
    (WEB.res.length?'<div class="wHead sub"><b>תוצאות נוספות</b></div>':'');
  }
- E.innerHTML=back+top+WEB.res.map((r,i)=>'<button class="wItem'+(WEB.selUrl===r.url?' on':'')+'" data-wi="'+i+'"><b>'+esc(r.title)+'</b><span class="dom'+(r.known?' known':'')+'">'+esc(r.demo?'תצוגה מקדימה':r.direct?'lyrics.ovh':hostOf(r.url))+'</span>'+(r.snippet&&!r.direct?'<span class="sn">'+esc(r.snippet)+'</span>':'')+'</button>').join('')+(WEB.busy?'<div class="wMore"><span class="spin"></span>מחפש באתרים נוספים…</div>':'');
+ E.innerHTML=back+top+WEB.res.map((r,i)=>{const d=resDisp(r);return '<button class="wItem'+(WEB.selUrl===r.url?' on':'')+'" data-wi="'+i+'"><b>'+esc(d.t)+'</b>'+(d.a?'<span class="sn">'+esc(d.a)+'</span>':'')+'</button>'}).join('')+(WEB.busy?'<div class="wMore"><span class="spin"></span>מחפש באתרים נוספים…</div>':'');
 }
 async function pickWeb(i){
  WEB.sel=i;WEB.selUrl=WEB.res[i]&&WEB.res[i].url;WEB.cur=null;WEB.saved=null;WEB.loading=true;WEB.view='split';const tok=WEB.tok=uid();
@@ -3507,7 +3515,7 @@ $('#web').addEventListener('click',e=>{
    if(t0.id==='catKeySave'){const k=$('#catKey').value.trim();if(!k)return;S.gemKey=k;save();return doCatSearch(false)}
    if(t0.dataset.catlib!=null){const x=WCAT.lib[+t0.dataset.catlib];return pickFolderFor(1).then(d=>{if(d)importLib([x],d)})}
    if(t0.dataset.catai!=null){const x=WCAT.ai[+t0.dataset.catai];$('#wq').value=x.title;$('#wa').value=x.artist||'';wSetMode(false);WEB.back=null;
-     if(x.url){WEB.q=x.title;WEB.a=x.artist||'';WEB.artistMode='';WEB.songs=[];WEB.busy=false;WEB.res=[{title:x.title,url:x.url,artist:x.artist||'',snippet:(x.artist?x.artist+' · ':'')+x.era,known:true,first:true}];WEB.sel=-1;WEB.selUrl='';WEB.cur=null;renderWebRes();return pickWeb(0)}
+     if(x.url){WEB.q=x.title;WEB.a=x.artist||'';WEB.artistMode='';WEB.songs=[];WEB.busy=false;WEB.res=[{title:x.title,url:x.url,artist:x.artist||'',snippet:x.artist||'',known:true,first:true}];WEB.sel=-1;WEB.selUrl='';WEB.cur=null;renderWebRes();return pickWeb(0)}
      return doWebSearch()}}}}
  const t=e.target.closest('button');if(!t)return;const d=t.dataset;
  if(t.id==='webClose')return closeWeb();
