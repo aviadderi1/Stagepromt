@@ -675,6 +675,7 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
 .aeTxt{min-height:34vh;font-size:15px;line-height:1.5;resize:vertical}
 .admHead{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.admHead h2{flex:1}
 .admRow{width:100%;text-align:right;background:transparent;color:var(--tx)}
+.admFind{display:flex;gap:8px;align-items:center;margin-top:10px}.admFind .field{flex:1;margin:0}.admFind .btn{white-space:nowrap}.admSnip{opacity:.55!important;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw}.pendTag{background:#7C5CD6!important;color:#fff!important}.dupGrp{border:1px solid rgba(232,162,58,.35);border-radius:12px;padding:8px;margin:10px 0}.dupGrpH{font-size:13px;font-weight:700;color:#E8A23A;margin:0 4px 4px}.dupGrp .glRows{max-height:none;margin:0}#admRes>.glRows{max-height:50vh}#admRes{max-height:52vh;overflow:auto}
 .dupTag{display:inline-block;font-size:11px;font-weight:700;color:#17120A;background:#E8A23A;border-radius:6px;padding:1px 6px;margin-inline-start:6px;vertical-align:middle}
 .acctBtn{width:40px;height:40px;min-width:40px;border-radius:50%;padding:0;border:2px solid #3A3D44;background:#2A2D33;color:#CFC9BF;display:inline-flex;align-items:center;justify-content:center;overflow:hidden;flex:none;font-weight:800;font-size:17px}
 .acctBtn img{width:100%;height:100%;object-fit:cover;display:block}.acctBtn.on{border-color:#E8A23A}
@@ -4227,25 +4228,63 @@ function adminLoginModal(){
  $('#adGo').onclick=async()=>{const e=$('#adE').value.trim(),p=$('#adP').value;if(!e||!p)return;$('#adErr').textContent='מתחבר…';
   try{await fbSignIn(e,p);if(!isOwner()){$('#adErr').textContent='החשבון הזה אינו מנהל המאגר.';return}closeModal();adminSync();openAdmin()}catch(x){$('#adErr').textContent='האימייל או הסיסמה שגויים'}};
 }
-const ADM={tab:'pend',pend:[],lib:[],busy:false};
+const ADM={tab:'pend',pend:[],lib:[],busy:false,q:'',dup:null};
 async function adminLoad(){ADM.busy=true;try{ADM.pend=(await fbList('submissions',true)).sort((a,b)=>(b.at||0)-(a.at||0));ADM.lib=(await fbList('library',false)).filter(x=>x.text).sort((a,b)=>(a.title||'').localeCompare(b.title||'','he'))}finally{ADM.busy=false}}
 function openAdmin(){if(!isOwner())return adminLoginModal();
- openModal('<div class="admHead"><h2>ניהול מאגר</h2><div class="seg" id="admSeg"><button data-at="pend">ממתינים לאישור</button><button data-at="lib">במאגר</button></div></div><div id="admBody"><p class="mTxt">טוען…</p></div>'+
+ openModal('<div class="admHead"><h2>ניהול מאגר</h2><div class="seg" id="admSeg"><button data-at="pend">ממתינים לאישור</button><button data-at="lib">במאגר</button><button data-at="find">'+ic('search',16)+'חיפוש</button></div></div><div id="admBody"><p class="mTxt">טוען…</p></div>'+
   '<div class="acts"><button class="btn" id="admOut">התנתק</button><span class="flex1"></span><button class="btn" id="mCancel">סגור</button></div>',true);
  $('#mCancel').onclick=closeModal;$('#admOut').onclick=()=>{localStorage.removeItem(FB.LS);adminSync();closeModal();toast('התנתקת')};
  $('#admSeg').onclick=e=>{const b=e.target.closest('[data-at]');if(b){ADM.tab=b.dataset.at;renderAdmin()}};
  adminLoad().then(renderAdmin).catch(e=>{$('#admBody').innerHTML='<p class="mTxt">לא הצלחתי לטעון.<br><small dir="ltr" style="opacity:.6">'+esc(String(e.message).slice(0,160))+'</small></p>'});
 }
+function admRowHtml(x,i,pend,extra){return '<button class="glRow admRow" data-ai="'+i+'">'+(x.artistImg?'<img class="glAv" alt="" referrerpolicy="no-referrer" src="'+esc(x.artistImg)+'">':avatarHtml('',x.artist||x.title,'glAv'))+
+  '<span class="flex1"><b>'+esc(x.title||'ללא שם')+(pend&&!(extra&&extra.noPend)?' <span class="dupTag pendTag">ממתין</span>':'')+(extra&&extra.tag?' <span class="dupTag">'+esc(extra.tag)+'</span>':'')+'</b><small>'+esc([x.artist,pend?(x.by?'נשלח ע"י '+x.by:'')+(x.at?' · '+agoTxt(x.at):''):x.list].filter(Boolean).join(' · '))+'</small>'+(extra&&extra.snip?'<small class="admSnip" dir="auto">'+extra.snip+'</small>':'')+'</span>'+ic('edit',18)+'</button>'}
 function renderAdmin(){const B=$('#admBody');if(!B)return;
  $$('#admSeg [data-at]').forEach(b=>b.classList.toggle('on',b.dataset.at===ADM.tab));
  $('#admSeg [data-at=pend]').textContent='ממתינים לאישור'+(ADM.pend.length?' ('+ADM.pend.length+')':'');
- const L=ADM.tab==='pend'?ADM.pend:ADM.lib;
- if(!L.length){B.innerHTML='<p class="mTxt">'+(ADM.tab==='pend'?'אין שירים שממתינים לאישור.':'המאגר ריק.')+'</p>';return}
- B.innerHTML='<div class="glRows">'+L.map((x,i)=>'<button class="glRow admRow" data-ai="'+i+'">'+(x.artistImg?'<img class="glAv" alt="" referrerpolicy="no-referrer" src="'+esc(x.artistImg)+'">':avatarHtml('',x.artist||x.title,'glAv'))+
-  '<span class="flex1"><b>'+esc(x.title||'ללא שם')+(ADM.tab==='pend'&&findDup(ADM.lib,x.title,x.artist)?' <span class="dupTag">כבר במאגר</span>':'')+'</b><small>'+esc([x.artist,ADM.tab==='pend'?(x.by?'נשלח ע"י '+x.by:'')+(x.at?' · '+agoTxt(x.at):''):x.list].filter(Boolean).join(' · '))+'</small></span>'+ic('edit',18)+'</button>').join('')+'</div>';
- B.onclick=e=>{const r=e.target.closest('[data-ai]');if(r)adminEdit(L[+r.dataset.ai])};
+ if(ADM.tab==='find')return renderAdminFind();
+ const pend=ADM.tab==='pend',L=pend?ADM.pend:ADM.lib;
+ if(!L.length){B.innerHTML='<p class="mTxt">'+(pend?'אין שירים שממתינים לאישור.':'המאגר ריק.')+'</p>';return}
+ B.innerHTML='<div class="glRows">'+L.map((x,i)=>admRowHtml(x,i,pend,{noPend:1,tag:pend&&findDup(ADM.lib,x.title,x.artist)?'כבר במאגר':''})).join('')+'</div>';
+ B.onclick=e=>{const r=e.target.closest('[data-ai]');if(r)adminEdit(L[+r.dataset.ai],pend)};
 }
-function adminEdit(x){const pend=ADM.tab==='pend';const B=$('#admBody');
+/* ---- חיפוש + בדיקת כפילויות ---- */
+function admLyrWords(t){return normTxt(String(t||'').replace(/\[[^\]]*\]/g,' ').replace(/(^|\n)\s*(פזמון|בית|גשר|מעבר|סיום|פתיחה|chorus|verse|bridge)\s*\d*\s*:/gi,'\n')).split(' ').filter(w=>w.length>1)}
+function admShingles(t){const w=admLyrWords(t),o=new Set();if(w.length<8){w.forEach(x=>o.add(x));return o}for(let i=0;i+2<w.length;i++)o.add(w[i]+' '+w[i+1]+' '+w[i+2]);return o}
+function admFindDups(){
+ const all=ADM.lib.map(x=>({x,pend:false})).concat(ADM.pend.map(x=>({x,pend:true}))),n=all.length;
+ const sh=all.map(a=>admShingles(a.x.text)),idx=new Map();
+ sh.forEach((S,i)=>S.forEach(k=>{let a=idx.get(k);if(!a)idx.set(k,a=[]);a.push(i)}));
+ const cap=Math.max(6,Math.ceil(n*.25)),par=all.map((_,i)=>i),best=new Array(n).fill(0),why=new Array(n).fill('');
+ const fd=i=>par[i]===i?i:(par[i]=fd(par[i]));const un=(a,b)=>{a=fd(a);b=fd(b);if(a!==b)par[b]=a};
+ const mark=(i,j,sc,r)=>{un(i,j);if(sc>best[i]){best[i]=sc;why[i]=r}if(sc>best[j]){best[j]=sc;why[j]=r}};
+ for(let i=0;i<n;i++){const cnt=new Map();sh[i].forEach(k=>{const a=idx.get(k);if(a.length>cap)return;for(const j of a)if(j>i)cnt.set(j,(cnt.get(j)||0)+1)});
+  cnt.forEach((c,j)=>{const m=Math.min(sh[i].size,sh[j].size);if(!m)return;const sc=c/m;if(sc>=.6&&(c>=4||m<4))mark(i,j,sc,sc>=.97?'מילים זהות':'מילים דומות '+Math.round(sc*100)+'%')})}
+ const byT=new Map();all.forEach((a,i)=>{const t=dupKey(a.x.title);if(!t)return;const l=byT.get(t)||[];l.forEach(j=>{const A=dupKey(a.x.artist),B=dupKey(all[j].x.artist);if(!A||!B||A===B)mark(i,j,Math.max(best[i],.5),best[i]?why[i]:'אותו שם')});l.push(i);byT.set(t,l)});
+ const G=new Map();for(let i=0;i<n;i++){if(!best[i])continue;const r=fd(i);if(!G.has(r))G.set(r,[]);G.get(r).push(i)}
+ return [...G.values()].filter(g=>g.length>1).map(g=>({items:g.map(i=>Object.assign({why:why[i]},all[i])),score:Math.max(...g.map(i=>best[i]))})).sort((a,b)=>b.score-a.score);
+}
+function admSnip(text,q){const lines=String(text||'').split('\n');for(const l of lines){if(normTxt(l).includes(q))return esc(l.trim().slice(0,90))}return ''}
+function renderAdminFind(){const B=$('#admBody');
+ B.innerHTML='<div class="admFind"><input class="field" id="admQ" dir="auto" type="search" placeholder="חפש לפי שם, אמן, קטגוריה או מילים…" value="'+esc(ADM.q)+'"><button class="btn'+(ADM.dup?' pri':'')+'" id="admDup">'+ic('copy',18)+'בדיקת כפילויות</button></div><p class="hint" id="admMsg"></p><div id="admRes"></div>';
+ const draw=()=>{const R=$('#admRes'),M=$('#admMsg');let view=[];
+  if(ADM.dup){const groups=admFindDups();
+   if(!groups.length){M.textContent='לא נמצאו כפילויות ב-'+(ADM.lib.length+ADM.pend.length)+' שירים.';R.innerHTML='';B.onclick=null;return}
+   M.textContent='נמצאו '+groups.length+' קבוצות של שירים כפולים. לחץ על שיר כדי לערוך או למחוק אותו.';
+   R.innerHTML=groups.map((g,gi)=>'<div class="dupGrp"><div class="dupGrpH">כפילות '+(gi+1)+' · '+g.items.length+' שירים</div><div class="glRows">'+g.items.map(it=>{view.push(it);return admRowHtml(it.x,view.length-1,it.pend,{tag:it.why,snip:esc(String(it.x.text||'').split('\n').map(s=>s.trim()).filter(Boolean)[0]||'').slice(0,90)})}).join('')+'</div></div>').join('')}
+  else{const q=normTxt(ADM.q.trim());
+   if(!q){M.textContent='הקלד כדי לחפש ב-'+ADM.lib.length+' שירים במאגר וב-'+ADM.pend.length+' ממתינים.';R.innerHTML='';B.onclick=null;return}
+   const all=ADM.lib.map(x=>({x,pend:false})).concat(ADM.pend.map(x=>({x,pend:true})));
+   const meta=[],lyr=[];all.forEach(it=>{if(normTxt([it.x.title,it.x.artist,it.x.list,it.x.by].join(' ')).includes(q))meta.push(it);else if(normTxt(it.x.text).includes(q))lyr.push(Object.assign({snip:admSnip(it.x.text,q)},it))});
+   view=meta.concat(lyr);M.textContent=view.length?view.length+' תוצאות':'לא נמצא שיר כזה';
+   R.innerHTML='<div class="glRows">'+view.map((it,i)=>admRowHtml(it.x,i,it.pend,it.snip?{snip:it.snip}:null)).join('')+'</div>'}
+  B.onclick=e=>{const r=e.target.closest('[data-ai]');if(r){const it=view[+r.dataset.ai];adminEdit(it.x,it.pend)}};
+ };
+ $('#admQ').oninput=()=>{ADM.q=$('#admQ').value;if(ADM.dup){ADM.dup=null;$('#admDup').classList.remove('pri')}draw()};
+ $('#admDup').onclick=()=>{ADM.dup=!ADM.dup;$('#admDup').classList.toggle('pri',!!ADM.dup);if(ADM.dup){ADM.q='';$('#admQ').value=''}draw()};
+ draw();if(!ADM.dup&&!ADM.q)setTimeout(()=>{const q=$('#admQ');if(q)q.focus()},50);
+}
+function adminEdit(x,pend){if(pend==null)pend=ADM.tab==='pend';const B=$('#admBody');
  B.innerHTML='<div class="sbForm"><label>שם השיר<input class="field" id="aeT" dir="auto" value="'+esc(x.title||'')+'"></label><label>אמן<input class="field" id="aeA" dir="auto" value="'+esc(x.artist||'')+'"></label>'+
   '<label>קטגוריה<input class="field" id="aeL" dir="auto" value="'+esc(x.list||'')+'"></label><label>קישור לתמונת האמן<input class="field" id="aeI" dir="ltr" value="'+esc(/^data:/.test(x.artistImg||'')?'':(x.artistImg||''))+'" placeholder="'+(/^data:/.test(x.artistImg||'')?'(תמונה מצורפת)':'https://…')+'"></label>'+
   '<label>מילים <small>שורה ריקה בין בתים · "פזמון:" בתחילת פזמון · [פזמון] לחזרה</small><textarea class="field aeTxt" id="aeX" dir="auto">'+esc(x.text||'')+'</textarea></label></div><p class="hint" id="aeErr"></p>'+
