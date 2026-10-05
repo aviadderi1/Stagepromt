@@ -3263,21 +3263,29 @@ async function wikiSongs(q,exclude){
  return out}
 async function freeLLM(prompt){
  const tries=[
-  async()=>{const r=await aiReqOrFetch('POST','https://text.pollinations.ai/openai',JSON.stringify({model:'openai',messages:[{role:'system',content:'You return only valid JSON.'},{role:'user',content:prompt}],response_format:{type:'json_object'},referrer:'stagepromt',private:true}),{'Content-Type':'application/json'});
-   const j=JSON.parse(r);return ((((j.choices||[])[0]||{}).message)||{}).content||''},
-  async()=>await aiReqOrFetch('GET','https://text.pollinations.ai/'+encodeURIComponent(prompt)+'?json=true&referrer=stagepromt&private=true','',null)];
- let last=null;for(const f of tries){try{const t=await f();if(t&&/title/.test(t))return t;last=new Error('empty')}catch(e){last=e}}throw last||new Error('failed')}
+  async()=>{const r=await aiReqOrFetch('POST','https://text.pollinations.ai/openai',JSON.stringify({model:'openai',messages:[{role:'user',content:prompt}],referrer:'stagepromt',private:true}),{'Content-Type':'application/json'});
+   let j;try{j=JSON.parse(r)}catch(e){return r}return ((((j.choices||[])[0]||{}).message)||{}).content||''},
+  async()=>await aiReqOrFetch('GET','https://text.pollinations.ai/'+encodeURIComponent(prompt)+'?referrer=stagepromt&private=true','',null)];
+ let last=null;for(const f of tries){try{const t=await f();if(t&&parseSongText(t).length)return t;last=new Error('empty')}catch(e){last=e}}throw last||new Error('failed')}
+function parseSongText(t){t=String(t||'').replace(/```(?:json)?/g,'');const out=[];
+ const add=(ti,ar,er)=>{ti=String(ti||'').replace(/^[\s\d.)\-•*"']+|["'\s]+$/g,'').trim();if(!ti||ti.length>80||/^(title|שם השיר)$/i.test(ti))return;out.push({title:ti,artist:String(ar||'').replace(/^["'\s]+|["'\s]+$/g,'').trim().slice(0,80),era:String(er||'').replace(/^["'\s]+|["'\s.]+$/g,'').trim().slice(0,24)})};
+ try{const j=JSON.parse(t.trim());(Array.isArray(j)?j:(j.songs||[])).forEach(x=>x&&add(x.title,x.artist,x.era));if(out.length)return out}catch(e){}
+ const re=/\{[^{}]*?"title"\s*:\s*"((?:[^"\\]|\\.)*)"[^{}]*?\}/g;let m;while((m=re.exec(t))){const o=m[0],g=k=>{const x=o.match(new RegExp('"'+k+'"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"'));return x?x[1]:''};add(m[1],g('artist'),g('era'))}
+ if(out.length)return out;
+ t.split(/\n+/).forEach(l=>{l=l.trim();if(!l||l.length>160)return;const p=l.split(/\s*[|｜]\s*/);if(p.length>=2)return add(p[0],p[1],p[2]);const d=l.split(/\s+[–—-]\s+/);if(d.length>=2)add(d[0],d[1],d[2])});
+ return out}
 async function aiReqOrFetch(method,url,body,headers){
  if(window.Android&&window.Android.aiReq){const r=await aiReq(method,url,body||'',headers,false,90000);return r.text}
  const r=await fetch(url,{method,headers:headers||{},body:method==='GET'?undefined:body});const t=await r.text();if(!r.ok)throw new Error('HTTP '+r.status);return t}
 async function gemSongList(q,key,exclude){
- const ex=exclude&&exclude.length?'\nאל תחזור על: '+exclude.slice(-120).join(' | '):'';
- const prompt='אתה עוזר לבנות רשימת שירים עבריים לזמרים ולמוזיקאים.\nהבקשה: "'+q+'"\nהחזר JSON בלבד: {"songs":[{"title":"שם השיר","artist":"מבצע","era":"שנות ה-70"}]}\nהחזר בין 40 ל-80 שירים אמיתיים ומוכרים שמתאימים לבקשה, מתקופות ומבצעים שונים. era הוא העשור בפורמט "שנות ה-XX".'+ex;
- let t;if(key){try{t=await gemCall(key,{contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{responseMimeType:'application/json',temperature:.5,maxOutputTokens:12000}})}catch(e){t=null}}
- if(!t){try{t=await freeLLM(prompt)}catch(e){WCAT.llmErr=String(e.message||e)}}
- if(!t){const w=await wikiSongs(q,exclude);if(w.length){WCAT.src='wiki';return w}throw new Error(WCAT.llmErr||'failed')}WCAT.src='ai';
- let j;const c=String(t).replace(/^```(?:json)?\s*|\s*```$/g,'').trim();try{j=JSON.parse(c)}catch(e){const m=c.match(/[\[{][\s\S]*[\]}]/);j=m?JSON.parse(m[0]):{}}
- return (Array.isArray(j)?j:(j.songs||[])).filter(x=>x&&x.title).map(x=>({title:String(x.title).slice(0,80),artist:String(x.artist||'').slice(0,80),era:String(x.era||'').slice(0,20)}))}
+ const ex=exclude&&exclude.length?'\nאל תחזור על השירים האלה: '+exclude.slice(-100).join(' | '):'';
+ const prompt='אתה מומחה למוזיקה ישראלית ועברית. חפש בכל הידע שלך שירים אמיתיים ומוכרים שמתאימים לבקשה: "'+q+'".\nהחזר בין 40 ל-60 שירים מתקופות ומבצעים שונים.\nכתוב שורה אחת לכל שיר בדיוק בפורמט הזה, בלי מספור ובלי שום טקסט נוסף:\nשם השיר | שם המבצע | שנות ה-XX'+ex;
+ const wikiP=exclude&&exclude.length?Promise.resolve([]):wikiSongs(q,exclude).catch(()=>[]);
+ let t=null,err='';if(key){try{t=await gemCall(key,{contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{temperature:.5,maxOutputTokens:12000}})}catch(e){t=null}}
+ if(!t){try{t=await freeLLM(prompt)}catch(e){err=String(e.message||e)}}
+ const ai=t?parseSongText(t):[];const w=await wikiP;
+ if(!ai.length&&!w.length)throw new Error(err||'no results');
+ const seen=new Set(ai.map(x=>normTxt(x.title)));return ai.concat(w.filter(x=>!seen.has(normTxt(x.title))))}
 async function doCatSearch(more){const q=($('#wc').value||'').trim();if(!q)return $('#wc').focus();
  if(!more){WCAT.q=q;WCAT.lib=[];WCAT.ai=[];}WCAT.err='';WCAT.busy=true;renderWebPrev();
  if(!more){try{const nq=normTxt(q),words=nq.split(' ').filter(w=>w.length>1);const lib=await fbPublicSongs();
