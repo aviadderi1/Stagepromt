@@ -3249,6 +3249,18 @@ async function gemCall(key,body){const models=['gemini-flash-latest','gemini-2.5
    const t=(((j.candidates||[])[0]||{}).content||{}).parts;const txt=(t||[]).map(x=>x.text||'').join('');if(txt){try{localStorage.setItem('gem-model',m)}catch(e){}return txt}last=new Error('empty')}
   catch(e){last=e;if(/HTTP 40[03]/.test(e.message)&&/API key|API_KEY|PERMISSION/i.test(e.message))break}}
  throw last||new Error('failed')}
+async function wikiSongs(q,exclude){
+ const W='https://he.wikipedia.org/w/api.php?format=json&origin=*&';const get=async u=>{const r=CAN_HTTP?await httpGet(W+u,false,20000):{text:await (await fetch(W+u)).text()};return JSON.parse(r.text)};
+ const qq=/שיר/.test(q)?q:'שירי '+q;
+ const cats=((await get('action=query&list=search&srnamespace=14&srlimit=10&srsearch='+encodeURIComponent(qq))).query||{}).search||[];
+ const pick=cats.map(c=>c.title).filter(t=>/שיר|זמר|להיט|פזמונ/.test(t)).slice(0,4);
+ const out=[],seen=new Set((exclude||[]).map(normTxt));
+ for(const cat of pick){let cont='',n=0;do{const j=await get('action=query&list=categorymembers&cmtype=page&cmlimit=200&cmtitle='+encodeURIComponent(cat)+(cont?'&cmcontinue='+encodeURIComponent(cont):''));
+   ((j.query||{}).categorymembers||[]).forEach(m=>{const t=m.title.replace(/\s*\((?:שיר|שיר ישראלי|פזמון|להיט)[^)]*\)\s*$/,'').trim();if(/\(/.test(m.title)&&!/שיר|פזמון/.test(m.title))return;const k=normTxt(t);if(!k||seen.has(k))return;seen.add(k);out.push({title:t,artist:'',era:cat.replace(/^קטגוריה:/,''),wiki:m.title})});
+   cont=(j.continue||{}).cmcontinue||'';n++}while(cont&&n<3&&out.length<150)}
+ for(let i=0;i<Math.min(out.length,80);i+=20){const grp=out.slice(i,i+20);try{const j=await get('action=query&prop=extracts&exintro=1&explaintext=1&exsentences=2&exlimit=20&titles='+encodeURIComponent(grp.map(x=>x.wiki).join('|')));
+   Object.values((j.query||{}).pages||{}).forEach(pg=>{const x=grp.find(g=>g.wiki===pg.title);if(!x||!pg.extract)return;const m=pg.extract.match(/(?:בביצוע(?: של)?|שביצע(?:ו|ה)?|שבוצע(?: לראשונה)? על ידי|בביצועו של|בביצועה של|בביצועם של)\s+([^,.;(]+)/);if(m)x.artist=m[1].replace(/\s+(?:ב|מ)?שנת.*$/,'').trim().slice(0,40)})}catch(e){}}
+ return out}
 async function freeLLM(prompt){
  const tries=[
   async()=>{const r=await aiReqOrFetch('POST','https://text.pollinations.ai/openai',JSON.stringify({model:'openai',messages:[{role:'system',content:'You return only valid JSON.'},{role:'user',content:prompt}],response_format:{type:'json_object'},referrer:'stagepromt',private:true}),{'Content-Type':'application/json'});
@@ -3262,7 +3274,8 @@ async function gemSongList(q,key,exclude){
  const ex=exclude&&exclude.length?'\nאל תחזור על: '+exclude.slice(-120).join(' | '):'';
  const prompt='אתה עוזר לבנות רשימת שירים עבריים לזמרים ולמוזיקאים.\nהבקשה: "'+q+'"\nהחזר JSON בלבד: {"songs":[{"title":"שם השיר","artist":"מבצע","era":"שנות ה-70"}]}\nהחזר בין 40 ל-80 שירים אמיתיים ומוכרים שמתאימים לבקשה, מתקופות ומבצעים שונים. era הוא העשור בפורמט "שנות ה-XX".'+ex;
  let t;if(key){try{t=await gemCall(key,{contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{responseMimeType:'application/json',temperature:.5,maxOutputTokens:12000}})}catch(e){t=null}}
- if(!t)t=await freeLLM(prompt);
+ if(!t){try{t=await freeLLM(prompt)}catch(e){WCAT.llmErr=String(e.message||e)}}
+ if(!t){const w=await wikiSongs(q,exclude);if(w.length){WCAT.src='wiki';return w}throw new Error(WCAT.llmErr||'failed')}WCAT.src='ai';
  let j;const c=String(t).replace(/^```(?:json)?\s*|\s*```$/g,'').trim();try{j=JSON.parse(c)}catch(e){const m=c.match(/[\[{][\s\S]*[\]}]/);j=m?JSON.parse(m[0]):{}}
  return (Array.isArray(j)?j:(j.songs||[])).filter(x=>x&&x.title).map(x=>({title:String(x.title).slice(0,80),artist:String(x.artist||'').slice(0,80),era:String(x.era||'').slice(0,20)}))}
 async function doCatSearch(more){const q=($('#wc').value||'').trim();if(!q)return $('#wc').focus();
@@ -3271,7 +3284,7 @@ async function doCatSearch(more){const q=($('#wc').value||'').trim();if(!q)retur
    WCAT.lib=lib.filter(x=>{const h=normTxt([x.list,x.title,x.artist].join(' '));return h.includes(nq)||(words.length&&words.every(w=>h.includes(w)))})}catch(e){}}
  {try{const got=await gemSongList(q,S.gemKey||'',more?WCAT.ai.map(x=>x.title):[]);const seen=new Set(WCAT.ai.map(x=>normTxt(x.title)+'|'+normTxt(x.artist)));
    got.forEach(x=>{const k=normTxt(x.title)+'|'+normTxt(x.artist);if(!seen.has(k)){seen.add(k);WCAT.ai.push(x)}})}
-  catch(e){WCAT.err=/HTTP 429/.test(e.message)?'השרת עמוס כרגע. נסה שוב בעוד דקה.':'החיפוש ברשת נכשל. בדוק את החיבור לאינטרנט ונסה שוב.'}}
+  catch(e){WCAT.err=(/HTTP 429/.test(e.message)?'השרת עמוס כרגע. נסה שוב בעוד דקה.':'לא נמצאו שירים ברשת לקטגוריה הזו. נסה ניסוח אחר, למשל "שירי חנוכה" או "שירים ישראליים".')+'|'+String(e.message||e).slice(0,100)}}
  WCAT.busy=false;renderWebPrev()}
 function eraNum(e){const m=String(e||'').match(/(\d{2,4})/);if(!m)return 9999;let n=+m[1];if(n<100)n+=n<30?2000:1900;return n}
 function renderCatPrev(E){
@@ -3280,10 +3293,10 @@ function renderCatPrev(E){
  if(WCAT.lib.length)h+='<section class="catSec lib"><div class="catSecH">'+ic('music',18)+'<b>במאגר השירים</b><span>'+WCAT.lib.length+'</span><small>מוכנים עם רקע · הוספה בלחיצה</small></div><div class="catGrid">'+
   WCAT.lib.map((x,i)=>'<div class="catCard"><div class="catInfo">'+(x.artistImg?'<img class="catAv" alt="" referrerpolicy="no-referrer" src="'+esc(x.artistImg)+'">':avatarHtml('',x.artist||x.title,'catAv'))+'<span><b>'+esc(x.title)+'</b><small>'+esc(x.artist||'')+'</small></span></div><button class="btn sm pri" data-catlib="'+i+'">'+ic('plus',16)+'הוסף</button></div>').join('')+'</div></section>';
  if(WCAT.ai.length){const g={};WCAT.ai.forEach((x,i)=>{const k=x.era||'שונות';(g[k]=g[k]||[]).push(i)});
-  Object.keys(g).sort((a,b)=>eraNum(a)-eraNum(b)).forEach(k=>{h+='<section class="catSec"><div class="catSecH"><b>'+esc(k)+'</b><span>'+g[k].length+'</span></div><div class="catGrid">'+
+  Object.keys(g).sort((a,b)=>eraNum(a)-eraNum(b)||g[b].length-g[a].length).forEach(k=>{h+='<section class="catSec"><div class="catSecH"><b>'+esc(k)+'</b><span>'+g[k].length+'</span></div><div class="catGrid">'+
    g[k].map(i=>{const x=WCAT.ai[i];return '<button class="catCard song" data-catai="'+i+'"><div class="catInfo">'+avatarHtml('',x.artist||x.title,'catAv')+'<span><b>'+esc(x.title)+'</b><small>'+esc(x.artist||'')+'</small></span></div>'+ic('search',18)+'</button>'}).join('')+'</div></section>'})}
  if(WCAT.busy)h+='<div class="wMsg"><span class="spin big"></span>מחפש שירים מתאימים…</div>';
- else{if(WCAT.err)h+='<p class="catErr">'+esc(WCAT.err)+'</p>';
+ else{if(WCAT.err){const[a,b]=WCAT.err.split('|');h+='<p class="catErr">'+esc(a)+(b?'<br><small dir="ltr" style="opacity:.55">'+esc(b)+'</small>':'')+'</p>'}
   if(WCAT.ai.length)h+='<div class="catMore"><button class="btn" id="catMore">'+ic('plus',16)+'מצא עוד שירים</button></div>';
   else if(!WCAT.lib.length)h+='<div class="wMsg">לא נמצאו שירים. נסה ניסוח אחר.</div>'}
  E.innerHTML=h+'</div>'}
