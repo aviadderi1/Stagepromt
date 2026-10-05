@@ -3253,10 +3253,11 @@ async function wikiSongs(q,exclude){
  const W='https://he.wikipedia.org/w/api.php?format=json&origin=*&';const get=async u=>{const r=CAN_HTTP?await httpGet(W+u,false,20000):{text:await (await fetch(W+u)).text()};return JSON.parse(r.text)};
  const qq=/שיר/.test(q)?q:'שירי '+q;
  const cats=((await get('action=query&list=search&srnamespace=14&srlimit=10&srsearch='+encodeURIComponent(qq))).query||{}).search||[];
- const pick=cats.map(c=>c.title).filter(t=>/שיר|זמר|להיט|פזמונ/.test(t)).slice(0,4);
+ const kw=normTxt(q).split(' ').filter(w=>w.length>1&&!/^(שירי|שירים|שיר|של|מכל|הזמנים|ה?טובים|ביותר)$/.test(w));
+ const pick=cats.map(c=>c.title).filter(t=>/שיר|זמר|להיט|פזמונ/.test(t)&&!/\d{4}/.test(t)&&(!kw.length||kw.every(w=>normTxt(t).includes(w.replace(/^ה/,''))))).slice(0,4);
  const out=[],seen=new Set((exclude||[]).map(normTxt));
  for(const cat of pick){let cont='',n=0;do{const j=await get('action=query&list=categorymembers&cmtype=page&cmlimit=200&cmtitle='+encodeURIComponent(cat)+(cont?'&cmcontinue='+encodeURIComponent(cont):''));
-   ((j.query||{}).categorymembers||[]).forEach(m=>{const t=m.title.replace(/\s*\((?:שיר|שיר ישראלי|פזמון|להיט)[^)]*\)\s*$/,'').trim();if(/\(/.test(m.title)&&!/שיר|פזמון/.test(m.title))return;const k=normTxt(t);if(!k||seen.has(k))return;seen.add(k);out.push({title:t,artist:'',era:cat.replace(/^קטגוריה:/,''),wiki:m.title})});
+   ((j.query||{}).categorymembers||[]).forEach(m=>{const t=m.title.replace(/\s*\((?:שיר|שיר ישראלי|פזמון|להיט)[^)]*\)\s*$/,'').trim();if(/\(/.test(m.title)&&!/שיר|פזמון/.test(m.title))return;const k=normTxt(t);if(!k||seen.has(k)||(/[\u0590-\u05FF]/.test(q)&&!/[\u0590-\u05FF]/.test(t)))return;seen.add(k);out.push({title:t,artist:'',era:cat.replace(/^קטגוריה:/,''),wiki:m.title})});
    cont=(j.continue||{}).cmcontinue||'';n++}while(cont&&n<3&&out.length<150)}
  for(let i=0;i<Math.min(out.length,80);i+=20){const grp=out.slice(i,i+20);try{const j=await get('action=query&prop=extracts&exintro=1&explaintext=1&exsentences=2&exlimit=20&titles='+encodeURIComponent(grp.map(x=>x.wiki).join('|')));
    Object.values((j.query||{}).pages||{}).forEach(pg=>{const x=grp.find(g=>g.wiki===pg.title);if(!x||!pg.extract)return;const m=pg.extract.match(/(?:בביצוע(?: של)?|שביצע(?:ו|ה)?|שבוצע(?: לראשונה)? על ידי|בביצועו של|בביצועה של|בביצועם של)\s+([^,.;(]+)/);if(m)x.artist=m[1].replace(/\s+(?:ב|מ)?שנת.*$/,'').trim().slice(0,40)})}catch(e){}}
@@ -3283,7 +3284,7 @@ async function gemSongList(q,key,exclude){
  const wikiP=exclude&&exclude.length?Promise.resolve([]):wikiSongs(q,exclude).catch(()=>[]);
  let t=null,err='';if(key){try{t=await gemCall(key,{contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{temperature:.5,maxOutputTokens:12000}})}catch(e){t=null}}
  if(!t){try{t=await freeLLM(prompt)}catch(e){err=String(e.message||e)}}
- const ai=t?parseSongText(t):[];const w=await wikiP;
+ const heb=/[\u0590-\u05FF]/.test(q)&&!/לועזי|אנגלי|english|באנגלית/i.test(q);const ai=(t?parseSongText(t):[]).filter(x=>!heb||/[\u0590-\u05FF]/.test(x.title));const w=await wikiP;
  if(!ai.length&&!w.length)throw new Error(err||'no results');
  const seen=new Set(ai.map(x=>normTxt(x.title)));return ai.concat(w.filter(x=>!seen.has(normTxt(x.title))))}
 async function doCatSearch(more){const q=($('#wc').value||'').trim();if(!q)return $('#wc').focus();
