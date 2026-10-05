@@ -689,6 +689,8 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
 .catCard.song{cursor:pointer}.catCard.song svg{color:var(--mu);flex-shrink:0}
 .catInfo{display:flex;align-items:center;gap:10px;min-width:0}.catInfo span{display:flex;flex-direction:column;min-width:0}.catInfo b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.catInfo small{color:var(--mu);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .catAv{width:38px;height:38px;border-radius:50%;object-fit:cover;flex-shrink:0}.catAv.ph{display:inline-flex;align-items:center;justify-content:center;background:#2A2D33;color:var(--mu);font-weight:700}
+.catBusy{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:5}.catBusy>div{display:flex;flex-direction:column;align-items:center;gap:14px;padding:22px 30px;border-radius:18px;background:rgba(20,22,26,.88);box-shadow:0 10px 40px rgba(0,0,0,.5);color:#fff;font-size:17px}
+#wPrev{position:relative}
 .catMore{text-align:center;margin:6px 0 20px}.catErr{color:#E0675C;text-align:center}
 @media (max-width:600px){#web .wMode{order:0;flex-basis:100%;justify-content:center}#web.catMode .hdr .wCat{order:1;flex:1 1 calc(100% - 74px);max-width:none}.catWrap{padding:12px}.catGrid{grid-template-columns:1fr}}
 /* ---- phone ---- */
@@ -3249,7 +3251,7 @@ async function gemCall(key,body){const models=['gemini-flash-latest','gemini-2.5
    const t=(((j.candidates||[])[0]||{}).content||{}).parts;const txt=(t||[]).map(x=>x.text||'').join('');if(txt){try{localStorage.setItem('gem-model',m)}catch(e){}return txt}last=new Error('empty')}
   catch(e){last=e;if(/HTTP 40[03]/.test(e.message)&&/API key|API_KEY|PERMISSION/i.test(e.message))break}}
  throw last||new Error('failed')}
-async function wikiSongs(q,exclude){
+async function wikiSongs(q,exclude,onFirst){
  const W='https://he.wikipedia.org/w/api.php?format=json&origin=*&';const get=async u=>{const r=CAN_HTTP?await httpGet(W+u,false,20000):{text:await (await fetch(W+u)).text()};return JSON.parse(r.text)};
  const qq=/שיר/.test(q)?q:'שירי '+q;
  const cats=((await get('action=query&list=search&srnamespace=14&srlimit=10&srsearch='+encodeURIComponent(qq))).query||{}).search||[];
@@ -3259,6 +3261,7 @@ async function wikiSongs(q,exclude){
  for(const cat of pick){let cont='',n=0;do{const j=await get('action=query&list=categorymembers&cmtype=page&cmlimit=200&cmtitle='+encodeURIComponent(cat)+(cont?'&cmcontinue='+encodeURIComponent(cont):''));
    ((j.query||{}).categorymembers||[]).forEach(m=>{const t=m.title.replace(/\s*\((?:שיר|שיר ישראלי|פזמון|להיט)[^)]*\)\s*$/,'').trim();if(/\(/.test(m.title)&&!/שיר|פזמון/.test(m.title))return;const k=normTxt(t);if(!k||seen.has(k)||(/[\u0590-\u05FF]/.test(q)&&!/[\u0590-\u05FF]/.test(t)))return;seen.add(k);out.push({title:t,artist:'',era:cat.replace(/^קטגוריה:/,''),wiki:m.title})});
    cont=(j.continue||{}).cmcontinue||'';n++}while(cont&&n<3&&out.length<150)}
+ if(onFirst&&out.length)onFirst(out);
  for(let i=0;i<Math.min(out.length,80);i+=20){const grp=out.slice(i,i+20);try{const j=await get('action=query&prop=extracts&exintro=1&explaintext=1&exsentences=2&exlimit=20&titles='+encodeURIComponent(grp.map(x=>x.wiki).join('|')));
    Object.values((j.query||{}).pages||{}).forEach(pg=>{const x=grp.find(g=>g.wiki===pg.title);if(!x||!pg.extract)return;const m=pg.extract.match(/(?:בביצוע(?: של)?|שביצע(?:ו|ה)?|שבוצע(?: לראשונה)? על ידי|בביצועו של|בביצועה של|בביצועם של)\s+([^,.;(]+)/);if(m)x.artist=m[1].replace(/\s+(?:ב|מ)?שנת.*$/,'').trim().slice(0,40)})}catch(e){}}
  return out}
@@ -3280,23 +3283,29 @@ async function aiReqOrFetch(method,url,body,headers){
  const r=await fetch(url,{method,headers:headers||{},body:method==='GET'?undefined:body});const t=await r.text();if(!r.ok)throw new Error('HTTP '+r.status);return t}
 async function gemSongList(q,key,exclude){
  const ex=exclude&&exclude.length?'\nאל תחזור על השירים האלה: '+exclude.slice(-100).join(' | '):'';
- const prompt='אתה מומחה למוזיקה ישראלית ועברית. חפש בכל הידע שלך שירים אמיתיים ומוכרים שמתאימים לבקשה: "'+q+'".\nהחזר בין 40 ל-60 שירים מתקופות ומבצעים שונים.\nכתוב שורה אחת לכל שיר בדיוק בפורמט הזה, בלי מספור ובלי שום טקסט נוסף:\nשם השיר | שם המבצע | שנות ה-XX'+ex;
- const wikiP=exclude&&exclude.length?Promise.resolve([]):wikiSongs(q,exclude).catch(()=>[]);
- let t=null,err='';if(key){try{t=await gemCall(key,{contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{temperature:.5,maxOutputTokens:12000}})}catch(e){t=null}}
+ const prompt='אתה מומחה למוזיקה. כתוב 35 שירים אמיתיים ומוכרים שמתאימים לבקשה: "'+q+'", מתקופות ומבצעים שונים.\nשורה אחת לכל שיר בדיוק בפורמט: שם השיר | שם המבצע | שנות ה-XX\nבלי מספור ובלי שום טקסט נוסף.'+ex;
+ let t=null,err='';if(key){try{t=await gemCall(key,{contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{temperature:.5,maxOutputTokens:4000}})}catch(e){t=null}}
  if(!t){try{t=await freeLLM(prompt)}catch(e){err=String(e.message||e)}}
- const heb=/[\u0590-\u05FF]/.test(q)&&!/לועזי|אנגלי|english|באנגלית/i.test(q);const ai=(t?parseSongText(t):[]).filter(x=>!heb||/[\u0590-\u05FF]/.test(x.title));const w=await wikiP;
- if(!ai.length&&!w.length)throw new Error(err||'no results');
- const seen=new Set(ai.map(x=>normTxt(x.title)));return ai.concat(w.filter(x=>!seen.has(normTxt(x.title))))}
+ const heb=/[\u0590-\u05FF]/.test(q)&&!/לועזי|אנגלי|english|באנגלית/i.test(q);const ai=(t?parseSongText(t):[]).filter(x=>!heb||/[\u0590-\u05FF]/.test(x.title));
+ if(!ai.length)throw new Error(err||'no results');return ai}
 async function doCatSearch(more){const q=($('#wc').value||'').trim();if(!q)return $('#wc').focus();
+ const tok=WCAT.tok=(WCAT.tok||0)+1,live=()=>tok===WCAT.tok&&WCAT.on;
  if(!more){WCAT.q=q;WCAT.lib=[];WCAT.ai=[];}WCAT.err='';WCAT.busy=true;renderWebPrev();
- if(!more){try{const nq=normTxt(q),words=nq.split(' ').filter(w=>w.length>1);const lib=await fbPublicSongs();
-   WCAT.lib=lib.filter(x=>{const h=normTxt([x.list,x.title,x.artist].join(' '));return h.includes(nq)||(words.length&&words.every(w=>h.includes(w)))})}catch(e){}}
- {try{const got=await gemSongList(q,S.gemKey||'',more?WCAT.ai.map(x=>x.title):[]);const seen=new Set(WCAT.ai.map(x=>normTxt(x.title)+'|'+normTxt(x.artist)));
-   got.forEach(x=>{const k=normTxt(x.title)+'|'+normTxt(x.artist);if(!seen.has(k)){seen.add(k);WCAT.ai.push(x)}})}
-  catch(e){WCAT.err=(/HTTP 429/.test(e.message)?'השרת עמוס כרגע. נסה שוב בעוד דקה.':'לא נמצאו שירים ברשת לקטגוריה הזו. נסה ניסוח אחר, למשל "שירי חנוכה" או "שירים ישראליים".')+'|'+String(e.message||e).slice(0,100)}}
+ const add=got=>{if(!live()||!got)return;const seen=new Set(WCAT.ai.map(x=>normTxt(x.title)));let n=0;
+   got.forEach(x=>{const k=normTxt(x.title);if(k&&!seen.has(k)){seen.add(k);WCAT.ai.push(x);n++}});if(n)renderWebPrev()};
+ const jobs=[];let aiErr='';
+ if(!more){
+  jobs.push(fbPublicSongs().then(lib=>{if(!live())return;const nq=normTxt(q),words=nq.split(' ').filter(w=>w.length>1);
+   WCAT.lib=lib.filter(x=>{const h=normTxt([x.list,x.title,x.artist].join(' '));return h.includes(nq)||(words.length&&words.every(w=>h.includes(w)))});renderWebPrev()}).catch(()=>{}));
+  jobs.push(wikiSongs(q,[],add).then(add).catch(()=>{}))}
+ jobs.push(gemSongList(q,S.gemKey||'',more?WCAT.ai.map(x=>x.title):[]).then(add).catch(e=>{aiErr=String(e.message||e)}));
+ await Promise.all(jobs);if(!live())return;
+ if(!WCAT.ai.length&&aiErr)WCAT.err=(/HTTP 429/.test(aiErr)?'השרת עמוס כרגע. נסה שוב בעוד דקה.':'לא נמצאו שירים ברשת לקטגוריה הזו. נסה ניסוח אחר, למשל "שירי חנוכה" או "שירים ישראליים".')+'|'+aiErr.slice(0,100);
  WCAT.busy=false;renderWebPrev()}
 function eraNum(e){const m=String(e||'').match(/(\d{2,4})/);if(!m)return 9999;let n=+m[1];if(n<100)n+=n<30?2000:1900;return n}
-function renderCatPrev(E){
+function renderCatPrev(E){const sc=E.querySelector('.catWrap'),st=sc?sc.scrollTop:0;renderCatPrev0(E);const n=E.querySelector('.catWrap');if(n&&st)n.scrollTop=st;
+ if(WCAT.busy&&WCAT.q)E.insertAdjacentHTML('beforeend','<div class="catBusy"><div><span class="spin big"></span><b>מחפש שירים ברשת…</b></div></div>')}
+function renderCatPrev0(E){
  if(!WCAT.q&&!WCAT.busy){E.innerHTML='<div class="wScroll"><div class="wMsg"><h2>חיפוש לפי קטגוריה</h2><p>כתוב נושא, תקופה או סגנון. התוצאות יוצגו כאן לפי סקשנים, ולחיצה על שיר מחפשת את המילים שלו.</p><div class="catEx">'+['שירי ארץ ישראל','שירי חנוכה','רוק ישראלי שנות ה-80','שירי אהבה','שירים לחתונה','שירי ים'].map(x=>'<button class="chip" data-catex="'+esc(x)+'">'+esc(x)+'</button>').join('')+'</div></div></div>';return}
  let h='<div class="wScroll catWrap"><div class="catTop"><h2>'+esc(WCAT.q)+'</h2><span>'+(WCAT.lib.length+WCAT.ai.length)+' שירים</span></div>';
  if(WCAT.lib.length)h+='<section class="catSec lib"><div class="catSecH">'+ic('music',18)+'<b>במאגר השירים</b><span>'+WCAT.lib.length+'</span><small>מוכנים עם רקע · הוספה בלחיצה</small></div><div class="catGrid">'+
@@ -3304,8 +3313,7 @@ function renderCatPrev(E){
  if(WCAT.ai.length){const g={};WCAT.ai.forEach((x,i)=>{const k=x.era||'שונות';(g[k]=g[k]||[]).push(i)});
   Object.keys(g).sort((a,b)=>eraNum(a)-eraNum(b)||g[b].length-g[a].length).forEach(k=>{h+='<section class="catSec"><div class="catSecH"><b>'+esc(k)+'</b><span>'+g[k].length+'</span></div><div class="catGrid">'+
    g[k].map(i=>{const x=WCAT.ai[i];return '<button class="catCard song" data-catai="'+i+'"><div class="catInfo">'+avatarHtml('',x.artist||x.title,'catAv')+'<span><b>'+esc(x.title)+'</b><small>'+esc(x.artist||'')+'</small></span></div>'+ic('search',18)+'</button>'}).join('')+'</div></section>'})}
- if(WCAT.busy)h+='<div class="wMsg"><span class="spin big"></span>מחפש שירים מתאימים…</div>';
- else{if(WCAT.err){const[a,b]=WCAT.err.split('|');h+='<p class="catErr">'+esc(a)+(b?'<br><small dir="ltr" style="opacity:.55">'+esc(b)+'</small>':'')+'</p>'}
+ if(!WCAT.busy){if(WCAT.err){const[a,b]=WCAT.err.split('|');h+='<p class="catErr">'+esc(a)+(b?'<br><small dir="ltr" style="opacity:.55">'+esc(b)+'</small>':'')+'</p>'}
   if(WCAT.ai.length)h+='<div class="catMore"><button class="btn" id="catMore">'+ic('plus',16)+'מצא עוד שירים</button></div>';
   else if(!WCAT.lib.length)h+='<div class="wMsg">לא נמצאו שירים. נסה ניסוח אחר.</div>'}
  E.innerHTML=h+'</div>'}
