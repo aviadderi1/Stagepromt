@@ -4280,7 +4280,7 @@ function renderAcctBtn(){const b=$('#acctBtn');if(!b)return;const st=fbAuthState
  b.title=st&&st.email?st.email:'התחברות'}
 function renderAccount(){renderAcctBtn();const M=$('#stMain');if(!M)return;const st=fbAuthState();
  if(!signedIn()){M.innerHTML='<h3>'+ic('user',20)+' חשבון</h3><p class="mTxt">התחבר כדי לשמור את כל השירים, התיקיות, האקורדים והעיצובים בחשבון שלך. כשתתחבר באותו חשבון במכשיר אחר, הכול יופיע שם אוטומטית.</p><div id="acctBox">'+acctLoginHtml()+'</div>';
-  $('#acG').onclick=()=>{ADM.wantLogin=false;const sch=window.Android&&window.Android.authScheme?window.Android.authScheme():'';const u='https://aviadderi1.github.io/Stagepromt/generator/'+(sch?'?app='+sch:'');if(window.Android&&window.Android.openUrl)window.Android.openUrl(u);else window.open(u,'_blank');$('#acErr').textContent='התחבר בדפדפן, ואז לחץ "חזור ל-StagePromt".'};
+  $('#acG').onclick=()=>{ADM.wantLogin=false;const sch=window.Android&&window.Android.authScheme?window.Android.authScheme():'';const u='https://aviadderi1.github.io/Stagepromt/auth/'+(sch?'?app='+sch:'');if(window.Android&&window.Android.openUrl)window.Android.openUrl(u);else window.open(u,'_blank');$('#acErr').textContent='התחבר בדפדפן, ואז לחץ "חזור ל-StagePromt".'};
   const go=async up=>{const e=$('#acE').value.trim(),p=$('#acP').value;if(!e||p.length<6){$('#acErr').textContent='מלא אימייל וסיסמה (6 תווים לפחות)';return}$('#acErr').textContent=up?'יוצר חשבון…':'מתחבר…';
    try{if(up){const j=await fbReq('POST','https://identitytoolkit.googleapis.com/v1/accounts:signUp?key='+FB.key,{email:e,password:p,returnSecureToken:true});localStorage.setItem(FB.LS,JSON.stringify({uid:j.localId,email:j.email,refresh:j.refreshToken,token:j.idToken,exp:Date.now()+(+j.expiresIn||3600)*1000-60000}))}else await fbSignIn(e,p);
     adminSync();renderAccount();fbProfile();fullSync(true)}
@@ -4338,7 +4338,7 @@ function adminLoginModal(){
   '<input class="field" id="adE" type="email" placeholder="אימייל" dir="ltr"><input class="field" id="adP" type="password" placeholder="סיסמה" dir="ltr" style="margin-top:8px"><p class="hint" id="adErr"></p>'+
   '<div class="acts"><button class="btn pri" id="adGo">התחבר</button><span class="flex1"></span><button class="btn" id="mCancel">ביטול</button></div>');
  $('#mCancel').onclick=closeModal;
- $('#adG').onclick=()=>{ADM.wantLogin=true;const sch=window.Android&&window.Android.authScheme?window.Android.authScheme():'';const u='https://aviadderi1.github.io/Stagepromt/generator/'+(sch?'?app='+sch:'');if(window.Android&&window.Android.openUrl)window.Android.openUrl(u);else window.open(u,'_blank');$('#adErr').textContent='התחבר בדפדפן, ואז לחץ "חזור ל-StagePromt".'};
+ $('#adG').onclick=()=>{ADM.wantLogin=true;const sch=window.Android&&window.Android.authScheme?window.Android.authScheme():'';const u='https://aviadderi1.github.io/Stagepromt/auth/'+(sch?'?app='+sch:'');if(window.Android&&window.Android.openUrl)window.Android.openUrl(u);else window.open(u,'_blank');$('#adErr').textContent='התחבר בדפדפן, ואז לחץ "חזור ל-StagePromt".'};
  $('#adGo').onclick=async()=>{const e=$('#adE').value.trim(),p=$('#adP').value;if(!e||!p)return;$('#adErr').textContent='מתחבר…';
   try{await fbSignIn(e,p);if(!isOwner()){$('#adErr').textContent='החשבון הזה אינו מנהל המאגר.';return}closeModal();adminSync();openAdmin()}catch(x){$('#adErr').textContent='האימייל או הסיסמה שגויים'}};
 }
