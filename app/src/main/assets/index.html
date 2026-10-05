@@ -3830,6 +3830,7 @@ function renderSetCat(){
 
 /* ---- app updates (GitHub releases) ---- */
 const UPD={info:null,latest:0,url:'',busy:false,pct:0,err:'',checked:0,state:''};
+function verStr(c){c=+c||0;return c>=134?'1.0.'+(c-134):c?String(c):'—'}
 function updInfo(){if(UPD.info)return UPD.info;try{UPD.info=JSON.parse(window.Android.appInfo())}catch(e){UPD.info={code:0,phone:isPhone()}}return UPD.info}
 async function updCheck(){
  const r=await httpGet('https://api.github.com/repos/aviadderi1/Stagepromt/releases/latest',false,15000);const j=JSON.parse(r.text);
@@ -3841,18 +3842,18 @@ function updBanner(show){let b=$('#updBar');if(!show){if(b)b.remove();return}
  b.innerHTML=ic('dl',20)+'<span><b>קיים עדכון חדש</b> · לחץ כדי לעדכן</span><i class="updX" aria-label="סגור">'+ic('close',16)+'</i>';
  b.querySelector('.updX').onclick=e=>{e.stopPropagation();sessionStorage.setItem('updSkip',UPD.latest);b.remove()}}
 function updStart(){if(!UPD.url)return;UPD.busy=true;UPD.pct=0;UPD.err='';UPD.state='dl';
- openModal('<h2>'+ic('dl',22)+' עדכון האפליקציה</h2><p class="mTxt" id="updTxt">מוריד את גרסה '+UPD.latest+'…</p><div class="updProg"><i id="updBarIn"></i></div><div class="acts"><span class="flex1"></span><button class="btn" id="mCancel">סגור</button></div>');
+ openModal('<h2>'+ic('dl',22)+' עדכון האפליקציה</h2><p class="mTxt" id="updTxt">מוריד את גרסה '+verStr(UPD.latest)+'…</p><div class="updProg"><i id="updBarIn"></i></div><div class="acts"><span class="flex1"></span><button class="btn" id="mCancel">סגור</button></div>');
  $('#mCancel').onclick=closeModal;
  try{window.Android.installUpdate(UPD.url)}catch(e){window.__updErr('nonative')}}
 window.__updProg=p=>{UPD.pct=p;const t=$('#updTxt'),bi=$('#updBarIn');
  if(p===101){UPD.busy=false;if(t)t.textContent='פותח את ההתקנה… אשר "עדכן" בחלון של Android.';if(bi)bi.style.width='100%';return}
  if(p===-2){if(t)t.textContent='צריך לאשר פעם אחת התקנה מהאפליקציה: הפעל "אפשר מהמקור הזה" וחזור לכאן.';return}
- if(bi&&p>=0)bi.style.width=p+'%';if(t&&p>=0)t.textContent='מוריד את גרסה '+UPD.latest+'… '+p+'%'};
+ if(bi&&p>=0)bi.style.width=p+'%';if(t&&p>=0)t.textContent='מוריד את גרסה '+verStr(UPD.latest)+'… '+p+'%'};
 window.__updErr=m=>{UPD.busy=false;const t=$('#updTxt');if(t)t.innerHTML='ההורדה נכשלה. בדוק את החיבור לאינטרנט ונסה שוב.<br><small dir="ltr" style="opacity:.6">'+esc(m)+'</small>';else toast('העדכון נכשל')};
 function renderUpdCat(){const M=$('#stMain');if(!M)return;const inf=updInfo();
  const has=UPD.latest>(inf.code||0)&&UPD.url;
  M.innerHTML='<h3>'+ic('dl',20)+' עדכון</h3>'+
-  '<div class="stCard"><div class="flex1"><b>הגרסה שלך: '+(inf.code||'—')+'</b><p id="updSt">'+(UPD.checked?(has?'גרסה '+UPD.latest+' זמינה להורדה.':'יש לך את הגרסה האחרונה.'):'בודק אם יש עדכון…')+'</p></div>'+
+  '<div class="stCard"><div class="flex1"><b>הגרסה שלך: '+verStr(inf.code)+'</b><p id="updSt">'+(UPD.checked?(has?'גרסה '+verStr(UPD.latest)+' זמינה להורדה.':'יש לך את הגרסה האחרונה.'):'בודק אם יש עדכון…')+'</p></div>'+
   '<button class="btn'+(has?' pri':'')+'" id="updGo">'+ic('dl',18)+(has?'עדכן עכשיו':'בדוק עדכון')+'</button></div>'+
   '<p class="hint">האפליקציה בודקת בכל פתיחה אם יש גרסה חדשה ומציגה הודעה. ההתקנה מחליפה את הגרסה הקיימת וכל השירים נשמרים.</p>';
  let taps=0,tt=0;M.querySelector('.stCard b').onclick=()=>{const n=Date.now();taps=n-tt<700?taps+1:1;tt=n;if(taps>=7){taps=0;closeModal();openAdmin()}};

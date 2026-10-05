@@ -28,6 +28,7 @@ jobs:
 
       - name: Rename APK
         run: |
+          echo "VER=1.0.$(( ${{ github.run_number }} - 134 ))" >> $GITHUB_ENV
           cp app/build/outputs/apk/tablet/release/app-tablet-release.apk StagePromt.apk
           cp app/build/outputs/apk/phone/release/app-phone-release.apk StagePromt-Mobile.apk
 
@@ -50,7 +51,7 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
-          name: StagePromt – גרסה ${{ github.run_number }}
+          name: StagePromt ${{ env.VER }}
           files: |
             StagePromt.apk
             StagePromt-Mobile.apk
