@@ -115,6 +115,8 @@ input[type=range]{accent-color:var(--am);width:100%;height:32px}
 .edTitles{min-width:0;display:flex;flex-direction:column}
 @media (min-width:601px){#edit>.hdr{gap:6px}#edit>.hdr .edTitles{flex:1 1 230px;min-width:230px}#edit>.hdr .titleIn{width:100%;text-overflow:ellipsis}#edit>.hdr>.flex1{flex:0 0 0}
  #edit>.hdr>.btn{padding:0 11px;font-size:15px;gap:6px;flex-shrink:0}#edit>.hdr #edPaste{width:44px;padding:0;justify-content:center}#edit>.hdr #edPaste .hideS{display:none}}
+#edit>.hdr .edStyleBtn{width:44px;padding:0!important;justify-content:center}
+@media (min-width:601px) and (max-width:900px){#edit>.hdr{flex-wrap:wrap;height:auto;row-gap:10px;padding-top:10px;padding-bottom:10px}#edit>.hdr>.flex1{flex:0 0 100%;height:0}#edit>.hdr .edTitles{flex:1 1 0}#edit>.hdr #edPlay{margin-inline-start:auto}}
 @media (min-width:601px) and (max-width:1180px){#edit>.hdr #edTxt span,#edit>.hdr #edChords .lbl{display:none}#edit>.hdr #edTxt{width:44px;padding:0;justify-content:center}#edit>.hdr>.btn{padding:0 9px}}
 .titleIn{background:transparent;border:0;outline:none;font-family:var(--ti);font-size:25px;font-weight:600;color:var(--tx);padding:0;width:340px;max-width:100%}
 .edSub{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--mu)}
@@ -853,7 +855,7 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
       <div class="edSub"><input id="edArtist" placeholder="שם האמן" aria-label="שם האמן"><span>·</span><select id="edKey" aria-label="סולם" dir="ltr"></select></div>
     </div>
     <div class="flex1"></div>
-    <button class="btn edStyleBtn" id="edStyleBtn" aria-label="עיצוב"><i data-ic="text" data-s="18"></i><span>עיצוב</span></button>
+    <button class="btn edStyleBtn" id="edStyleBtn" aria-label="עיצוב" title="עיצוב"><i data-ic="text" data-s="18"></i></button>
     <button class="btn chUndo" id="chUndo" aria-label="בטל פעולה אחרונה" disabled><i data-ic="undo" data-s="18"></i>Undo</button>
     <button class="btn" id="edNik" aria-pressed="false"><span>ניקוד</span></button>
     <button class="btn" id="edTxt" title="עורך טקסט" aria-label="עורך טקסט"><i data-ic="edit" data-s="18"></i><span>עורך טקסט</span></button>
