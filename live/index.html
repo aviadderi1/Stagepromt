@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B0C0E">
+<title>StagePromt Live – מילות השירים</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700;800&family=Rubik:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0B0C0E;--tx:#F4EFE6;--mu:#8F897F;--am:#E8A23A;--v:#F6D9A8;--c:#A9D3FF;--b:#D9C2FF}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font-family:'Assistant',sans-serif;overflow:hidden;-webkit-tap-highlight-color:transparent}
+body{display:flex;flex-direction:column;height:100dvh}
+header{flex:none;display:flex;align-items:center;gap:12px;padding:calc(12px + env(safe-area-inset-top)) 18px 12px;border-bottom:1px solid #1E2025;background:linear-gradient(#111317,#0B0C0E)}
+.av{width:42px;height:42px;border-radius:50%;background:#23252B;display:flex;align-items:center;justify-content:center;font-family:'Rubik';font-weight:600;color:#CFC9BF;flex:none}
+.ttl{flex:1;min-width:0}
+.ttl b{display:block;font-family:'Rubik';font-weight:600;font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ttl span{display:block;color:var(--mu);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.live{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:800;letter-spacing:1px;color:#E0675C;flex:none}
+.live i{width:8px;height:8px;border-radius:50%;background:#E0675C;animation:p 1.4s infinite}
+.live.off{color:var(--mu)}.live.off i{background:var(--mu);animation:none}
+@keyframes p{0%{box-shadow:0 0 0 0 rgba(224,103,92,.7)}70%{box-shadow:0 0 0 8px rgba(224,103,92,0)}100%{box-shadow:0 0 0 0 rgba(224,103,92,0)}}
+main{flex:1;position:relative;overflow:hidden}
+#stage{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:18px 22px 26px;text-align:center}
+.lab{font-size:13px;font-weight:800;letter-spacing:1px;opacity:.8;margin-bottom:.6em;font-family:'Assistant'}
+.lines{font-weight:800;line-height:1.4}.ln+.ln{margin-top:.18em}
+.ln{transition:opacity .3s,color .3s}
+.lines.scroll .ln{opacity:.5}.lines.scroll .ln.cur{opacity:1}.lines.scroll .ln.past{opacity:.25}
+.enter{animation:in .35s ease-out}
+@keyframes in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.wait{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px}
+.logo{font-family:'Rubik';font-size:30px;font-weight:700;letter-spacing:1px}.logo em{font-style:normal;color:var(--am)}
+.wait p{margin:0;color:var(--mu);font-size:17px;max-width:320px;line-height:1.5}
+.wait .fold{color:var(--tx);font-size:21px;font-weight:700}
+footer{flex:none;display:flex;justify-content:space-between;align-items:center;padding:8px 18px calc(10px + env(safe-area-inset-bottom));color:#5E5A53;font-size:12px}
+.dots{display:flex;gap:5px}.dots i{width:6px;height:6px;border-radius:50%;background:#2C2F35}.dots i.on{background:var(--am);width:16px;border-radius:3px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header id="hdr" hidden><div class="av" id="av"></div><div class="ttl"><b id="t"></b><span id="a"></span></div><div class="live" id="lv"><i></i>LIVE</div></header>
+<main>
+ <div id="stage" hidden><div class="lab" id="lab"></div><div class="lines" id="lines"></div></div>
+ <div class="wait" id="wait"><div class="logo">STAGE<em>PROMT</em> LIVE</div><div class="fold" id="wf"></div><p id="wm">מתחבר להופעה…</p></div>
+</main>
+<footer><span id="fs">StagePromt Live</span><div class="dots" id="dots"></div></footer>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const COL={verse:'var(--v)',chorus:'var(--c)',bridge:'var(--b)'};
+let last='',lastKey='';
+function fit(){const st=$('#stage'),ln=$('#lines');let lo=14,hi=Math.min(46,innerWidth/9);
+ for(let k=0;k<9;k++){const m=(lo+hi)/2;ln.style.fontSize=m+'px';if(st.scrollHeight<=st.clientHeight&&ln.scrollWidth<=ln.clientWidth+1)lo=m;else hi=m}
+ ln.style.fontSize=Math.floor(lo)+'px'}
+function waitMsg(f,m){$('#hdr').hidden=true;$('#stage').hidden=true;$('#wait').hidden=false;$('#wf').textContent=f||'';$('#wm').textContent=m;$('#dots').innerHTML='';$('#fs').textContent='StagePromt Live'}
+function apply(s,on){
+ if(!s||s.idle){waitMsg(s&&s.folder,s&&s.ended||on===false?'ההופעה הסתיימה. תודה שהייתם איתנו!':'ההופעה תתחיל בקרוב. המילים יופיעו כאן אוטומטית.');return}
+ $('#wait').hidden=true;$('#hdr').hidden=false;$('#stage').hidden=false;
+ $('#t').textContent=s.title;$('#a').textContent=s.artist||s.folder||'';$('#av').textContent=(s.artist||s.title||'·').trim()[0];
+ $('#fs').textContent=s.count>1?'שיר '+(s.idx+1)+' מתוך '+s.count:'StagePromt Live';
+ if(s.kind==='pdf'){$('#lab').textContent='';$('#lines').className='lines';$('#lines').innerHTML='<div class="ln" style="color:var(--mu);font-weight:600">המילים של השיר הזה לא זמינות לתצוגה</div>';fit();return}
+ const p=s.parts[Math.max(0,Math.min(s.part,s.parts.length-1))];if(!p)return;
+ const key=s.title+'|'+s.part;const ln=$('#lines');
+ if(key!==lastKey){lastKey=key;
+  $('#lab').textContent=p.n||'';$('#lab').style.color=COL[p.t]||'var(--mu)';
+  ln.innerHTML=p.x.split('\n').filter(l=>l.trim()).map(l=>'<div class="ln" dir="auto" style="color:'+(COL[p.t]||'var(--tx)')+'">'+esc(l)+'</div>').join('');
+  ln.classList.remove('enter');void ln.offsetWidth;ln.classList.add('enter');fit()}
+ // current line (auto-scroll mode), index within this part
+ const li=s.manual?-1:(s.pl==null?-1:s.pl);ln.classList.toggle('scroll',li>=0);
+ [...ln.children].forEach((d,i)=>{d.classList.toggle('cur',i===li);d.classList.toggle('past',li>=0&&i<li)});
+ $('#dots').innerHTML=s.parts.length>1&&s.parts.length<=14?s.parts.map((_,i)=>'<i class="'+(i===s.part?'on':'')+'"></i>').join(''):'';
+}
+addEventListener('resize',()=>{if(!$('#stage').hidden)fit()});
+const code=(new URLSearchParams(location.search).get('c')||'').replace(/[^a-z0-9]/gi,'');
+const DEMO=new URLSearchParams(location.search).get('demo');
+if(DEMO){apply(JSON.parse(decodeURIComponent(DEMO)),true)}
+else if(!code){waitMsg('','הקוד חסר. סרקו שוב את קוד ה-QR של ההופעה.')}
+else{
+ try{
+  firebase.initializeApp({apiKey:'AIzaSyAQj76Gha9yGidawfxbouvrE47teuzIsO4',authDomain:'stagepromt.firebaseapp.com',projectId:'stagepromt'});
+  firebase.firestore().collection('live').doc(code).onSnapshot(d=>{
+   $('#lv').classList.remove('off');
+   if(!d.exists){waitMsg('','ההופעה עוד לא התחילה. המילים יופיעו כאן אוטומטית.');return}
+   const v=d.data();if(v.st===last&&v.on!==false)return;last=v.st;
+   let s=null;try{s=JSON.parse(v.st||'null')}catch(e){}
+   if(s&&s.idle&&!s.folder)s.folder=v.folder;
+   apply(v.on===false?{idle:true,ended:true,folder:v.folder}:s,v.on);
+  },e=>{$('#lv').classList.add('off');waitMsg('','אין חיבור כרגע. בודק שוב…')});
+ }catch(e){waitMsg('','לא ניתן להתחבר. נסו לרענן את הדף.')}
+}
+</script>
+</body>
+</html>

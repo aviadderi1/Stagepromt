@@ -277,6 +277,14 @@ select.chip{cursor:pointer}
 .ccDev small{display:block;color:var(--mu);font-size:13px}
 .castBox .row .btn .spin{width:16px;height:16px;border-width:2px}
 .castUrl{direction:ltr;text-align:center;font-size:24px;font-weight:800;color:#F4C77A;letter-spacing:.3px;padding:6px 0;-webkit-user-select:text;user-select:text}
+.liveQrBtn{vertical-align:middle;margin-inline-start:10px;width:40px;height:40px;align-self:center;color:#CFCAC1;border-radius:11px}.liveQrBtn.on{color:#1A1205;background:#E8A23A}
+.mhead>.flex1>h1{display:inline-block;vertical-align:middle}
+.liveM{display:flex;flex-direction:column;align-items:center;gap:10px}.liveTop{display:flex;align-items:baseline;gap:12px;width:100%;flex-wrap:wrap}.liveTop h2{margin:0}.liveFold{color:var(--mu);font-size:15px}
+.liveQrBig{background:#fff;border-radius:18px;padding:18px;width:min(56vh,74vw,520px);aspect-ratio:1;box-sizing:border-box}.liveQrBig svg{width:100%;height:100%;display:block}
+.liveScan{font-size:17px;font-weight:600;text-align:center}.liveUrl{color:#F4C77A;font-size:15px;font-weight:700;letter-spacing:.2px}
+.liveSt{font-size:14px;color:var(--mu);display:flex;flex-direction:column;align-items:center;gap:2px}.liveSt.on{color:#7FD38B;font-weight:700;flex-direction:row;gap:8px}.liveSt.on i{width:10px;height:10px;border-radius:50%;background:#E0675C;box-shadow:0 0 0 0 rgba(224,103,92,.7);animation:livePulse 1.4s infinite}.liveSt small{color:var(--mu);font-weight:400;font-size:11px}
+@keyframes livePulse{0%{box-shadow:0 0 0 0 rgba(224,103,92,.7)}70%{box-shadow:0 0 0 10px rgba(224,103,92,0)}100%{box-shadow:0 0 0 0 rgba(224,103,92,0)}}
+.liveM .acts{width:100%}
 .castQr{align-self:center;background:#fff;border-radius:10px;padding:8px;line-height:0}
 .castQr img{width:150px;height:150px;image-rendering:pixelated}
 .castWin{position:fixed;left:16px;bottom:118px;width:min(30vw,340px);aspect-ratio:16/9;z-index:45;border:1px solid #3A3D44;border-radius:12px;overflow:hidden;background:#000;box-shadow:0 14px 40px rgba(0,0,0,.6)}
@@ -1371,7 +1379,7 @@ function renderLib(){
  const list=visibleSongs(),all=songsIn(S.ui.folder);
  const reorder=S.ui.sort==='set'&&LIB.reorder;
  const sb=(k,l)=>'<button data-sort="'+k+'" class="'+(S.ui.sort===k?'on':'')+'">'+l+'</button>';
- $('#mhead').innerHTML=(navHid()?'<button class="btn" id="navShow">'+ic('folder',18)+'תיקיות</button>':'')+'<div class="flex1"><h1>'+esc(folderName(S.ui.folder))+'</h1><div class="sub">'+(all.length===1?'שיר אחד':all.length+' שירים')+'</div><button class="ib mhTog" id="mhTog" aria-label="מיון ובחירה" aria-expanded="'+(LIB.mhOpen?'true':'false')+'">'+ic('down',20)+'</button></div>'+
+ $('#mhead').innerHTML=(navHid()?'<button class="btn" id="navShow">'+ic('folder',18)+'תיקיות</button>':'')+'<div class="flex1"><h1>'+esc(folderName(S.ui.folder))+'</h1><button class="ib liveQrBtn'+(LIVE.on&&LIVE.fid===S.ui.folder?' on':'')+'" id="liveQr" aria-label="מילים לקהל" title="מילים לקהל">'+ic('qr',22)+'</button><div class="sub">'+(all.length===1?'שיר אחד':all.length+' שירים')+'</div><button class="ib mhTog" id="mhTog" aria-label="מיון ובחירה" aria-expanded="'+(LIB.mhOpen?'true':'false')+'">'+ic('down',20)+'</button></div>'+
 
   (S.ui.sort==='set'&&list.length>1&&!$('#q').value&&!LIB.sel?'<button class="btn'+(reorder?' pri':'')+'" id="reorderBtn">'+ic('sort',18)+(reorder?'סיום':'שנה סדר')+'</button>':'')+
   '<div class="seg">'+(list.length&&!reorder?'<button id="selBtn" class="'+(LIB.sel?'on selOn':'')+'">'+(LIB.sel?'סיום בחירה':'בחירה')+'</button>':'')+sb('set','סדר הופעה')+sb('az','א–ת')+sb('recent','אחרונים')+'</div>';
@@ -1468,6 +1476,7 @@ $('#lib').addEventListener('click',e=>{
  if(t.id==='libFold'){LIB.navOpen=true;renderLib();return}
  if(t.id==='navHide'||t.id==='navShow'){if(isPhone())LIB.navOpen=t.id==='navShow';else{S.ui.navHidden=t.id==='navHide';save()}renderLib();return}
  if(t.id==='reorderBtn'){LIB.reorder=!LIB.reorder;renderLib();return}
+ if(t.id==='liveQr'){liveModal();return}
  if(t.id==='selBtn'){LIB.sel=LIB.sel?null:new Set();LIB.reorder=false;renderLib();return}
  if(d.selid){const k=d.selid;LIB.sel.has(k)?LIB.sel.delete(k):LIB.sel.add(k);renderLib();return}
  if(d.open)return openEditor(d.open);
@@ -2788,7 +2797,48 @@ function castSend(){
  if(CAN_CAST){try{window.Android.castState(j)}catch(e){}}
  else{const f=$('#castWin iframe');if(f&&f.contentWindow)f.contentWindow.postMessage({rnState:JSON.parse(j)},'*')}
 }
-function castPush(){if(CAST.on&&!CAST.t)CAST.t=setTimeout(castSend,90)}
+function castPush(){if(LIVE.on)livePush();if(CAST.on&&!CAST.t)CAST.t=setTimeout(castSend,90)}
+/* ========= live lyrics for the audience (QR, via Firestore) ========= */
+const LIVE={on:false,fid:'',code:'',t:0,last:'',iv:0,err:''};
+const LIVE_URL='https://aviadderi1.github.io/Stagepromt/live/?c=';
+function liveCode(fid){S.ui.liveCodes=S.ui.liveCodes||{};let c=S.ui.liveCodes[fid];if(!c){const a='abcdefghjkmnpqrstuvwxyz23456789';c='';for(let i=0;i<8;i++)c+=a[Math.floor(Math.random()*a.length)];S.ui.liveCodes[fid]=c;save()}return c}
+function liveState(){
+ const s=SCREEN==='play'&&playSong(),fname=folderName(LIVE.fid);
+ if(!s||!songsIn(LIVE.fid).some(x=>x.id===s.id))return {idle:true,folder:fname};
+ if(s.kind==='pdf')return {kind:'pdf',title:s.title,artist:s.artist||'',folder:fname};
+ const L=labelMap(s),parts=[],map=[];
+ s.parts.forEach(p=>{const src=srcOf(s,p);if(!src||!src.text.trim())return;if(src.type==='note'){map.push(Math.max(0,parts.length-1));return}map.push(parts.length);parts.push({n:T(L[p.id]),t:src.type,x:S.ui.hideNik?stripNik(src.text):src.text})});
+ const r=curPart();let pl=-1;
+ if(!S.ui.manual&&P.cur>=0&&P.lines[P.cur]&&P.linePart[P.cur]===r&&P.parts[r]){pl=$$('.ln',P.parts[r]).indexOf(P.lines[P.cur])}
+ return {kind:'text',title:s.title,artist:s.artist||'',folder:fname,parts,part:Math.min(map[r]||0,Math.max(0,parts.length-1)),manual:!!S.ui.manual,pl,idx:P.i,count:P.list.length};
+}
+function livePush(){if(!LIVE.on||LIVE.t)return;LIVE.t=setTimeout(liveSend,450)}
+async function liveSend(){LIVE.t=0;if(!LIVE.on)return;const j=JSON.stringify(liveState());if(j===LIVE.last)return;LIVE.last=j;
+ try{const a=await fbToken();await fbReq('PATCH',FB.base+'/live/'+LIVE.code+'?updateMask.fieldPaths=st&updateMask.fieldPaths=at&updateMask.fieldPaths=on',{fields:{st:{stringValue:j},at:{integerValue:String(Date.now())},on:{booleanValue:true}}},{Authorization:'Bearer '+a.token});LIVE.err=''}
+ catch(e){LIVE.err=String(e.message||e);LIVE.last='';renderLiveSt()}}
+async function liveStart(fid){
+ const a=await fbToken();LIVE.fid=fid;LIVE.code=liveCode(fid);LIVE.last='';
+ await fbReq('PATCH',FB.base+'/live/'+LIVE.code,{fields:{uid:{stringValue:a.uid},folder:{stringValue:folderName(fid)},on:{booleanValue:true},at:{integerValue:String(Date.now())},st:{stringValue:JSON.stringify(liveState())}}},{Authorization:'Bearer '+a.token});
+ LIVE.on=true;LIVE.err='';keepAwake(true);clearInterval(LIVE.iv);LIVE.iv=setInterval(livePush,1500);livePush();renderLiveBadge()}
+async function liveStop(){LIVE.on=false;clearInterval(LIVE.iv);clearTimeout(LIVE.t);LIVE.t=0;renderLiveBadge();if(SCREEN!=='play'&&!CAST.on)keepAwake(false);
+ try{const a=await fbToken();await fbReq('PATCH',FB.base+'/live/'+LIVE.code+'?updateMask.fieldPaths=on&updateMask.fieldPaths=st',{fields:{on:{booleanValue:false},st:{stringValue:'{"idle":true,"ended":true}'}}},{Authorization:'Bearer '+a.token})}catch(e){}}
+function renderLiveBadge(){document.body.classList.toggle('liveOn',LIVE.on);const b=$('#liveQr');if(b)b.classList.toggle('on',LIVE.on)}
+function renderLiveSt(){const e=$('#liveSt');if(!e)return;e.className='liveSt'+(LIVE.on?' on':'');e.innerHTML=LIVE.on?'<i></i>השידור לקהל פעיל'+(LIVE.err?'<small dir="ltr">'+esc(LIVE.err.slice(0,90))+'</small>':''):'השידור כבוי'}
+function liveModal(){
+ const fid=S.ui.folder,signed=!!fbAuthState();
+ if(!signed){openModal('<h2>'+ic('qr',22)+' מילים לקהל</h2><p class="mTxt">כדי לשדר את המילים לטלפונים של הקהל צריך להתחבר לחשבון. החיבור מאפשר לשדר דרך האינטרנט, גם ברשת סלולרית.</p><div class="acts"><button class="btn pri" id="mOk">'+ic('user',18)+'התחבר לחשבון</button><span class="flex1"></span><button class="btn" id="mCancel">ביטול</button></div>');
+  $('#mCancel').onclick=closeModal;$('#mOk').onclick=()=>{closeModal();settingsModal('account')};return}
+ const code=(LIVE.on&&LIVE.fid)?LIVE.code:liveCode(fid),url=LIVE_URL+code,same=!LIVE.on||LIVE.fid===fid;
+ let qr='';try{const q=qrcode(0,'M');q.addData(url);q.make();qr=q.createSvgTag({cellSize:8,margin:0,scalable:true})}catch(e){}
+ openModal('<div class="liveM"><div class="liveTop"><h2>'+ic('qr',22)+' מילים לקהל</h2><span class="liveFold">'+esc(folderName(LIVE.on?LIVE.fid:fid))+'</span></div>'+
+  '<div class="liveQrBig">'+qr+'</div><div class="liveScan">סרקו עם המצלמה בטלפון כדי לראות את מילות השירים</div><div class="liveUrl" dir="ltr">'+esc(url.replace('https://',''))+'</div>'+
+  '<div class="liveSt" id="liveSt"></div>'+
+  '<div class="acts"><button class="btn '+(LIVE.on&&same?'':'pri')+'" id="liveGo">'+(LIVE.on&&same?'עצור שידור':'התחל שידור')+'</button><span class="flex1"></span><button class="btn" id="mCancel">סגור</button></div></div>',true);
+ renderLiveSt();$('#mCancel').onclick=closeModal;
+ $('#liveGo').onclick=async()=>{const b=$('#liveGo');b.disabled=true;
+  try{if(LIVE.on&&same)await liveStop();else{if(LIVE.on)await liveStop();await liveStart(fid)}closeModal();liveModal()}
+  catch(e){b.disabled=false;LIVE.err=String(e.message||e);const st=$('#liveSt');if(st)st.innerHTML='<b style="color:#E0675C">לא הצלחתי להתחיל את השידור.</b><small dir="ltr">'+esc(LIVE.err.slice(0,120))+'</small>'}};
+}
 function castStart(){
  if(CAN_CAST){try{CAST.info=JSON.parse(window.Android.castStart())}catch(e){CAST.info=null}if(!CAST.info||!CAST.info.port)return toast('לא ניתן להפעיל שידור')}
  else{
