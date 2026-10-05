@@ -150,6 +150,9 @@ select.chip{cursor:pointer}
 .emptyEd{max-width:780px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:12px}
 .emptyEd h2{margin:6px 0 0;font-family:var(--ti);font-size:24px;font-weight:600}
 .emptyEd p{margin:0;color:var(--mu);font-size:15px;line-height:1.6}
+.txtEdM .bigText{min-height:52vh;max-height:62vh;resize:none;font-size:20px;line-height:1.7}
+.txtEdM .teBar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:4px 0 10px}.txtEdM .teBar .hint{flex:1;min-width:200px;margin:0}
+@media (max-width:600px){.txtEdM .bigText{min-height:48vh;font-size:18px}}
 .bigText{min-height:320px;resize:vertical;background:var(--p1);border:1px solid var(--ln2);border-radius:14px;padding:16px 18px;font-size:19px;line-height:1.6;color:var(--tx);outline:none;width:100%}
 .style{width:300px;padding:20px;border-right:1px solid var(--ln);background:var(--p2);display:flex;flex-direction:column;gap:20px;flex-shrink:0}
 .grp{display:flex;flex-direction:column;gap:10px}
@@ -850,6 +853,7 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
     <button class="btn edStyleBtn" id="edStyleBtn" aria-label="עיצוב"><i data-ic="text" data-s="18"></i><span>עיצוב</span></button>
     <button class="btn chUndo" id="chUndo" aria-label="בטל פעולה אחרונה" disabled><i data-ic="undo" data-s="18"></i>Undo</button>
     <button class="btn" id="edNik" aria-pressed="false"><span>ניקוד</span></button>
+    <button class="btn" id="edTxt"><i data-ic="edit" data-s="18"></i><span>עורך טקסט</span></button>
     <button class="btn" id="edChords" aria-pressed="false"><i data-ic="chord" data-s="18"></i>אקורדים</button>
     <button class="btn" id="edPaste"><i data-ic="clip" data-s="18"></i><span class="hideS">הדבק טקסט וחלק אוטומטית</span></button>
     <button class="btn" id="edSave">שמור</button>
@@ -1484,7 +1488,7 @@ function renderEditor(){
  $('#edAv').innerHTML=avatarHtml(s.img,s.artist||s.title,'edAvI');
  $('#edTitle').value=s.title;$('#edArtist').value=s.artist||'';
  $('#edKey').innerHTML='<option value="">סולם</option>'+KEYS.map(k=>'<option value="'+k+'"'+(s.key===k?' selected':'')+'>'+k+'</option>').join('');
- $('#edPaste').hidden=s.kind==='pdf';$('#edNik').hidden=s.kind==='pdf';updNikBtn();$('#edChords').hidden=s.kind==='pdf';
+ $('#edPaste').hidden=s.kind==='pdf';$('#edNik').hidden=s.kind==='pdf';$('#edTxt').hidden=s.kind==='pdf';updNikBtn();$('#edChords').hidden=s.kind==='pdf';
  renderStruct();renderBlocks();renderStyle();
 }
 function renderStruct(){
@@ -1570,6 +1574,35 @@ $('#edAv').onclick=()=>{const s=curSong();menu('תמונת האמן',[{icon:'sea
 $('#edSave').onclick=()=>{const s=curSong();if(s&&s.draft){delete s.draft;touch(s)}save(true);toast('השיר נשמר')};
 $('#edPlay').onclick=()=>{const s=curSong();save(true);if(s.kind!=='pdf'&&!resolve(s).some(p=>p.text.trim()))return toast('הוסף מילים לפני מצב הופעה');startShow([s.id],0)};
 $('#edPaste').onclick=pasteModal;
+$('#edTxt').onclick=textEditModal;
+const TE_H={verse:'בית',chorus:'פזמון',bridge:'גשר',note:'הערה'};
+function songToEdText(s){const L=labelMap(s);return s.parts.map(p=>{const src=srcOf(s,p)||p;
+  if(p.ref)return '['+TE_H[src.type]+' – חוזר]';return '['+TE_H[p.type]+']\n'+String(p.text||'').replace(/\n{2,}/g,'\n').trim()}).join('\n\n')}
+function edTextToParts(s,raw){
+ const old=s.parts,chs=[];old.forEach(p=>(p.chords||[]).forEach(c=>chs.push(Object.assign({},c,{used:false}))));
+ const blocks=String(raw||'').replace(/\r/g,'').split(/\n[ \t]*\n+/).map(b=>b.split('\n').map(l=>l.replace(/\s+$/,'')).filter(l=>l.trim()!=='').join('\n')).filter(Boolean);
+ const parts=[],lastOf={};let prev='verse';
+ blocks.forEach(b=>{let lines=b.split('\n'),type=null,isRef=false;
+  const m=lines[0].trim().match(/^\[?\s*(בית|פזמון|גשר|הערה)(?:\s*\d+)?\s*(?:[-–]\s*(חוזר))?\s*\]?\s*:?$/);
+  if(m){type={'בית':'verse','פזמון':'chorus','גשר':'bridge','הערה':'note'}[m[1]];isRef=!!m[2];lines=lines.slice(1)}
+  type=type||prev;prev=type;
+  const text=lines.join('\n').trim();
+  if(!text){if(lastOf[type])parts.push({id:uid(),type,text:'',ref:lastOf[type].id});return}
+  const part={id:uid(),type,text,ref:null};
+  const tl=text.split('\n'),pc=[];tl.forEach((l,li)=>{const k=stripNik(l).trim();chs.forEach(c=>{if(!c.used&&stripNik(c.t||'').trim()===k){c.used=true;pc.push(Object.assign({},c,{l:li,t:l}))}})});
+  pc.forEach(c=>delete c.used);if(pc.length)part.chords=pc;
+  parts.push(part);lastOf[type]=part});
+ return parts}
+function textEditModal(){const s=curSong();if(!s||s.kind==='pdf')return;
+ openModal('<div class="txtEdM"><h2>'+ic('edit',22)+' עורך טקסט</h2><div class="teBar"><p class="hint">שורה ריקה מפרידה בין חלקים. כדי לפצל בית לשניים, עמוד בסוף השורה והקש Enter פעמיים. הכותרות בסוגריים קובעות את סוג החלק.</p><button class="btn sm" id="teSplit">'+ic('plus',16)+'פצל כאן</button></div>'+
+  '<textarea class="bigText" id="teText" dir="auto" spellcheck="false"></textarea>'+
+  '<div class="acts"><button class="btn pri" id="teOk">'+ic('check',18)+'שמור שינויים</button><span class="flex1"></span><button class="btn" id="mCancel">ביטול</button></div></div>',true);
+ const ta=$('#teText');ta.value=songToEdText(s);
+ $('#mCancel').onclick=closeModal;
+ $('#teSplit').onclick=()=>{const v=ta.value;let i=ta.selectionStart;const e=v.indexOf('\n',i);i=e<0?v.length:e;ta.value=v.slice(0,i)+'\n\n'+v.slice(i).replace(/^\n/,'');const c=i+2;ta.focus();ta.setSelectionRange(c,c)};
+ $('#teOk').onclick=()=>{const parts=edTextToParts(s,ta.value);if(!parts.length)return toast('אין טקסט בשיר');
+  s.parts=parts;touch(s);closeModal();refreshParts();toast('השיר עודכן · '+parts.length+' חלקים')};
+}
 function pasteModal(){
  const s=curSong();
  openModal('<h2>הדבקת טקסט</h2><p class="mTxt">הדבק את מילות השיר. שורה ריקה מפרידה בין חלקים, ופזמון שחוזר יזוהה לבד. אפשר גם לכתוב כותרות כמו "פזמון:" או "בית 2".</p><textarea class="bigText" id="mPaste" autofocus></textarea>'+
