@@ -678,6 +678,19 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
 .dupTag{display:inline-block;font-size:11px;font-weight:700;color:#17120A;background:#E8A23A;border-radius:6px;padding:1px 6px;margin-inline-start:6px;vertical-align:middle}
 .acctBtn{width:40px;height:40px;min-width:40px;border-radius:50%;padding:0;border:2px solid #3A3D44;background:#2A2D33;color:#CFC9BF;display:inline-flex;align-items:center;justify-content:center;overflow:hidden;flex:none;font-weight:800;font-size:17px}
 .acctBtn img{width:100%;height:100%;object-fit:cover;display:block}.acctBtn.on{border-color:#E8A23A}
+#web .wCat{display:none}#web.catMode .wCat{display:flex}#web.catMode .wSearch:not(.wCat){display:none}#web.catMode .wRes{display:none}
+.wMode{flex-shrink:0}
+.wScroll .catWrap,.catWrap{padding:18px 22px 40px;width:100%;max-width:1100px;margin:0 auto;display:block;align-self:stretch;text-align:right}.catSec{width:100%;box-sizing:border-box}
+.catEx{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:14px}.catEx .chip{height:38px;padding:0 14px;border-radius:19px;border:1px solid var(--ln2);background:#202227;color:var(--tx);font-size:14px}.catTop{display:flex;align-items:baseline;gap:12px;margin-bottom:14px}.catTop h2{margin:0;font-family:var(--ti);font-size:26px}.catTop span{color:var(--mu)}
+.catSec{background:#17181B;border:1px solid var(--ln2);border-radius:16px;padding:14px;margin-bottom:14px}.catSec.lib{border-color:#5A4A2A;background:#1E1A13}
+.catSecH{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}.catSecH b{font-size:17px}.catSecH span{background:#2A2D33;border-radius:10px;padding:1px 8px;font-size:12px;color:var(--mu)}.catSecH small{color:var(--mu);font-size:12.5px}
+.catGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.catCard{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:8px 10px;border:1px solid #2A2D33;border-radius:12px;background:#202227;color:var(--tx);text-align:right;min-width:0}
+.catCard.song{cursor:pointer}.catCard.song svg{color:var(--mu);flex-shrink:0}
+.catInfo{display:flex;align-items:center;gap:10px;min-width:0}.catInfo span{display:flex;flex-direction:column;min-width:0}.catInfo b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.catInfo small{color:var(--mu);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.catAv{width:38px;height:38px;border-radius:50%;object-fit:cover;flex-shrink:0}.catAv.ph{display:inline-flex;align-items:center;justify-content:center;background:#2A2D33;color:var(--mu);font-weight:700}
+.catMore{text-align:center;margin:6px 0 20px}.catErr{color:#E0675C;text-align:center}
+@media (max-width:600px){#web .wMode{order:0;flex-basis:100%;justify-content:center}#web.catMode .hdr .wCat{order:1;flex:1 1 calc(100% - 74px);max-width:none}.catWrap{padding:12px}.catGrid{grid-template-columns:1fr}}
 /* ---- phone ---- */
 @media (max-width:600px){
  .hdr{padding:10px 12px!important;gap:6px!important}
@@ -912,6 +925,8 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
   <header class="hdr">
     <button class="ib" id="webClose" aria-label="סגור"><i data-ic="close" data-s="18"></i></button>
     <h1 class="h1">חיפוש מילים ברשת</h1>
+    <div class="seg wMode" id="wMode"><button data-wm="song" class="on">שיר</button><button data-wm="cat">קטגוריה</button></div>
+    <label class="wSearch wCat"><i data-ic="list" data-s="18"></i><input id="wc" dir="auto" type="search" enterkeyhint="search" placeholder="קטגוריה, למשל: שירי ארץ ישראל" aria-label="קטגוריה"></label>
     <label class="wSearch"><i data-ic="search" data-s="18"></i><input id="wq" dir="auto" type="search" enterkeyhint="search" placeholder="שם השיר…" aria-label="שם השיר"></label>
     <label class="wSearch wArt"><i data-ic="mic" data-s="18"></i><input id="wa" dir="auto" type="search" enterkeyhint="search" placeholder="אמן או להקה (לא חובה)" aria-label="אמן או להקה"></label>
     <button class="btn pri" id="wGo">חפש</button>
@@ -3224,6 +3239,54 @@ const WEB={q:'',res:[],sel:-1,busy:false,loading:false,cur:null,view:'split',fol
 function openWeb(){WEB.folder=S.folders.some(x=>x.id===S.ui.folder)?S.ui.folder:'';show('web');renderWebRes();renderWebPrev();setTimeout(()=>$('#wq').focus(),80)}
 function closeWeb(){hideSug();WEB.tok=null;show('lib');renderLib()}
 const WCACHE={};
+const WCAT={on:false,q:'',busy:false,lib:[],ai:[],err:'',more:false};
+function wSetMode(cat){WCAT.on=cat;$('#web').classList.toggle('catMode',cat);$$('#wMode [data-wm]').forEach(b=>b.classList.toggle('on',(b.dataset.wm==='cat')===cat));
+ setTimeout(()=>{const i=cat?$('#wc'):$('#wq');if(i)i.focus()},50);renderWebRes();renderWebPrev()}
+async function gemCall(key,body){const models=['gemini-flash-latest','gemini-2.5-flash','gemini-2.0-flash'];let last=null;
+ for(const m of [localStorage.getItem('gem-model')].concat(models).filter(Boolean)){const url='https://generativelanguage.googleapis.com/v1beta/models/'+m+':generateContent?key='+encodeURIComponent(key);
+  try{let j;if(window.Android&&window.Android.aiReq){const r=await aiReq('POST',url,JSON.stringify(body),{'Content-Type':'application/json'},false,90000);j=JSON.parse(r.text)}
+   else{const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});j=await r.json();if(!r.ok)throw new Error('HTTP '+r.status+': '+((j.error||{}).message||''))}
+   const t=(((j.candidates||[])[0]||{}).content||{}).parts;const txt=(t||[]).map(x=>x.text||'').join('');if(txt){try{localStorage.setItem('gem-model',m)}catch(e){}return txt}last=new Error('empty')}
+  catch(e){last=e;if(/HTTP 40[03]/.test(e.message)&&/API key|API_KEY|PERMISSION/i.test(e.message))break}}
+ throw last||new Error('failed')}
+async function freeLLM(prompt){
+ const tries=[
+  async()=>{const r=await aiReqOrFetch('POST','https://text.pollinations.ai/openai',JSON.stringify({model:'openai',messages:[{role:'system',content:'You return only valid JSON.'},{role:'user',content:prompt}],response_format:{type:'json_object'},referrer:'stagepromt',private:true}),{'Content-Type':'application/json'});
+   const j=JSON.parse(r);return ((((j.choices||[])[0]||{}).message)||{}).content||''},
+  async()=>await aiReqOrFetch('GET','https://text.pollinations.ai/'+encodeURIComponent(prompt)+'?json=true&referrer=stagepromt&private=true','',null)];
+ let last=null;for(const f of tries){try{const t=await f();if(t&&/title/.test(t))return t;last=new Error('empty')}catch(e){last=e}}throw last||new Error('failed')}
+async function aiReqOrFetch(method,url,body,headers){
+ if(window.Android&&window.Android.aiReq){const r=await aiReq(method,url,body||'',headers,false,90000);return r.text}
+ const r=await fetch(url,{method,headers:headers||{},body:method==='GET'?undefined:body});const t=await r.text();if(!r.ok)throw new Error('HTTP '+r.status);return t}
+async function gemSongList(q,key,exclude){
+ const ex=exclude&&exclude.length?'\nאל תחזור על: '+exclude.slice(-120).join(' | '):'';
+ const prompt='אתה עוזר לבנות רשימת שירים עבריים לזמרים ולמוזיקאים.\nהבקשה: "'+q+'"\nהחזר JSON בלבד: {"songs":[{"title":"שם השיר","artist":"מבצע","era":"שנות ה-70"}]}\nהחזר בין 40 ל-80 שירים אמיתיים ומוכרים שמתאימים לבקשה, מתקופות ומבצעים שונים. era הוא העשור בפורמט "שנות ה-XX".'+ex;
+ let t;if(key){try{t=await gemCall(key,{contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{responseMimeType:'application/json',temperature:.5,maxOutputTokens:12000}})}catch(e){t=null}}
+ if(!t)t=await freeLLM(prompt);
+ let j;const c=String(t).replace(/^```(?:json)?\s*|\s*```$/g,'').trim();try{j=JSON.parse(c)}catch(e){const m=c.match(/[\[{][\s\S]*[\]}]/);j=m?JSON.parse(m[0]):{}}
+ return (Array.isArray(j)?j:(j.songs||[])).filter(x=>x&&x.title).map(x=>({title:String(x.title).slice(0,80),artist:String(x.artist||'').slice(0,80),era:String(x.era||'').slice(0,20)}))}
+async function doCatSearch(more){const q=($('#wc').value||'').trim();if(!q)return $('#wc').focus();
+ if(!more){WCAT.q=q;WCAT.lib=[];WCAT.ai=[];}WCAT.err='';WCAT.busy=true;renderWebPrev();
+ if(!more){try{const nq=normTxt(q),words=nq.split(' ').filter(w=>w.length>1);const lib=await fbPublicSongs();
+   WCAT.lib=lib.filter(x=>{const h=normTxt([x.list,x.title,x.artist].join(' '));return h.includes(nq)||(words.length&&words.every(w=>h.includes(w)))})}catch(e){}}
+ {try{const got=await gemSongList(q,S.gemKey||'',more?WCAT.ai.map(x=>x.title):[]);const seen=new Set(WCAT.ai.map(x=>normTxt(x.title)+'|'+normTxt(x.artist)));
+   got.forEach(x=>{const k=normTxt(x.title)+'|'+normTxt(x.artist);if(!seen.has(k)){seen.add(k);WCAT.ai.push(x)}})}
+  catch(e){WCAT.err=/HTTP 429/.test(e.message)?'השרת עמוס כרגע. נסה שוב בעוד דקה.':'החיפוש ברשת נכשל. בדוק את החיבור לאינטרנט ונסה שוב.'}}
+ WCAT.busy=false;renderWebPrev()}
+function eraNum(e){const m=String(e||'').match(/(\d{2,4})/);if(!m)return 9999;let n=+m[1];if(n<100)n+=n<30?2000:1900;return n}
+function renderCatPrev(E){
+ if(!WCAT.q&&!WCAT.busy){E.innerHTML='<div class="wScroll"><div class="wMsg"><h2>חיפוש לפי קטגוריה</h2><p>כתוב נושא, תקופה או סגנון. התוצאות יוצגו כאן לפי סקשנים, ולחיצה על שיר מחפשת את המילים שלו.</p><div class="catEx">'+['שירי ארץ ישראל','שירי חנוכה','רוק ישראלי שנות ה-80','שירי אהבה','שירים לחתונה','שירי ים'].map(x=>'<button class="chip" data-catex="'+esc(x)+'">'+esc(x)+'</button>').join('')+'</div></div></div>';return}
+ let h='<div class="wScroll catWrap"><div class="catTop"><h2>'+esc(WCAT.q)+'</h2><span>'+(WCAT.lib.length+WCAT.ai.length)+' שירים</span></div>';
+ if(WCAT.lib.length)h+='<section class="catSec lib"><div class="catSecH">'+ic('music',18)+'<b>במאגר השירים</b><span>'+WCAT.lib.length+'</span><small>מוכנים עם רקע · הוספה בלחיצה</small></div><div class="catGrid">'+
+  WCAT.lib.map((x,i)=>'<div class="catCard"><div class="catInfo">'+(x.artistImg?'<img class="catAv" alt="" referrerpolicy="no-referrer" src="'+esc(x.artistImg)+'">':avatarHtml('',x.artist||x.title,'catAv'))+'<span><b>'+esc(x.title)+'</b><small>'+esc(x.artist||'')+'</small></span></div><button class="btn sm pri" data-catlib="'+i+'">'+ic('plus',16)+'הוסף</button></div>').join('')+'</div></section>';
+ if(WCAT.ai.length){const g={};WCAT.ai.forEach((x,i)=>{const k=x.era||'שונות';(g[k]=g[k]||[]).push(i)});
+  Object.keys(g).sort((a,b)=>eraNum(a)-eraNum(b)).forEach(k=>{h+='<section class="catSec"><div class="catSecH"><b>'+esc(k)+'</b><span>'+g[k].length+'</span></div><div class="catGrid">'+
+   g[k].map(i=>{const x=WCAT.ai[i];return '<button class="catCard song" data-catai="'+i+'"><div class="catInfo">'+avatarHtml('',x.artist||x.title,'catAv')+'<span><b>'+esc(x.title)+'</b><small>'+esc(x.artist||'')+'</small></span></div>'+ic('search',18)+'</button>'}).join('')+'</div></section>'})}
+ if(WCAT.busy)h+='<div class="wMsg"><span class="spin big"></span>מחפש שירים מתאימים…</div>';
+ else{if(WCAT.err)h+='<p class="catErr">'+esc(WCAT.err)+'</p>';
+  if(WCAT.ai.length)h+='<div class="catMore"><button class="btn" id="catMore">'+ic('plus',16)+'מצא עוד שירים</button></div>';
+  else if(!WCAT.lib.length)h+='<div class="wMsg">לא נמצאו שירים. נסה ניסוח אחר.</div>'}
+ E.innerHTML=h+'</div>'}
 async function doWebSearch(auto){
  const q=$('#wq').value.trim(),a=$('#wa').value.trim();if(!q&&!a)return toast('כתוב שם של שיר או של אמן');
  hideSug();$('#wq').blur();$('#wa').blur();
@@ -3279,6 +3342,7 @@ async function pickWeb(i){
 }
 function renderWebPrev(){
  const E=$('#wPrev'),c=WEB.cur;
+ if(WCAT.on)return renderCatPrev(E);
  if(WEB.loading){E.innerHTML='<div class="wScroll"><div class="wMsg"><span class="spin big"></span>קורא את הדף ומזהה את המילים…</div></div>';return}
  if(!c){E.innerHTML='<div class="wScroll"><div class="wMsg"><h2>חיפוש מילים ברשת</h2>'+(WEB.res.length?'בחר תוצאה כדי לראות את המילים שזוהו.':'המילים נשלפות מהדף, מחולקות לבתים ולפזמונים לפי המרווחים והחזרות, ונשמרות בספרייה שלך. תמיד אפשר לתקן לפני השמירה.')+'</div></div>';return}
  const openBtn=c.url&&!c.url.startsWith('demo:')?'<button class="btn sm" id="wOpen">'+ic('ext',16)+'פתח את הדף</button>':'';
@@ -3385,6 +3449,14 @@ function saveWeb(){
  WEB.saved=s.id;renderWebPrev();toast('השיר נשמר בספרייה');
 }
 $('#web').addEventListener('click',e=>{
+ {const m=e.target.closest('[data-wm]');if(m){wSetMode(m.dataset.wm==='cat');return}
+  if(WCAT.on){const t0=e.target.closest('button');if(t0){
+   if(t0.id==='wGo')return doCatSearch(false);
+   if(t0.id==='catMore')return doCatSearch(true);
+   if(t0.dataset.catex){$('#wc').value=t0.dataset.catex;return doCatSearch(false)}
+   if(t0.id==='catKeySave'){const k=$('#catKey').value.trim();if(!k)return;S.gemKey=k;save();return doCatSearch(false)}
+   if(t0.dataset.catlib!=null){const x=WCAT.lib[+t0.dataset.catlib];return pickFolderFor(1).then(d=>{if(d)importLib([x],d)})}
+   if(t0.dataset.catai!=null){const x=WCAT.ai[+t0.dataset.catai];$('#wq').value=x.title;$('#wa').value=x.artist||'';wSetMode(false);WEB.back=null;return doWebSearch()}}}}
  const t=e.target.closest('button');if(!t)return;const d=t.dataset;
  if(t.id==='webClose')return closeWeb();
  if(t.id==='wGo'){WEB.back=null;return doWebSearch()}
@@ -3401,6 +3473,7 @@ $('#web').addEventListener('click',e=>{
 });
 let wArtT=0;
 $('#web').addEventListener('input',e=>{const t=e.target,c=WEB.cur;if(!c)return;if(t.id==='wTitle')c.title=t.value;else if(t.id==='wArtist'){c.artist=t.value;clearTimeout(wArtT);wArtT=setTimeout(()=>webArtistImage(WEB.tok),900)}else if(t.id==='wText')c.text=t.value});
+$('#wc').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();doCatSearch(false)}});
 $('#web').addEventListener('change',e=>{if(e.target.id==='wFolder')WEB.folder=e.target.value});
 /* ---- live suggestions while typing ---- */
 const SUG={tok:0,t:0,field:null,items:[],cache:{}};
@@ -4141,6 +4214,21 @@ function adminEdit(x){const pend=ADM.tab==='pend';const B=$('#admBody');
 function adminSync(){try{const st=fbAuthState();if(window.Android&&window.Android.adminWatch)window.Android.adminWatch(isOwner()&&st.refresh?st.refresh:'')}catch(e){}}
 window.__openAdmin=()=>{closeModal();openAdmin()};
 setTimeout(async()=>{if(!isOwner())return;adminSync();try{const l=await fbList('submissions',true);if(l.length){const b=document.createElement('button');b.className='updBar';b.style.background='#7C5CD6';b.style.color='#fff';b.innerHTML=ic('upload',20)+'<span><b>'+(l.length===1?'שיר חדש':l.length+' שירים חדשים')+'</b> מחכים לאישור · לחץ לבדיקה</span>';b.onclick=()=>{b.remove();openAdmin()};document.body.appendChild(b);setTimeout(()=>b.remove(),15000)}}catch(e){}},5000);
+async function importLib(picks,dest){
+  toast('מוסיף '+picks.length+' שירים…');let added=0,upd=0;
+  for(const x of picks){
+   const parts=GENBG.parts(x.text);let s=S.songs.find(q=>q.srcId===x.id);
+   if(!s){let fid=null;
+    if(dest.mode==='cat'){const fname=x.list||'מהמאגר';let f=S.folders.find(q=>q.name===fname);if(!f){f={id:uid(),name:fname};S.folders.push(f)}fid=f.id}
+    else if(dest.mode==='folder')fid=dest.id;
+    s=newSongObj({title:x.title||'שיר',artist:x.artist||'',folderId:fid,kind:'text'});S.songs.push(s);added++}else{upd++;if(dest.mode==='folder')s.folderId=dest.id}
+   s.title=x.title||s.title;s.artist=x.artist||'';s.cat=x.list||'';s.parts=parts;s.srcId=x.id;s.srcUpd=x.updatedAt||Date.now();
+   if(x.artistImg&&x.artistImg!==s.srcImg){try{const d=await shrinkImage((await httpGet(x.artistImg,true,12000)).text);if(d){s.img=d;s.srcImg=x.artistImg}}catch(e){}}
+   if(!s.img&&s.artist&&x.artistImg!==''){try{const d=await findArtistImage(s.artist,'');if(d)s.img=d}catch(e){}}
+   try{const d=GENBG.render(x.bg);const id='bg-'+uid();await IDB.put(id,d);BG[id]=d;const old=s.bg&&s.bg.type==='img'?s.bg.id:null;s.bg={type:'img',id,dim:(s.bg&&s.bg.dim!=null)?s.bg.dim:.45};if(old&&old!==id)dropBgImg(old)}catch(e){}
+   touch(s);await sleep(0)}
+  save(true);renderLib();toast((added?'נוספו '+added+' שירים':'')+(added&&upd?', ':'')+(upd?'עודכנו '+upd:''));
+}
 function genLibModal(pick){
  openModal('<h2>מאגר שירים</h2><label class="glSearch">'+ic('search',18)+'<input id="glQ" type="search" dir="auto" enterkeyhint="search" placeholder="חפש שיר או אמן במאגר…"></label><p class="mTxt" id="glMsg">טוען את המאגר…</p><div id="glList"></div>'+
   '<div class="acts"><button class="btn pri" id="glGo" disabled>'+ic('check',18)+'הוסף לספרייה</button><span class="flex1"></span><button class="btn" id="mCancel">סגור</button></div>',true);
@@ -4159,20 +4247,7 @@ function genLibModal(pick){
   $('#glMsg').innerHTML=(/HTTP 403|PERMISSION_DENIED/.test(m)?'המאגר לא זמין כרגע.':'לא הצלחתי לטעון את המאגר. בדוק את החיבור לאינטרנט.')+'<br><small dir="ltr" style="opacity:.6">'+esc(det)+'</small>'});
  $('#glGo').onclick=async()=>{
   const picks=[...document.querySelectorAll('#glList [data-gl]')].filter(c=>c.checked).map(c=>list[+c.dataset.gl]);if(!picks.length)return toast('לא נבחרו שירים');
-  const dest=await pickFolderFor(picks.length);if(!dest)return;
-  toast('מוסיף '+picks.length+' שירים…');let added=0,upd=0;
-  for(const x of picks){
-   const parts=GENBG.parts(x.text);let s=S.songs.find(q=>q.srcId===x.id);
-   if(!s){let fid=null;
-    if(dest.mode==='cat'){const fname=x.list||'מהמאגר';let f=S.folders.find(q=>q.name===fname);if(!f){f={id:uid(),name:fname};S.folders.push(f)}fid=f.id}
-    else if(dest.mode==='folder')fid=dest.id;
-    s=newSongObj({title:x.title||'שיר',artist:x.artist||'',folderId:fid,kind:'text'});S.songs.push(s);added++}else{upd++;if(dest.mode==='folder')s.folderId=dest.id}
-   s.title=x.title||s.title;s.artist=x.artist||'';s.cat=x.list||'';s.parts=parts;s.srcId=x.id;s.srcUpd=x.updatedAt||Date.now();
-   if(x.artistImg&&x.artistImg!==s.srcImg){try{const d=await shrinkImage((await httpGet(x.artistImg,true,12000)).text);if(d){s.img=d;s.srcImg=x.artistImg}}catch(e){}}
-   if(!s.img&&s.artist&&x.artistImg!==''){try{const d=await findArtistImage(s.artist,'');if(d)s.img=d}catch(e){}}
-   try{const d=GENBG.render(x.bg);const id='bg-'+uid();await IDB.put(id,d);BG[id]=d;const old=s.bg&&s.bg.type==='img'?s.bg.id:null;s.bg={type:'img',id,dim:(s.bg&&s.bg.dim!=null)?s.bg.dim:.45};if(old&&old!==id)dropBgImg(old)}catch(e){}
-   touch(s);await sleep(0)}
-  save(true);renderLib();toast((added?'נוספו '+added+' שירים':'')+(added&&upd?', ':'')+(upd?'עודכנו '+upd:''));
+  const dest=await pickFolderFor(picks.length);if(!dest)return;await importLib(picks,dest);
  };
 }
 
