@@ -114,11 +114,27 @@ input[type=range]{accent-color:var(--am);width:100%;height:32px}
 
 /* editor */
 .edTitles{min-width:0;display:flex;flex-direction:column}
-@media (min-width:601px){#edit>.hdr{gap:6px}#edit>.hdr .edTitles{flex:1 1 230px;min-width:230px}#edit>.hdr .titleIn{width:100%;text-overflow:ellipsis}#edit>.hdr>.flex1{flex:0 0 0}
- #edit>.hdr>.btn{padding:0 11px;font-size:15px;gap:6px;flex-shrink:0}#edit>.hdr #edPaste{width:44px;padding:0;justify-content:center}#edit>.hdr #edPaste .hideS{display:none}}
-#edit>.hdr .edStyleBtn{width:44px;padding:0!important;justify-content:center}
-@media (min-width:601px) and (max-width:900px){#edit>.hdr{flex-wrap:wrap;height:auto;row-gap:10px;padding-top:10px;padding-bottom:10px}#edit>.hdr>.flex1{flex:0 0 100%;height:0}#edit>.hdr .edTitles{flex:1 1 0}#edit>.hdr #edPlay{margin-inline-start:auto}}
-@media (min-width:601px) and (max-width:1180px){#edit>.hdr #edTxt span,#edit>.hdr #edChords .lbl{display:none}#edit>.hdr #edTxt{width:44px;padding:0;justify-content:center}#edit>.hdr>.btn{padding:0 9px}}
+@media (min-width:601px){
+ #edit>.hdr{gap:12px}#edit>.hdr .edTitles{flex:1 1 220px;min-width:200px}#edit>.hdr .titleIn{width:100%;text-overflow:ellipsis}#edit>.hdr>.flex1{display:none}
+ .edTools{display:flex;align-items:stretch;gap:2px;padding:4px;background:#17191D;border:1px solid var(--ln2);border-radius:14px;flex-shrink:0}
+ .edTools .tb{flex-direction:column;gap:3px;height:54px;width:66px;padding:0 2px;border:1px solid transparent;border-radius:10px;background:transparent;color:#CFCAC1;font-size:11.5px;font-weight:600;line-height:1.1}
+ .edTools .tb svg{width:21px;height:21px}
+ .edTools .tb span{white-space:nowrap}
+ .edTools .tb:active{background:#25282E}
+ .edTools .tb.act{background:#2A2419;color:#F7D57A;border-color:#E8A23A;box-shadow:none}
+ #edit.styleOpen .edTools .edStyleBtn{background:#2A2419;color:#F4C77A;border-color:#E8A23A}
+ .edTools .tbSep{width:1px;background:var(--ln2);margin:8px 4px}
+ #edit>.hdr #edPlay{height:54px;padding:0 20px;border-radius:14px;font-size:16px}
+}
+@media (max-width:600px){.edTools{display:contents}.edTools .tbSep,#edNik svg,#edSave svg,#edPaste span,.edStyleBtn span,.chUndo span{display:none}}
+@media (min-width:601px) and (max-width:1000px){
+ #edit>.hdr{flex-wrap:wrap;height:auto;row-gap:10px;padding-top:10px;padding-bottom:12px}
+ #edit>.hdr .edTitles{flex:1 1 0}
+ .edTools{order:5;flex:1 1 auto;justify-content:space-between}
+ .edTools .tb{flex:1 1 0;width:auto;min-width:58px}
+ #edit>.hdr #edPlay{order:6}
+ #edit>.hdr::after{content:'';order:4;flex-basis:100%;height:0}
+}
 .titleIn{background:transparent;border:0;outline:none;font-family:var(--ti);font-size:25px;font-weight:600;color:var(--tx);padding:0;width:340px;max-width:100%}
 .edSub{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--mu)}
 .edSub input{background:transparent;border:0;outline:none;color:var(--mu);font-size:14px;width:140px;padding:0}
@@ -854,13 +870,16 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
       <div class="edSub"><input id="edArtist" placeholder="שם האמן" aria-label="שם האמן"><span>·</span><select id="edKey" aria-label="סולם" dir="ltr"></select></div>
     </div>
     <div class="flex1"></div>
-    <button class="btn edStyleBtn" id="edStyleBtn" aria-label="עיצוב" title="עיצוב"><i data-ic="text" data-s="18"></i></button>
-    <button class="btn chUndo" id="chUndo" aria-label="בטל פעולה אחרונה" disabled><i data-ic="undo" data-s="18"></i>Undo</button>
-    <button class="btn" id="edNik" aria-pressed="false"><span>ניקוד</span></button>
-    <button class="btn" id="edTxt" title="עורך טקסט" aria-label="עורך טקסט"><i data-ic="edit" data-s="18"></i><span>עורך טקסט</span></button>
-    <button class="btn" id="edChords" aria-pressed="false"><i data-ic="chord" data-s="18"></i>אקורדים</button>
-    <button class="btn" id="edPaste" title="הדבק טקסט וחלק אוטומטית" aria-label="הדבק טקסט וחלק אוטומטית"><i data-ic="clip" data-s="18"></i><span class="hideS">הדבק טקסט וחלק אוטומטית</span></button>
-    <button class="btn" id="edSave">שמור</button>
+    <div class="edTools">
+    <button class="btn tb edStyleBtn" id="edStyleBtn" aria-label="עיצוב"><i data-ic="text" data-s="20"></i><span>עיצוב</span></button>
+    <button class="btn tb chUndo" id="chUndo" aria-label="בטל פעולה אחרונה" disabled><i data-ic="undo" data-s="20"></i><span>בטל</span></button>
+    <button class="btn tb" id="edNik" aria-pressed="false"><i data-ic="nikud" data-s="20"></i><span>ניקוד</span></button>
+    <button class="btn tb" id="edTxt"><i data-ic="edit" data-s="20"></i><span>עורך טקסט</span></button>
+    <button class="btn tb" id="edChords" aria-pressed="false"><i data-ic="chord" data-s="20"></i><span>אקורדים</span></button>
+    <button class="btn tb" id="edPaste" aria-label="הדבק טקסט וחלק אוטומטית"><i data-ic="clip" data-s="20"></i><span>הדבק</span></button>
+    <span class="tbSep"></span>
+    <button class="btn tb" id="edSave"><i data-ic="check" data-s="20"></i><span>שמור</span></button>
+    </div>
     <button class="btn pri" id="edPlay"><i data-ic="play" data-s="16"></i>מצב הופעה</button>
   </header>
   <div class="edBody">
