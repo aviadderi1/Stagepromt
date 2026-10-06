@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0A0A0B">
+<title>StagePromt – המילים שלך, על הבמה</title>
+<meta name="description" content="StagePromt – פרומפטר מילים ואקורדים לזמרים ולנגנים. גלילה אוטומטית, אקורדים מעל המילים, דוושת Bluetooth, מאגר שירים ומילים לקהל בטלפון.">
+<meta property="og:title" content="StagePromt – המילים שלך, על הבמה">
+<meta property="og:description" content="פרומפטר מילים ואקורדים לזמרים ולנגנים, לטאבלט ולנייד אנדרואיד.">
+<meta property="og:image" content="img/show.jpg">
+<link rel="icon" href="logo.svg">
+<style>
+@font-face{font-family:'Heebo';font-weight:800;font-display:swap;src:url(fonts/heebo-hebrew-800-normal.woff2) format('woff2');unicode-range:U+0307-0308,U+0590-05FF,U+200C-2010,U+20AA,U+25CC,U+FB1D-FB4F}
+@font-face{font-family:'Heebo';font-weight:800;font-display:swap;src:url(fonts/heebo-latin-800-normal.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2212,U+FEFF,U+FFFD}
+@font-face{font-family:'Assistant';font-weight:400;font-display:swap;src:url(fonts/assistant-hebrew-400-normal.woff2) format('woff2');unicode-range:U+0307-0308,U+0590-05FF,U+200C-2010,U+20AA,U+25CC,U+FB1D-FB4F}
+@font-face{font-family:'Assistant';font-weight:400;font-display:swap;src:url(fonts/assistant-latin-400-normal.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2212,U+FEFF,U+FFFD}
+@font-face{font-family:'Assistant';font-weight:600;font-display:swap;src:url(fonts/assistant-hebrew-600-normal.woff2) format('woff2');unicode-range:U+0307-0308,U+0590-05FF,U+200C-2010,U+20AA,U+25CC,U+FB1D-FB4F}
+@font-face{font-family:'Assistant';font-weight:600;font-display:swap;src:url(fonts/assistant-latin-600-normal.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2212,U+FEFF,U+FFFD}
+@font-face{font-family:'Assistant';font-weight:700;font-display:swap;src:url(fonts/assistant-hebrew-700-normal.woff2) format('woff2');unicode-range:U+0307-0308,U+0590-05FF,U+200C-2010,U+20AA,U+25CC,U+FB1D-FB4F}
+@font-face{font-family:'Assistant';font-weight:700;font-display:swap;src:url(fonts/assistant-latin-700-normal.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2212,U+FEFF,U+FFFD}
+@font-face{font-family:'Assistant';font-weight:800;font-display:swap;src:url(fonts/assistant-hebrew-800-normal.woff2) format('woff2');unicode-range:U+0307-0308,U+0590-05FF,U+200C-2010,U+20AA,U+25CC,U+FB1D-FB4F}
+@font-face{font-family:'Assistant';font-weight:800;font-display:swap;src:url(fonts/assistant-latin-800-normal.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2212,U+FEFF,U+FFFD}
+:root{--bg:#0A0A0B;--p1:#121316;--p2:#17191D;--ln:#24262B;--tx:#F4EFE6;--mu:#9A948A;--am:#E8A23A;--am2:#F4C77A;--amS:#2A2419}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:'Assistant',sans-serif;font-size:18px;line-height:1.6;overflow-x:hidden}
+a{color:inherit}
+img{max-width:100%;height:auto;display:block}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+/* nav */
+nav{position:sticky;top:0;z-index:10;background:rgba(10,10,11,.82);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.06)}
+nav .wrap{display:flex;align-items:center;gap:28px;height:68px}
+nav .logo{height:34px;width:auto}
+nav .links{display:flex;gap:24px;margin-inline-start:auto;font-weight:600;font-size:16px;color:#CFC9BF}
+nav .links a{text-decoration:none}nav .links a:hover{color:var(--am2)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;height:54px;padding:0 26px;border-radius:14px;font:700 17px 'Assistant',sans-serif;text-decoration:none;border:1px solid transparent;transition:transform .15s,box-shadow .15s}
+.btn:hover{transform:translateY(-1px)}
+.btn.pri{background:var(--am);color:#1A1205;box-shadow:0 10px 30px rgba(232,162,58,.25)}
+.btn.sec{background:var(--p2);border-color:#2C2F35;color:var(--tx)}
+.btn.sm{height:42px;padding:0 18px;font-size:15px;border-radius:11px}
+.btn small{font-weight:600;opacity:.7;font-size:13px}
+/* hero */
+.hero{position:relative;padding:72px 0 40px;text-align:center;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:-20% -10% auto;height:620px;background:radial-gradient(ellipse at 50% 0%,rgba(232,162,58,.22),rgba(232,162,58,0) 62%);pointer-events:none}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:30px;border:1px solid #3A3226;background:#17140F;color:var(--am2);font-weight:700;font-size:14px;letter-spacing:.3px}
+.hero h1{position:relative;margin:22px auto 14px;font-family:'Heebo',sans-serif;font-weight:800;font-size:clamp(40px,6.4vw,76px);line-height:1.08;letter-spacing:-1.5px;max-width:900px}
+.hero h1 em{font-style:normal;background:linear-gradient(90deg,#C79A45,#F7E2A4,#E2B562);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p.lead{position:relative;margin:0 auto 30px;max-width:640px;color:#CFC9BF;font-size:20px}
+.cta{position:relative;display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.note{position:relative;margin-top:14px;color:var(--mu);font-size:14px}
+/* device */
+.stage{position:relative;margin:54px auto 0;max-width:1060px}
+.tablet{position:relative;border-radius:30px;padding:14px;background:linear-gradient(145deg,#2A2C31,#121316);box-shadow:0 40px 120px rgba(0,0,0,.7),0 0 0 1px #2E3036,inset 0 0 0 1px rgba(255,255,255,.04)}
+.tablet img{border-radius:18px;width:100%}
+.phone{position:absolute;left:-28px;bottom:-40px;width:22%;min-width:150px;border-radius:30px;padding:9px;background:linear-gradient(145deg,#2A2C31,#121316);box-shadow:0 30px 80px rgba(0,0,0,.75),0 0 0 1px #2E3036}
+.phone img{border-radius:22px}
+.glow{position:absolute;inset:auto 10% -60px;height:120px;background:radial-gradient(ellipse,rgba(232,162,58,.25),transparent 70%);filter:blur(10px);z-index:-1}
+/* sections */
+section{padding:96px 0}
+.sh{text-align:center;max-width:720px;margin:0 auto 52px}
+.sh h2{margin:0 0 12px;font-family:'Heebo',sans-serif;font-weight:800;letter-spacing:-.8px;font-size:clamp(30px,4vw,44px);line-height:1.15}
+.sh p{margin:0;color:var(--mu);font-size:19px}
+.feat{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.f{background:var(--p1);border:1px solid var(--ln);border-radius:20px;padding:26px 24px}
+.f .ic{width:48px;height:48px;border-radius:14px;background:var(--amS);color:var(--am2);display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+.f h3{margin:0 0 6px;font-family:'Assistant';font-weight:800;font-size:21px}
+.f p{margin:0;color:var(--mu);font-size:16px}
+/* showcase */
+.row{display:grid;grid-template-columns:1.25fr 1fr;gap:56px;align-items:center;margin-bottom:96px}
+.row:last-child{margin-bottom:0}
+.row.rev{grid-template-columns:1fr 1.25fr}.row.rev .shot{order:2}
+.shot{border-radius:20px;padding:10px;background:linear-gradient(145deg,#24262B,#121316);box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 0 1px #2C2F35}
+.shot img{border-radius:12px}
+.txt .k{color:var(--am);font-weight:800;font-size:14px;letter-spacing:1px}
+.txt h3{margin:8px 0 12px;font-family:'Heebo',sans-serif;font-weight:800;letter-spacing:-.5px;font-size:clamp(26px,3vw,36px);line-height:1.2}
+.txt p{margin:0 0 16px;color:#CFC9BF}
+.txt ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;color:#CFC9BF}
+.txt li{display:flex;gap:10px;align-items:flex-start}.txt li::before{content:'';flex:none;width:7px;height:7px;border-radius:50%;background:var(--am);margin-top:11px}
+/* live band */
+.live{background:linear-gradient(180deg,#0A0A0B,#110F0B 50%,#0A0A0B)}
+.liveGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.lc{padding:28px;border-radius:20px;border:1px solid #2E2A22;background:#14120E}
+.lc b{display:block;font-family:'Assistant';font-weight:800;font-size:22px;margin-bottom:6px}.lc span{color:var(--mu);font-size:16px}
+.lc .n{font-family:'Heebo';font-weight:800;font-size:44px;color:var(--am);line-height:1;margin-bottom:12px}
+/* download */
+.dl{text-align:center;border-radius:28px;padding:64px 28px;background:radial-gradient(ellipse at 50% 0%,rgba(232,162,58,.18),transparent 65%),var(--p1);border:1px solid var(--ln)}
+.dl h2{margin:0 0 10px;font-family:'Heebo',sans-serif;font-weight:800;letter-spacing:-.8px;font-size:clamp(30px,4vw,44px)}
+.dl p{color:var(--mu);margin:0 0 28px}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:40px auto 0;max-width:900px;text-align:right}
+.st{background:var(--p2);border:1px solid var(--ln);border-radius:16px;padding:18px 20px;font-size:16px;color:#CFC9BF}.st b{color:var(--am2);display:block;font-family:'Assistant';font-weight:800;margin-bottom:4px}
+footer{padding:48px 0 60px;border-top:1px solid var(--ln);color:var(--mu);font-size:15px}
+footer .wrap{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+footer img{height:28px;width:auto;opacity:.9}
+footer a{color:var(--am2);text-decoration:none;font-weight:700}
+@media (max-width:900px){
+ nav .links{display:none}nav .wrap{justify-content:space-between}
+ .feat,.liveGrid,.steps{grid-template-columns:1fr}
+ .row,.row.rev{grid-template-columns:1fr;gap:28px}.row.rev .shot{order:0}
+ .phone{left:-4px;bottom:-24px;width:28%;min-width:0;padding:5px;border-radius:16px}.phone img{border-radius:12px}
+ section{padding:72px 0}
+}
+</style>
+</head>
+<body>
+<nav><div class="wrap"><a href="#"><img class="logo" src="logo.svg" alt="StagePromt"></a><div class="links"><a href="#features">תכונות</a><a href="#show">איך זה עובד</a><a href="#live">מילים לקהל</a><a href="#download">הורדה</a></div><a class="btn pri sm" href="#download">הורדה חינם</a></div></nav>
+
+<header class="hero"><div class="wrap">
+ <span class="eyebrow">♪ לזמרים, לנגנים ולהרכבים</span>
+ <h1>המילים שלך, <em>על הבמה.</em></h1>
+ <p class="lead">StagePromt מציגה את מילות השירים והאקורדים בגדול וברור, גוללת בקצב שלך ועוברת שיר בלחיצת דוושה. כל ההופעה – בטאבלט אחד.</p>
+ <div class="cta"><a class="btn pri" href="https://github.com/aviadderi1/Stagepromt/releases/latest/download/StagePromt.apk">⬇ הורדה לטאבלט <small>Android</small></a><a class="btn sec" href="https://github.com/aviadderi1/Stagepromt/releases/latest/download/StagePromt-Mobile.apk">⬇ הורדה לנייד</a></div>
+ <div class="note">חינם · בלי פרסומות · עברית ואנגלית</div>
+ <div class="stage"><div class="tablet"><img src="img/show.jpg" alt="מצב הופעה ב-StagePromt" width="1600" height="1000"></div><div class="phone"><img src="img/phone_show.jpg" alt="StagePromt בנייד" width="600" height="1298"></div><div class="glow"></div></div>
+</div></header>
+
+<section id="features"><div class="wrap">
+ <div class="sh"><h2>כל מה שצריך על הבמה</h2><p>נבנה בשביל זמרים ונגנים. בלי דפים, בלי קלסרים ובלי להתכופף לטלפון.</p></div>
+ <div class="feat">
+  <div class="f"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v16M6 14l6 6 6-6"/></svg></div><h3>גלילה אוטומטית או דפדוף</h3><p>הטקסט זז בקצב של השיר, או מתחלף בית אחרי בית – מה שנוח לך.</p></div>
+  <div class="f"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3v18M10 3v18M14 3v18M18 3v18M4 8h16M4 13h16"/></svg></div><h3>אקורדים מעל המילים</h3><p>מיקום מדויק מעל כל הברה, החלפת סולם בלחיצה וקאפו.</p></div>
+  <div class="f"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="13" width="16" height="7" rx="2"/><path d="M8 13l3-8h2l3 8"/></svg></div><h3>דוושת Bluetooth</h3><p>מעבר בין שירים וחלקים ברגל, בלי להוריד את הידיים מהכלי.</p></div>
+  <div class="f"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></div><h3>מאגר שירים וחיפוש ברשת</h3><p>שירים מוכנים מהמאגר, או חיפוש מילים מכל אתרי המילים והוספה בלחיצה.</p></div>
+  <div class="f"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8"/></svg></div><h3>מסך שני ושיתוף להקה</h3><p>שידור למסך בבמה, ושליחת סט שלם לחברי הלהקה בקוד QR.</p></div>
+  <div class="f"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 4h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z"/><path d="M8 12l3 3 5-6"/></svg></div><h3>סנכרון בין המכשירים</h3><p>מתחברים לחשבון, והשירים, התיקיות והעיצוב זהים בטאבלט ובנייד.</p></div>
+ </div>
+</div></section>
+
+<section id="show" style="padding-top:20px"><div class="wrap">
+ <div class="row"><div class="shot"><img src="img/lib.jpg" alt="ספריית השירים" loading="lazy"></div><div class="txt"><span class="k">הספרייה</span><h3>כל השירים, מסודרים לפי הופעה</h3><p>תיקייה לכל הופעה, סדר שירים שקל לשנות, וכפתור אחד שמתחיל את כל הסט.</p><ul><li>חיפוש לפי שם, אמן או שורה מהשיר</li><li>ייבוא קבצי PDF</li><li>תמונות אמנים ורקעים לכל שיר</li></ul></div></div>
+ <div class="row rev"><div class="shot"><img src="img/chords.jpg" alt="עריכת אקורדים" loading="lazy"></div><div class="txt"><span class="k">העורך</span><h3>עריכה מהירה, בלי להתפשר על הבמה</h3><p>מדביקים את המילים – האפליקציה מחלקת לבתים ופזמונים לבד. לחיצה כפולה על מילה מוסיפה אקורד.</p><ul><li>בית, פזמון, גשר והערות לזמר בצבעים שונים</li><li>גופנים, קו מתאר וצל לקריאות מושלמת</li><li>ניקוד אוטומטי לשירים בעברית</li></ul></div></div>
+</div></section>
+
+<section id="live" class="live"><div class="wrap">
+ <div class="sh"><h2>הקהל שר איתך</h2><p>מציגים קוד QR, הקהל סורק בטלפון – ורואה את המילים של השיר שמתנגן עכשיו, מתעדכנות בזמן אמת. בלי אפליקציה ובלי Wi-Fi משותף.</p></div>
+ <div class="liveGrid"><div class="lc"><div class="n">1</div><b>פותחים QR</b><span>לחיצה על אייקון ה-QR ליד שם התיקייה.</span></div><div class="lc"><div class="n">2</div><b>הקהל סורק</b><span>כל טלפון, כל רשת – גם סלולרית.</span></div><div class="lc"><div class="n">3</div><b>שרים יחד</b><span>כל מעבר בית אצלך מתחלף גם אצלם.</span></div></div>
+</div></section>
+
+<section id="download"><div class="wrap"><div class="dl">
+ <h2>מתחילים בחינם</h2><p>הורידו את הגרסה למכשיר שלכם. עדכונים חדשים מגיעים ישר מתוך האפליקציה.</p>
+ <div class="cta"><a class="btn pri" href="https://github.com/aviadderi1/Stagepromt/releases/latest/download/StagePromt.apk">⬇ StagePromt לטאבלט</a><a class="btn sec" href="https://github.com/aviadderi1/Stagepromt/releases/latest/download/StagePromt-Mobile.apk">⬇ StagePromt לנייד</a></div>
+ <div class="steps"><div class="st"><b>1. הורדה</b>לוחצים על הכפתור במכשיר האנדרואיד ומורידים את הקובץ.</div><div class="st"><b>2. אישור התקנה</b>אם מופיעה בקשה – מאשרים "התקנה ממקור זה".</div><div class="st"><b>3. על הבמה</b>פותחים, מוסיפים שירים ומתחילים להופיע.</div></div>
+</div></div></section>
+
+<footer><div class="wrap"><img src="logo.svg" alt="StagePromt"><span>© 2026 StagePromt</span><span style="flex:1"></span><span>ליצירת קשר: <a href="mailto:stagepromt@gmail.com">stagepromt@gmail.com</a></span></div></footer>
+</body>
+</html>
