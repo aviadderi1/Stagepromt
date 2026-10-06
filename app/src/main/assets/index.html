@@ -594,6 +594,13 @@ select.chip{cursor:pointer}
 .stNav h2{display:flex;align-items:center;gap:8px;margin:0 6px 14px;font-size:20px}
 .stCat{height:46px;display:flex;align-items:center;gap:10px;padding:0 12px;border:0;border-radius:10px;background:transparent;color:#CFC9BF;font-size:15px;font-weight:600;text-align:right}
 .stCat.on{background:#2A2419;color:#F4C77A}
+.aboutM{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;max-width:520px;margin:0 auto}
+.aboutLogo{width:min(320px,70vw);height:auto;margin-top:6px}.aboutVer{color:var(--mu);font-size:14px;font-weight:600}
+.aboutTxt{margin:4px 0 0;font-size:17px;line-height:1.6;color:#E4DED4}
+.aboutList{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;color:#CFC9BF;font-size:15px}.aboutList li::before{content:'•';color:#E8A23A;margin-inline-end:8px}
+.aboutMail{display:flex;flex-direction:column;gap:6px;align-items:center;margin-top:6px;padding:14px 20px;border:1px solid var(--ln2);border-radius:14px;background:#17191D;width:100%}.aboutMail span{color:var(--mu);font-size:13px}
+.aboutMail a{color:#F4C77A;font-size:18px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+.aboutM .acts{width:100%}
 .stClose{align-self:stretch}
 .stMain{flex:1;min-width:0;overflow-y:auto;padding:24px 26px;display:flex;flex-direction:column;gap:14px}
 .stMain h3{display:flex;align-items:center;gap:10px;margin:0;font-family:var(--ti);font-size:22px;font-weight:600}
@@ -827,7 +834,11 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
  .stCat{height:38px;padding:0 4px;gap:5px;font-size:11.5px;background:#1E2024;justify-content:center;white-space:nowrap;overflow:hidden;min-width:0}
  .stCat svg{display:none}
  .stCat span{overflow:hidden;white-space:normal;line-height:1.1;text-align:center}
- .stCat{height:42px!important}
+ .stCat{height:32px!important;font-size:11px!important;border-radius:8px}
+ .stNav{gap:5px!important;padding:8px 10px!important}
+ .stNav .langB{width:34px;height:34px;font-size:12px}
+ .stNav h2{font-size:16px!important}
+ .stNav .stClose{height:30px!important;font-size:13px}
  .stMain{padding:16px}
  .mhead{justify-content:space-between}
  .mhead>.flex1{flex-basis:100%;order:-1;text-align:center}
@@ -3900,11 +3911,22 @@ async function restoreBackup(){
 function setCats(){return [['account','user','חשבון']].concat(SET_CATS).concat(isOwner()?[['admin','gear','ניהול מאגר']]:[])}
 const SET_CATS=[['share','qr','שיתוף עם הלהקה'],['drive','','Google Drive'],['pedal','pedal','Bluetooth pedal'],['update','dl','עדכון']];
 let SETCAT='share';
+const ABOUT_IC='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><circle cx="12" cy="7.6" r=".6" fill="currentColor"/></svg>';
+const APP_MAIL='stagepromt@gmail.com';
+function aboutModal(){let v='';try{v=verStr(updInfo().code)}catch(e){}
+ openModal('<div class="aboutM"><img class="aboutLogo" src="logo.svg" alt="StagePromt"><div class="aboutVer">גרסה '+esc(v&&v!=='—'?v:'1.0')+'</div>'+
+  '<p class="aboutTxt">StagePromt היא אפליקציה לזמרים ולנגנים שמציגה את מילות השירים והאקורדים על הבמה, בגדול וברור, עם גלילה אוטומטית או דפדוף ידני ובשליטה מדוושת Bluetooth.</p>'+
+  '<ul class="aboutList"><li>ספריית שירים עם תיקיות וסדר הופעה</li><li>אקורדים מעל המילים, החלפת סולם וקאפו</li><li>חיפוש מילים ברשת ומאגר שירים מוכנים</li><li>מסך שני, שיתוף עם הלהקה ומילים לקהל בטלפון</li><li>סנכרון בין הטאבלט לנייד דרך החשבון</li></ul>'+
+  '<div class="aboutMail"><span>ליצירת קשר</span><a href="mailto:'+APP_MAIL+'" id="abMail" dir="ltr">'+ic('ext',16)+APP_MAIL+'</a></div>'+
+  '<div class="acts"><button class="btn" id="abBack">'+ic('back',16)+'חזרה להגדרות</button><span class="flex1"></span><button class="btn" id="mCancel">סגור</button></div></div>');
+ $('#mCancel').onclick=()=>{closeModal();renderLib()};$('#abBack').onclick=()=>settingsModal();
+ $('#abMail').onclick=e=>{if(window.Android&&window.Android.openUrl){e.preventDefault();try{window.Android.openUrl('mailto:'+APP_MAIL)}catch(x){}}};
+}
 function settingsModal(cat){
  if(cat)SETCAT=cat;PEDAL.learn=null;PEDAL.last='';
- openModal('<div class="stWrap"><div class="stMain" id="stMain"></div><aside class="stNav"><h2>'+ic('gear',20)+' הגדרות</h2><div class="langRow" role="group" aria-label="שפת הממשק"><button class="langB he'+(LANG==='he'?' on':'')+'" data-lang="he" aria-label="עברית">HE</button><button class="langB us'+(LANG==='en'?' on':'')+'" data-lang="en" aria-label="English">US</button></div>'+setCats().map(([k,i,n])=>'<button class="stCat'+(SETCAT===k?' on':'')+'" data-cat="'+k+'">'+(k==='drive'?gdriveIcon(18):ic(i,18))+'<span'+(k!=='share'?' dir="ltr"':'')+'>'+n+'</span></button>').join('')+'<div class="flex1"></div><button class="btn sm stClose" id="stClose">סגור</button></aside></div>','settings');
+ openModal('<div class="stWrap"><div class="stMain" id="stMain"></div><aside class="stNav"><h2>'+ic('gear',20)+' הגדרות</h2><div class="langRow" role="group" aria-label="שפת הממשק"><button class="langB he'+(LANG==='he'?' on':'')+'" data-lang="he" aria-label="עברית">HE</button><button class="langB us'+(LANG==='en'?' on':'')+'" data-lang="en" aria-label="English">US</button></div>'+setCats().map(([k,i,n])=>'<button class="stCat'+(SETCAT===k?' on':'')+'" data-cat="'+k+'">'+(k==='drive'?gdriveIcon(18):ic(i,18))+'<span'+(k!=='share'?' dir="ltr"':'')+'>'+n+'</span></button>').join('')+'<button class="stCat stAboutB" id="stAbout">'+ABOUT_IC+'<span dir="ltr">About</span></button><div class="flex1"></div><button class="btn sm stClose" id="stClose">סגור</button></aside></div>','settings');
  $('#modal').classList.add('stModal');
- $('#modal .stNav').onclick=e=>{const lb=e.target.closest('[data-lang]');if(lb){if(lb.dataset.lang!==LANG)setLang(lb.dataset.lang);return}const b=e.target.closest('[data-cat]');if(b){SETCAT=b.dataset.cat;PEDAL.learn=null;$$('#modal .stCat').forEach(x=>x.classList.toggle('on',x===b));renderSetCat()}else if(e.target.closest('#stClose')){PEDAL.learn=null;closeModal();renderLib()}};
+ $('#modal .stNav').onclick=e=>{const lb=e.target.closest('[data-lang]');if(lb){if(lb.dataset.lang!==LANG)setLang(lb.dataset.lang);return}const b=e.target.closest('[data-cat]');if(b){SETCAT=b.dataset.cat;PEDAL.learn=null;$$('#modal .stCat').forEach(x=>x.classList.toggle('on',x===b));renderSetCat()}else if(e.target.closest('#stAbout')){PEDAL.learn=null;aboutModal()}else if(e.target.closest('#stClose')){PEDAL.learn=null;closeModal();renderLib()}};
  renderSetCat();
 }
 function renderSetCat(){
