@@ -190,23 +190,11 @@ function copyPrev(pid){const s=ST.cur,list=own(s),k=list.findIndex(p=>p.id===pid
 /* ---------- web chords (Tab4U through a public proxy) ---------- */
 function hasDraft(s){return own(s).some(p=>(p.chords||[]).some(c=>c.d))}
 function draftCount(s){return own(s).reduce((n,p)=>n+(p.chords||[]).filter(c=>c.d).length,0)}
-const PROXIES=[
- ['allorigins',u=>'https://api.allorigins.win/get?url='+encodeURIComponent(u),'json'],
- ['allorigins-raw',u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u)],
- ['codetabs',u=>'https://api.codetabs.com/v1/proxy/?quest='+encodeURIComponent(u)],
- ['corsproxy',u=>'https://corsproxy.io/?url='+encodeURIComponent(u)],
- ['cors.lol',u=>'https://api.cors.lol/?url='+encodeURIComponent(u)],
- ['everyorigin',u=>'https://everyorigin.jwvbremen.nl/get?url='+encodeURIComponent(u),'json'],
- ['thingproxy',u=>'https://thingproxy.freeboard.io/fetch/'+u]];
+const PROXIES=[u=>'https://corsproxy.io/?url='+encodeURIComponent(u),u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u),u=>'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(u)];
 let PX=0;
-async function pget(url){const errs=[];const own=(localStorage.getItem('sp-proxy')||'').trim();
- const list=own?[['שלך',u=>own+(own.includes('?')?'':'?url=')+encodeURIComponent(u)]].concat(PROXIES):PROXIES;
- for(let k=0;k<list.length;k++){const i=own?k:(PX+k)%list.length,[n,f,kind]=list[i];
-  try{const ac=new AbortController(),t=setTimeout(()=>ac.abort(),12000);const r=await fetch(f(url),{signal:ac.signal});clearTimeout(t);if(!r.ok)throw new Error('HTTP '+r.status);
-   let tx=await r.text();if(kind==='json'){const j=JSON.parse(tx);tx=j.contents||j.data||'';if(/^data:/.test(tx))tx=atob(tx.split(',')[1]||'')}
-   if(tx.length<300)throw new Error('ריק');if(/cf-browser-verification|challenge-platform|Just a moment/i.test(tx))throw new Error('חסום');if(!own)PX=i;return tx}
-  catch(e){errs.push(n+': '+(e.name==='AbortError'?'זמן':String(e.message||e).slice(0,40)))}}
- const e=new Error('כל השרתים נכשלו');e.detail=errs.join(' · ');throw e}
+async function pget(url){let last;for(let k=0;k<PROXIES.length;k++){const i=(PX+k)%PROXIES.length;
+  try{const ac=new AbortController(),t=setTimeout(()=>ac.abort(),15000);const r=await fetch(PROXIES[i](url),{signal:ac.signal});clearTimeout(t);if(!r.ok)throw new Error('HTTP '+r.status);const tx=await r.text();if(tx.length<200)throw new Error('short');PX=i;return tx}catch(e){last=e}}
+ throw last||new Error('proxy')}
 function showSrc(src){document.body.classList.toggle('src',!!src);$('#srcP').hidden=!src;if(!src){$('#srcB').innerHTML='';return}
  $('#srcA').textContent=src.name+' ↗';$('#srcA').href=src.url;
  $('#srcB').innerHTML=src.rows.map(r=>'<div class="row'+(r.c?' c':'')+'" style="direction:'+(r.c&&ST.flip?(r.dir==='ltr'?'rtl':'ltr'):(r.dir||'rtl'))+'">'+esc(r.t)+'</div>').join('')}
@@ -216,7 +204,6 @@ async function tab4uFind(s){const words=normW(s.title).split(' ').filter(w=>w.le
  d.querySelectorAll('a[href*="tabs/songs/"]').forEach(a=>{const t=normW(a.textContent+' '+(a.closest('tr,li')||a).textContent);if(!t)return;
   let sc=words.filter(w=>t.includes(w)).length/Math.max(1,words.length);if(s.artist&&normW(s.artist).split(' ').some(w=>w.length>1&&t.includes(w)))sc+=.5;
   if(sc>bs){bs=sc;best=new URL(a.getAttribute('href'),'https://www.tab4u.com/').href}});
- const nl=d.querySelectorAll('a[href*="tabs/songs/"]').length;ST.diag='נמצאו '+nl+' תוצאות ב-Tab4U'+(best?', ההתאמה הטובה ביותר '+Math.round(bs*100)+'%':'');
  if(!best||bs<.6)return null;return best}
 function sheetRows(html){const d=new DOMParser().parseFromString(html,'text/html');
  const root=d.querySelector('#songContentTPL')||d.querySelector('.song_block')||d.body;let rows=[];
@@ -252,13 +239,13 @@ function applySheet(s,pairs){let n=0;snap();const lines=[];own(s).forEach(p=>p.t
  return n}
 async function webChords(s){ST.find={id:s.id,busy:true,msg:'מחפש את "'+s.title+'" ב-Tab4U…'};renderSong(true);
  try{const url=await tab4uFind(s);if(ST.cur!==s)return;
-  if(!url){ST.find={id:s.id,msg:'לא נמצא השיר ב-Tab4U ('+(ST.diag||'')+'). אפשר להוסיף אקורדים ידנית.'};return renderSong(true)}
+  if(!url){ST.find={id:s.id,msg:'לא נמצאו אקורדים לשיר הזה ב-Tab4U. אפשר להוסיף אותם ידנית.'};return renderSong(true)}
   ST.find.msg='קורא את דף האקורדים…';renderSong(true);
   const h=await pget(url);if(ST.cur!==s)return;const rows=sheetRows(h);
   if(!rows.some(r=>r.c)){ST.find={id:s.id,msg:'נמצא דף לשיר, אבל לא זיהיתי בו אקורדים.'};showSrc({name:'Tab4U',url,rows});return renderSong(true)}
   ST.flip=false;ST.lastSrc={name:'Tab4U',url,rows};showSrc(ST.lastSrc);await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
   const n=applySheet(s,measurePairs(rows));ST.find={id:s.id,src:'Tab4U',msg:n?'':'נמצא דף אקורדים, אבל השורות שלו לא תואמות למילים בשיר. אפשר להעתיק ידנית מהמקור שבצד.'};renderSong(true);setSave(n?'draft':'ok')}
- catch(e){if(ST.cur!==s)return;ST.find={id:s.id,msg:'החיפוש ברשת נכשל: '+String(e.message||e).slice(0,60)+(e.detail?' ('+e.detail+')':'')};renderSong(true)}}
+ catch(e){if(ST.cur!==s)return;ST.find={id:s.id,msg:'החיפוש ברשת נכשל ('+String(e.message||e).slice(0,60)+'). נסה שוב בעוד רגע.'};renderSong(true)}}
 
 /* ---------- render ---------- */
 function fmtD(t){const d=new Date(t);return d.getDate()+'.'+(d.getMonth()+1)+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
@@ -271,7 +258,7 @@ function firstLine(p){const ls=p.text.split('\n');return Math.max(0,ls.findIndex
 function renderSong(keep){const s=ST.cur;if(!s){$('#sh').innerHTML='';$('#sc').innerHTML='<div class="empty">בחר שיר מהרשימה כדי להוסיף לו אקורדים</div>';$('#pal').hidden=true;return}
  $('#sh').innerHTML='<div><h1>'+esc(s.title)+'</h1><div class="art">'+esc(s.artist||'')+'</div></div><span class="flex1"></span><label class="key">סולם <select id="key"><option value="">—</option>'+KEYS.map(k=>'<option'+(s.key===k?' selected':'')+'>'+k+'</option>').join('')+'</select></label><button class="btn" id="undo">↶ ביטול</button>';
  const L={};const cnt={};s.parts.forEach(p=>{if(!p.ref)cnt[p.type]=(cnt[p.type]||0)+1});const nn={};s.parts.forEach(p=>{if(!p.ref){nn[p.type]=(nn[p.type]||0)+1;L[p.id]=TN[p.type]+(cnt[p.type]>1&&p.type!=='note'?' '+nn[p.type]:'')}});
- let h=ST.find&&ST.find.id===s.id?(ST.find.busy?'<div class="find"><span class="spin"></span>'+esc(ST.find.msg||'מחפש אקורדים ברשת…')+'</div>':ST.find.msg&&!hasDraft(s)?'<div class="find">'+esc(ST.find.msg)+'<span class="flex1"></span><button class="btn" id="pxSet">שרת מתווך</button><button class="btn" id="reFind">חפש ברשת</button></div>':''):'';
+ let h=ST.find&&ST.find.id===s.id?(ST.find.busy?'<div class="find"><span class="spin"></span>'+esc(ST.find.msg||'מחפש אקורדים ברשת…')+'</div>':ST.find.msg&&!hasDraft(s)?'<div class="find">'+esc(ST.find.msg)+'<span class="flex1"></span><button class="btn" id="reFind">חפש ברשת</button></div>':''):'';
  if(hasDraft(s))h+='<div class="draft">נמצאו '+draftCount(s)+' אקורדים'+(ST.find&&ST.find.src?' ב-'+esc(ST.find.src):'')+'. האקורדים בכחול הם טיוטה – בדוק מול המקור ותקן אם צריך.<span class="flex1"></span><button class="btn" id="drFlip">⇄ האקורדים הפוכים</button><button class="btn ok" id="drOk">✓ אשר ושמור במאגר</button><button class="btn" id="drNo">נקה טיוטה</button></div>';
  s.parts.forEach(p=>{if(p.type==='note')return;
   if(p.ref){h+='<div class="ref">↺ '+esc(L[p.ref]||TN[p.type])+' חוזר · האקורדים שלו זהים למקור</div>';return}
@@ -288,7 +275,6 @@ function renderSong(keep){const s=ST.cur;if(!s){$('#sh').innerHTML='';$('#sc').i
  const ok=$('#drOk');if(ok)ok.onclick=()=>{own(s).forEach(p=>(p.chords||[]).forEach(c=>delete c.d));renderSong(true);saveSoon()};
  const no=$('#drNo');if(no)no.onclick=()=>{snap();own(s).forEach(p=>p.chords=(p.chords||[]).filter(c=>!c.d));renderSong(true);setSave('ok')};
  const fl=$('#drFlip');if(fl)fl.onclick=()=>{ST.flip=!ST.flip;showSrc(ST.lastSrc);requestAnimationFrame(()=>{applySheet(s,measurePairs(ST.lastSrc.rows));renderSong(true)})};
- const px=$('#pxSet');if(px)px.onclick=()=>{const v=prompt('כתובת שרת מתווך משלך (ריק = השרתים הציבוריים):',localStorage.getItem('sp-proxy')||'');if(v!==null){localStorage.setItem('sp-proxy',v.trim());webChords(s)}};
  const rf=$('#reFind');if(rf)rf.onclick=()=>webChords(s,true);
 }
 function renderPal(){const s=ST.cur;$('#pal').hidden=!s;if(!s)return;const d=diatonic(s.key);
