@@ -4410,7 +4410,7 @@ function adminEdit(x,pend){if(pend==null)pend=ADM.tab==='pend';const B=$('#admBo
   const img=$('#aeI').value.trim()||(/^data:/.test(x.artistImg||'')?x.artistImg:'');
   const sc=GENBG.scenes,tm=GENBG.times;const bg=x.bg&&x.bg.scene?x.bg:{scene:sc[Math.floor(Math.random()*sc.length)],time:tm[Math.floor(Math.random()*tm.length)],seed:1+Math.floor(Math.random()*999)};
   const doc={title:t,artist:$('#aeA').value.trim(),list:$('#aeL').value.trim(),text:$('#aeX').value,artistImg:img,bg,order:x.order||0,updatedAt:Date.now(),by:x.by||''};
-  try{const id=pend?'u'+x.id:x.id;await fbAuthed('PATCH',FB.base+'/library/'+id,{fields:fsFields(doc)});
+  try{const id=pend?'u'+x.id:x.id;await fbAuthed('PATCH',FB.base+'/library/'+id+'?'+Object.keys(doc).map(k=>'updateMask.fieldPaths='+k).join('&'),{fields:fsFields(doc)});
    if(pend){await fbAuthed('DELETE',FB.base+'/submissions/'+x.id);ADM.pend=ADM.pend.filter(q=>q.id!==x.id);ADM.lib.push(Object.assign({id},doc))}else Object.assign(x,doc);
    toast(pend?'השיר פורסם במאגר':'השינויים נשמרו');renderAdmin()}catch(e){$('#aeErr').textContent='השמירה נכשלה: '+String(e.message).slice(0,120)}};
  $('#aeDel').onclick=()=>{if(!confirm(pend?'לדחות את השיר?':'למחוק את השיר מהמאגר?'))return;(async()=>{try{
@@ -4419,15 +4419,19 @@ function adminEdit(x,pend){if(pend==null)pend=ADM.tab==='pend';const B=$('#admBo
 function adminSync(){try{const st=fbAuthState();if(window.Android&&window.Android.adminWatch)window.Android.adminWatch(isOwner()&&st.refresh?st.refresh:'')}catch(e){}}
 window.__openAdmin=()=>{closeModal();openAdmin()};
 setTimeout(async()=>{if(!isOwner())return;adminSync();try{const l=await fbList('submissions',true);if(l.length){const b=document.createElement('button');b.className='updBar';b.style.background='#7C5CD6';b.style.color='#fff';b.innerHTML=ic('upload',20)+'<span><b>'+(l.length===1?'שיר חדש':l.length+' שירים חדשים')+'</b> מחכים לאישור · לחץ לבדיקה</span>';b.onclick=()=>{b.remove();openAdmin()};document.body.appendChild(b);setTimeout(()=>b.remove(),15000)}}catch(e){}},5000);
+function libApplyChords(parts,json){let cs=[];try{cs=JSON.parse(json||'[]')}catch(e){}if(!cs.length)return parts;
+ const occ={};parts.forEach(p=>{if(p.ref)return;p.chords=[];p.text.split('\n').forEach((l,li)=>{const k=occ[l]=(occ[l]||0);occ[l]++;
+  let m=cs.filter(c=>c.t===l&&c.k===k);if(!m.length)m=cs.filter(c=>c.t===l&&c.k===0);m.forEach(c=>p.chords.push({l:li,i:c.i,n:1,c:c.c,t:l}))})});
+ return parts}
 async function importLib(picks,dest){
   toast('מוסיף '+picks.length+' שירים…');let added=0,upd=0;
   for(const x of picks){
-   const parts=GENBG.parts(x.text);let s=S.songs.find(q=>q.srcId===x.id);
+   const parts=libApplyChords(GENBG.parts(x.text),x.chords);let s=S.songs.find(q=>q.srcId===x.id);
    if(!s){let fid=null;
     if(dest.mode==='cat'){const fname=x.list||'מהמאגר';let f=S.folders.find(q=>q.name===fname);if(!f){f={id:uid(),name:fname};S.folders.push(f)}fid=f.id}
     else if(dest.mode==='folder')fid=dest.id;
     s=newSongObj({title:x.title||'שיר',artist:x.artist||'',folderId:fid,kind:'text'});S.songs.push(s);added++}else{upd++;if(dest.mode==='folder')s.folderId=dest.id}
-   s.title=x.title||s.title;s.artist=x.artist||'';s.cat=x.list||'';s.parts=parts;s.srcId=x.id;s.srcUpd=x.updatedAt||Date.now();
+   s.title=x.title||s.title;s.artist=x.artist||'';s.cat=x.list||'';s.parts=parts;if(x.key)s.key=x.key;s.srcId=x.id;s.srcUpd=x.updatedAt||Date.now();
    if(x.artistImg&&x.artistImg!==s.srcImg){try{const d=await shrinkImage((await httpGet(x.artistImg,true,12000)).text);if(d){s.img=d;s.srcImg=x.artistImg}}catch(e){}}
    if(!s.img&&s.artist&&x.artistImg!==''){try{const d=await findArtistImage(s.artist,'');if(d)s.img=d}catch(e){}}
    try{const d=GENBG.render(x.bg);const id='bg-'+uid();await IDB.put(id,d);BG[id]=d;const old=s.bg&&s.bg.type==='img'?s.bg.id:null;s.bg={type:'img',id,dim:(s.bg&&s.bg.dim!=null)?s.bg.dim:.45};if(old&&old!==id)dropBgImg(old)}catch(e){}
