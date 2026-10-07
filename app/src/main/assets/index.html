@@ -114,26 +114,33 @@ input[type=range]{accent-color:var(--am);width:100%;height:32px}
 
 /* editor */
 .edTitles{min-width:0;display:flex;flex-direction:column}
-@media (min-width:601px){
- #edit>.hdr{gap:12px}#edit>.hdr .edTitles{flex:1 1 220px;min-width:200px}#edit>.hdr .titleIn{width:100%;text-overflow:ellipsis}#edit>.hdr>.flex1{display:none}
- .edTools{display:flex;align-items:stretch;gap:2px;padding:4px;background:#17191D;border:1px solid var(--ln2);border-radius:14px;flex-shrink:0}
- .edTools .tb{flex-direction:column;gap:3px;height:54px;width:66px;padding:0 2px;border:1px solid transparent;border-radius:10px;background:transparent;color:#CFCAC1;font-size:11.5px;font-weight:600;line-height:1.1}
- .edTools .tb svg{width:21px;height:21px}
- .edTools .tb span{white-space:nowrap}
- .edTools .tb:active{background:#25282E}
- .edTools .tb.act{background:#2A2419;color:#F7D57A;border-color:#E8A23A;box-shadow:none}
- #edit.styleOpen .edTools .edStyleBtn{background:#2A2419;color:#F4C77A;border-color:#E8A23A}
- .edTools .tbSep{width:1px;background:var(--ln2);margin:8px 4px}
- #edit>.hdr #edPlay{height:54px;padding:0 20px;border-radius:14px;font-size:16px}
-}
-@media (max-width:600px){.edTools{display:contents}.edTools .tbSep,#edNik svg,#edSave svg,#edPaste span,.edStyleBtn span,.chUndo span{display:none}}
-@media (min-width:601px) and (max-width:1000px){
- #edit>.hdr{flex-wrap:wrap;height:auto;row-gap:10px;padding-top:10px;padding-bottom:12px}
- #edit>.hdr .edTitles{flex:1 1 0}
- .edTools{order:5;flex:1 1 auto;justify-content:space-between}
- .edTools .tb{flex:1 1 0;width:auto;min-width:58px}
- #edit>.hdr #edPlay{order:6}
- #edit>.hdr::after{content:'';order:4;flex-basis:100%;height:0}
+/* editor header: row 1 = song + show button, row 2 = tool bar */
+#edit>.hdr{height:auto;flex-wrap:wrap;align-items:center;gap:12px;row-gap:0;padding-top:10px;padding-bottom:0}
+#edit>.hdr .edTitles{flex:1 1 200px;min-width:0}#edit>.hdr .titleIn{width:100%;text-overflow:ellipsis}
+#edit>.hdr>.flex1{display:none}
+#edit>.hdr #edPlay{height:44px;padding:0 20px;border-radius:12px;font-size:15.5px;flex:none}
+.edBar{flex:1 1 100%;order:10;display:flex;align-items:center;flex-wrap:wrap;gap:4px 0;margin:10px -24px 0;padding:7px 24px;border-top:1px solid #22252A;background:#101114;min-height:52px}
+.tgrp{display:flex;align-items:center;gap:2px;padding:0 10px;border-inline-start:1px solid #26292F}
+.tgrp:first-child{border-inline-start:0;padding-inline-start:0}
+.tgrp:empty,.tgrp:not(:has(.tb:not([hidden]))){display:none}
+.gl{font-size:11.5px;font-weight:700;color:#6E695F;letter-spacing:.4px;margin-inline-end:6px;white-space:nowrap}
+.edBar .tb{height:38px;padding:0 12px;border-radius:9px;border:1px solid transparent;background:transparent;color:#D9D4CB;font-size:14.5px;font-weight:600;display:inline-flex;align-items:center;gap:7px;white-space:nowrap;box-shadow:none}
+.edBar .tb:hover{background:#1E2025}
+.edBar .tb.act{background:#2A2419;color:#F4C77A;border-color:#6B5122}
+#edit.styleOpen .edBar .edStyleBtn{background:#2A2419;color:#F4C77A;border-color:#6B5122}
+.edBar .tb:disabled{opacity:.35}
+.edBar .chUndo{display:none}#edit.chordMode .edBar .chUndo{display:inline-flex}
+.edBar .edStyleBtn{display:none}
+@media (max-width:760px){.edBar .edStyleBtn{display:inline-flex}}
+@media (max-width:600px){
+ #edit>.hdr{padding:8px 10px 0;gap:8px}
+ #edit>.hdr #edPlay{height:40px;padding:0 14px;font-size:14px}
+ #edit>.hdr .edTitles{flex:1 1 calc(100% - 110px)}
+ #edit>.hdr #edPlay{flex:1 1 100%;justify-content:center;margin-top:8px}
+ .edBar{margin:8px -10px 0;padding:6px 8px;justify-content:center;gap:4px 0}
+ .gl{display:none}
+ .tgrp{padding:0 4px}
+ .edBar .tb{height:36px;padding:0 9px;font-size:13.5px;gap:5px}
 }
 .titleIn{background:transparent;border:0;outline:none;font-family:var(--ti);font-size:25px;font-weight:600;color:var(--tx);padding:0;width:340px;max-width:100%}
 .edSub{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--mu)}
@@ -798,14 +805,6 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
  .setbar{height:auto;min-height:64px;padding:10px 12px;gap:10px;flex-wrap:wrap}
  .setbar .sbTxt{min-width:0}
  .setbar .sbTxt b,.setbar .sbTxt span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
- #edit>.hdr{flex-wrap:wrap;height:auto}
- #edit>.hdr .edTitles{flex:1}
- #edit>.hdr .flex1{flex-basis:100%;height:0}
- #edit>.hdr .btn{height:38px;padding:0 10px;font-size:14px}
- #edit>.hdr #edPlay{flex:1;justify-content:center}
- #edit>.hdr .chUndo{font-size:0;gap:0;width:38px;padding:0!important;justify-content:center}
- #edit>.hdr .edStyleBtn span{display:none}
- #edit>.hdr .edStyleBtn{width:38px;padding:0!important;justify-content:center}
  .titleIn{font-size:20px;width:100%}
  .pTop{padding-left:12px!important;padding-right:12px!important}
  .pInner{padding-left:14px!important;padding-right:14px!important}
@@ -897,17 +896,13 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
       <div class="edSub"><input id="edArtist" placeholder="שם האמן" aria-label="שם האמן"><span>·</span><select id="edKey" aria-label="סולם" dir="ltr"></select></div>
     </div>
     <div class="flex1"></div>
-    <div class="edTools">
-    <button class="btn tb edStyleBtn" id="edStyleBtn" aria-label="עיצוב"><i data-ic="text" data-s="20"></i><span>עיצוב</span></button>
-    <button class="btn tb chUndo" id="chUndo" aria-label="בטל פעולה אחרונה" disabled><i data-ic="undo" data-s="20"></i><span>בטל</span></button>
-    <button class="btn tb" id="edNik" aria-pressed="false"><i data-ic="nikud" data-s="20"></i><span>ניקוד</span></button>
-    <button class="btn tb" id="edTxt"><i data-ic="edit" data-s="20"></i><span>עורך טקסט</span></button>
-    <button class="btn tb" id="edChords" aria-pressed="false"><i data-ic="chord" data-s="20"></i><span>אקורדים</span></button>
-    <button class="btn tb" id="edPaste" aria-label="הדבק טקסט וחלק אוטומטית"><i data-ic="clip" data-s="20"></i><span>הדבק</span></button>
-    <span class="tbSep"></span>
-    <button class="btn tb" id="edSave"><i data-ic="check" data-s="20"></i><span>שמור</span></button>
-    </div>
     <button class="btn pri" id="edPlay"><i data-ic="play" data-s="16"></i>מצב הופעה</button>
+    <div class="edBar" role="toolbar" aria-label="כלי עריכה">
+      <div class="tgrp"><span class="gl">עריכה</span><button class="tb" id="edTxt"><i data-ic="edit" data-s="17"></i>עורך טקסט</button><button class="tb" id="edPaste"><i data-ic="clip" data-s="17"></i>הדבק וחלק</button><button class="tb chUndo" id="chUndo" aria-label="בטל פעולה אחרונה" disabled><i data-ic="undo" data-s="17"></i>בטל</button></div>
+      <div class="tgrp"><button class="tb" id="edChords" aria-pressed="false"><i data-ic="chord" data-s="17"></i>אקורדים</button></div>
+      <div class="tgrp"><span class="gl">טקסט</span><button class="tb" id="edNik" aria-pressed="false"><i data-ic="nikud" data-s="17"></i><span>ניקוד</span></button><button class="tb edStyleBtn" id="edStyleBtn" aria-label="עיצוב"><i data-ic="text" data-s="17"></i>עיצוב</button></div>
+    </div>
+    <button id="edSave" hidden></button>
   </header>
   <div class="edBody">
     <aside class="struct scroll" id="struct"></aside>
