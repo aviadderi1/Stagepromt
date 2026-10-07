@@ -1408,7 +1408,7 @@ function renderLib(){
  $('#lib').classList.toggle('navHidden',navHid());$('#mhead').classList.toggle('open',!!LIB.mhOpen);$('#lib').classList.toggle('navOver',isPhone()&&!!LIB.navOpen);
 
  if(LIB.sel){const k=[...LIB.sel].filter(id=>list.some(x=>x.id===id)).length,inSet=S.folders.some(f=>f.id===S.ui.folder);
-  $('#setbar').innerHTML='<div class="setbar selbar"><b class="flex1">'+(k?(k===1?'שיר אחד נבחר':k+' שירים נבחרו'):'סמן שירים')+'</b><button class="btn" id="selAll">'+(k===list.length?'בטל הכל':'בחר הכל')+'</button>'+(inSet?'<button class="btn" id="selOut"'+(k?'':' disabled')+'>'+ic('folder',16)+'הוצא מההופעה</button>':'')+'<button class="btn danger" id="selDel"'+(k?'':' disabled')+'>'+ic('trash',16)+'מחק</button></div>';return}
+  $('#setbar').innerHTML='<div class="setbar selbar"><b class="flex1">'+(k?(k===1?'שיר אחד נבחר':k+' שירים נבחרו'):'סמן שירים')+'</b><button class="btn" id="selAll">'+(k===list.length?'בטל הכל':'בחר הכל')+'</button>'+(inSet?'<button class="btn danger" id="selOut"'+(k?'':' disabled')+'>'+ic('trash',16)+'הסר מהתיקייה</button>':'<button class="btn danger" id="selDel"'+(k?'':' disabled')+'>'+ic('trash',16)+'מחק</button>')+'</div>';return}
  $('#setbar').innerHTML=list.length?'<div class="setbar">'+ic('list',22)+'<div class="flex1 sbTxt"><b>'+(list.length===1?'שיר אחד':list.length+' שירים')+' בסט</b><span>'+esc(list.slice(0,4).map(s=>s.title).join(' ← '))+(list.length>4?' ← …':'')+'</span></div><button class="btn pri" id="startSet">'+ic('play',16)+'התחל הופעה</button></div>':'';
 }
 function card(s,i,n,reorder){
@@ -1452,6 +1452,8 @@ function deleteSongs(ids){
  del.forEach(s=>{if(s.pdfId&&!S.songs.some(x=>x.pdfId===s.pdfId)){IDB.del(s.pdfId);delete docCache[s.pdfId]}if(s.bg&&s.bg.id)dropBgImg(s.bg.id)});
  save(true);
 }
+function inRealFolder(){return S.folders.some(f=>f.id===S.ui.folder)}
+function unfileSongs(ids){S.songs.forEach(x=>{if(ids.includes(x.id)&&x.folderId===S.ui.folder){x.folderId=null;touch(x)}});save(true)}
 function deleteSong(id){
  const s=S.songs.find(x=>x.id===id);if(!s)return;
  S.songs=S.songs.filter(x=>x.id!==id);syncTomb('del',[id]);
@@ -1471,7 +1473,8 @@ function songMenu(id){
   {icon:'move',label:'העבר לתיקייה',fn:()=>chooseFolder('העבר לתיקייה',s.folderId,f=>{s.folderId=f;touch(s);renderLib();toast('השיר הועבר')})},
   {icon:'copy',label:'שכפל',fn:()=>{S.songs.push(cloneSong(s));save();renderLib();toast('נוצר עותק')}},
   ...(s.kind!=='pdf'?[{icon:'upload',label:'שלח למאגר השירים',fn:()=>submitSongModal(id)}]:[]),
-  {icon:'trash',label:'מחק שיר',danger:true,fn:()=>confirmBox('למחוק את "'+s.title+'"?','השיר יימחק מהמכשיר ואי אפשר לשחזר אותו.','מחק',()=>{deleteSong(id);renderLib();toast('השיר נמחק')})}
+  inRealFolder()&&s.folderId===S.ui.folder?{icon:'trash',label:'הסר מהתיקייה',danger:true,fn:()=>confirmBox('להסיר את "'+s.title+'" מהתיקייה?','השיר יוסר מהתיקייה "'+folderName(S.ui.folder)+'" ויישאר ברשימת כל השירים.','הסר',()=>{unfileSongs([id]);renderLib();toast('השיר הוסר מהתיקייה')})}
+  :{icon:'trash',label:'מחק שיר',danger:true,fn:()=>confirmBox('למחוק את "'+s.title+'"?','השיר יימחק מהמכשיר ואי אפשר לשחזר אותו.','מחק',()=>{deleteSong(id);renderLib();toast('השיר נמחק')})}
  ],true);
 }
 function folderMenu(fid){
@@ -1508,8 +1511,9 @@ $('#lib').addEventListener('click',e=>{
  if(t.id==='pedalBtn')return pedalModal();
  if(t.id==='startSet')return startShow(visibleSongs().map(s=>s.id),0);
  if(t.id==='selAll'){const L=visibleSongs();const all=L.every(x=>LIB.sel.has(x.id));L.forEach(x=>all?LIB.sel.delete(x.id):LIB.sel.add(x.id));renderLib();return}
+ if(t.id==='selDel'&&inRealFolder()){const ids=[...LIB.sel].filter(id=>visibleSongs().some(x=>x.id===id));if(!ids.length)return;return confirmBox(ids.length===1?'להסיר את השיר מהתיקייה?':'להסיר '+ids.length+' שירים מהתיקייה?','השירים יוסרו מהתיקייה "'+folderName(S.ui.folder)+'" ויישארו ברשימת כל השירים.','הסר',()=>{unfileSongs(ids);LIB.sel=null;renderLib();toast(ids.length===1?'השיר הוסר מהתיקייה':'השירים הוסרו מהתיקייה')})}
  if(t.id==='selDel'){const ids=[...LIB.sel].filter(id=>visibleSongs().some(x=>x.id===id));if(!ids.length)return;return confirmBox(ids.length===1?'למחוק את השיר?':'למחוק '+ids.length+' שירים?',ids.length===1?'השיר יימחק מהספרייה ומכל ההופעות.':'השירים יימחקו מהספרייה ומכל ההופעות. אי אפשר לבטל.','מחק',()=>{deleteSongs(ids);LIB.sel=null;renderLib()})}
- if(t.id==='selOut'){const ids=[...LIB.sel];S.songs.forEach(x=>{if(ids.includes(x.id)&&x.folderId===S.ui.folder)x.folderId=null});save(true);LIB.sel=null;renderLib();return}
+ if(t.id==='selOut'){const ids=[...LIB.sel];if(!ids.length)return;unfileSongs(ids);LIB.sel=null;renderLib();toast(ids.length===1?'השיר הוסר מהתיקייה – הוא עדיין ברשימת כל השירים':'השירים הוסרו מהתיקייה – הם עדיין ברשימת כל השירים');return}
  if(t.id==='libNew')return newChooser();
  if(t.id==='emptyNew')return newSong();
  if(t.id==='libImport'||t.id==='emptyImp')return openImp();
