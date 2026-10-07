@@ -16,4 +16,3 @@ contextBridge.exposeInMainWorld('Android', {
   installUpdate: (url) => send('sp:update', url),
   showKeyboard: () => {}
 });
-ipcRenderer.on('sp:js', (_e, code) => { try { (0, eval)(code) } catch (e) {} });

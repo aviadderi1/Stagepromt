@@ -15,7 +15,7 @@ if (process.defaultApp && process.argv.length >= 2) app.setAsDefaultProtocolClie
 else app.setAsDefaultProtocolClient('stagepromt');
 function handleLink(url) {
   if (!url || !/^stagepromt:\/\//i.test(url)) return;
-  if (win && !win.webContents.isLoading()) { win.webContents.send('sp:js', 'window.__fbAuth&&window.__fbAuth(' + JSON.stringify(url) + ')'); if (win.isMinimized()) win.restore(); win.focus(); }
+  if (win && !win.webContents.isLoading()) { runJs(win.webContents, 'window.__fbAuth&&window.__fbAuth(' + JSON.stringify(url) + ')'); if (win.isMinimized()) win.restore(); win.focus(); }
   else pendingAuth = url;
 }
 app.on('second-instance', (_e, argv) => { handleLink(argv.find(a => /^stagepromt:\/\//i.test(a))); if (win) { if (win.isMinimized()) win.restore(); win.focus(); } });
@@ -44,6 +44,8 @@ app.whenReady().then(() => {
 });
 app.on('window-all-closed', () => { app.quit(); });
 
+// callbacks must run in the page itself (not the isolated preload world)
+function runJs(wc, code) { try { if (wc && !wc.isDestroyed()) wc.executeJavaScript(code, true).catch(() => {}); } catch (e) {} }
 // ---- native bridge ----
 ipcMain.on('sp:info', e => { e.returnValue = info; });
 // Google sign-in: open the sign-in page in the browser and receive the result on a local address (no custom-link prompt needed)
@@ -75,7 +77,7 @@ ipcMain.on('sp:awake', (_e, on) => {
 });
 ipcMain.on('sp:update', (_e, url) => shell.openExternal(/^https:\/\/(github\.com|objects\.githubusercontent)/.test(url || '') ? url : 'https://aviadderi1.github.io/Stagepromt/#download'));
 ipcMain.on('sp:http', async (e, id, method, url, body, headers, bin) => {
-  const done = (ok, text, finalUrl) => { if (!e.sender.isDestroyed()) e.sender.send('sp:js', 'window.__httpDone(' + JSON.stringify(id) + ',' + ok + ',' + JSON.stringify(String(text)) + ',' + JSON.stringify(finalUrl || '') + ')'); };
+  const done = (ok, text, finalUrl) => { runJs(e.sender, 'window.__httpDone(' + JSON.stringify(id) + ',' + ok + ',' + JSON.stringify(String(text)) + ',' + JSON.stringify(finalUrl || '') + ')'); };
   try {
     let h = {}; try { h = headers ? JSON.parse(headers) : {}; } catch (x) {}
     const hdr = Object.assign({ 'User-Agent': UA, 'Accept-Language': 'he,en;q=0.8' }, h);
