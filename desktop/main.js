@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, shell, powerSaveBlocker, Menu, session } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const http = require('http');
 
 let info = { code: 0, pkg: 'desktop', phone: false, desktop: true, platform: process.platform };
 try { Object.assign(info, JSON.parse(fs.readFileSync(path.join(__dirname, 'build-info.json'), 'utf8'))); } catch (e) {}
@@ -45,7 +46,29 @@ app.on('window-all-closed', () => { app.quit(); });
 
 // ---- native bridge ----
 ipcMain.on('sp:info', e => { e.returnValue = info; });
-ipcMain.on('sp:open', (_e, url) => { if (/^(https?|mailto):/i.test(url)) shell.openExternal(url); });
+// Google sign-in: open the sign-in page in the browser and receive the result on a local address (no custom-link prompt needed)
+let authSrv = null;
+function startLogin(url) {
+  if (authSrv) { try { authSrv.close(); } catch (e) {} authSrv = null; }
+  const srv = http.createServer((req, res) => {
+    const u = new URL(req.url, 'http://127.0.0.1');
+    if (u.pathname !== '/cb' || !u.searchParams.get('r')) { res.writeHead(404); return res.end(); }
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end('<!doctype html><html dir="rtl" lang="he"><meta charset="utf-8"><title>StagePromt</title><body style="margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:#0B0C0E;color:#F4EFE6;font:20px Arial,sans-serif;text-align:center"><div><div style="font-size:54px;color:#E8A23A">✓</div><b>התחברת ל-StagePromt</b><p style="color:#9A948A">אפשר לסגור את הלשונית ולחזור לתוכנה.</p></div><script>setTimeout(function(){window.close()},1500)</script></body></html>');
+    handleLink('stagepromt://fbauth?' + u.searchParams.toString());
+    setTimeout(() => { try { srv.close(); } catch (e) {} if (authSrv === srv) authSrv = null; }, 1000);
+  });
+  srv.listen(0, '127.0.0.1', () => {
+    authSrv = srv; const port = srv.address().port;
+    const target = new URL(url); target.searchParams.set('app', 'stagepromt'); target.searchParams.set('ret', 'http://127.0.0.1:' + port + '/cb');
+    shell.openExternal(target.toString());
+    setTimeout(() => { if (authSrv === srv) { try { srv.close(); } catch (e) {} authSrv = null; } }, 10 * 60 * 1000);
+  });
+}
+ipcMain.on('sp:open', (_e, url) => {
+  if (/^https:\/\/aviadderi1\.github\.io\/Stagepromt\/auth\//i.test(url)) return startLogin(url);
+  if (/^(https?|mailto):/i.test(url)) shell.openExternal(url);
+});
 ipcMain.on('sp:awake', (_e, on) => {
   if (on && awakeId === null) awakeId = powerSaveBlocker.start('prevent-display-sleep');
   else if (!on && awakeId !== null) { powerSaveBlocker.stop(awakeId); awakeId = null; }

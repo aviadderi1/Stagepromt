@@ -49,8 +49,10 @@ input{width:100%;height:50px;border-radius:12px;border:1px solid #2C2F35;backgro
 const $=s=>document.querySelector(s);
 const KEY='AIzaSyAQj76Gha9yGidawfxbouvrE47teuzIsO4';
 const APP=(()=>{const v=new URLSearchParams(location.search).get('app');return /^stagepromtm?$/.test(v||'')?v:'stagepromt'})();
+const RET=(()=>{const v=new URLSearchParams(location.search).get('ret')||'';return /^http:\/\/127\.0\.0\.1:\d{2,5}\/cb$/.test(v)?v:''})();
 function back(st){
- const url=APP+'://fbauth?r='+encodeURIComponent(st.refresh)+'&u='+encodeURIComponent(st.uid||'')+'&e='+encodeURIComponent(st.email||'');
+ const qs='r='+encodeURIComponent(st.refresh)+'&u='+encodeURIComponent(st.uid||'')+'&e='+encodeURIComponent(st.email||'');
+ const url=RET?RET+'?'+qs:APP+'://fbauth?'+qs;
  $('#login').hidden=true;$('#done').hidden=false;$('#dt').textContent='מחובר'+(st.email?' בתור '+st.email:'');$('#back').href=url;
  setTimeout(()=>{location.href=url},300);
 }
