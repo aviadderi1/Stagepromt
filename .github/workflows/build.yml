@@ -55,3 +55,42 @@ jobs:
           files: |
             StagePromt.apk
             StagePromt-Mobile.apk
+
+  desktop:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Prepare app files
+        shell: bash
+        run: |
+          mkdir -p desktop/web
+          cp -R app/src/main/assets/. desktop/web/
+          echo "{\"code\": ${{ github.run_number }}}" > desktop/build-info.json
+          cd desktop && npm pkg set version="1.0.$(( ${{ github.run_number }} - 134 ))"
+
+      - name: Build desktop app
+        shell: bash
+        working-directory: desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: |
+          npm install --no-audit --no-fund
+          npx electron-builder --publish never
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          files: |
+            desktop/dist/StagePromt-Windows.exe
+            desktop/dist/StagePromt-Mac.dmg
+          fail_on_unmatched_files: false

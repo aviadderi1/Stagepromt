@@ -1,0 +1,29 @@
+{
+  "name": "stagepromt",
+  "productName": "StagePromt",
+  "version": "1.0.0",
+  "description": "StagePromt – lyrics & chords prompter",
+  "author": "StagePromt <stagepromt@gmail.com>",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --publish never"
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.aviad.stagepromt.desktop",
+    "productName": "StagePromt",
+    "copyright": "© StagePromt",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["main.js", "preload.js", "build-info.json", "web/**/*"],
+    "protocols": [{ "name": "StagePromt", "schemes": ["stagepromt"] }],
+    "win": { "target": [{ "target": "nsis", "arch": ["x64"] }], "icon": "build/icon.png", "artifactName": "StagePromt-Windows.${ext}" },
+    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "createDesktopShortcut": true, "shortcutName": "StagePromt", "language": "1037" },
+    "mac": { "target": [{ "target": "dmg", "arch": ["universal"] }], "icon": "build/icon.png", "category": "public.app-category.music", "identity": "-", "hardenedRuntime": false, "gatekeeperAssess": false, "artifactName": "StagePromt-Mac.${ext}" },
+    "dmg": { "title": "StagePromt" }
+  }
+}

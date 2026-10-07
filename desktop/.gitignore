@@ -1,0 +1,5 @@
+web/
+node_modules/
+dist/
+build-info.json
+package-lock.json
