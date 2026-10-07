@@ -43,6 +43,7 @@ nav .links a{text-decoration:none}nav .links a:hover{color:var(--am2)}
 /* hero */
 .hero{position:relative;padding:72px 0 40px;text-align:center;overflow:hidden}
 .hero::before{content:'';position:absolute;inset:-20% -10% auto;height:620px;background:radial-gradient(ellipse at 50% 0%,rgba(232,162,58,.22),rgba(232,162,58,0) 62%);pointer-events:none}
+.heroLogo{position:relative;width:min(620px,86vw);height:auto;margin:0 auto 26px;filter:drop-shadow(0 8px 30px rgba(232,162,58,.25))}
 .eyebrow{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:30px;border:1px solid #3A3226;background:#17140F;color:var(--am2);font-weight:700;font-size:14px;letter-spacing:.3px}
 .hero h1{position:relative;margin:22px auto 14px;font-family:'Heebo',sans-serif;font-weight:800;font-size:clamp(40px,6.4vw,76px);line-height:1.08;letter-spacing:-1.5px;max-width:900px}
 .hero h1 em{font-style:normal;background:linear-gradient(90deg,#C79A45,#F7E2A4,#E2B562);-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -106,6 +107,7 @@ footer a{color:var(--am2);text-decoration:none;font-weight:700}
 <nav><div class="wrap"><a href="#"><img class="logo" src="logo.svg" alt="StagePromt"></a><div class="links"><a href="#features">תכונות</a><a href="#show">איך זה עובד</a><a href="#live">מילים לקהל</a><a href="#download">הורדה</a></div><a class="btn pri sm" href="#download">הורדה חינם</a></div></nav>
 
 <header class="hero"><div class="wrap">
+ <img class="heroLogo" src="logo.svg" alt="StagePromt" width="1774" height="418">
  <span class="eyebrow">♪ לזמרים, לנגנים ולהרכבים</span>
  <h1>המילים שלך, <em>על הבמה.</em></h1>
  <p class="lead">StagePromt מציגה את מילות השירים והאקורדים בגדול וברור, גוללת בקצב שלך ועוברת שיר בלחיצת דוושה. כל ההופעה – בטאבלט אחד.</p>
