@@ -216,6 +216,14 @@ select.chip{cursor:pointer}
 .bgDim{position:absolute;inset:0}
 .bglA{position:absolute;top:5px;right:5px;width:30px;height:30px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#BDB6AA;display:flex;align-items:center;justify-content:center}.bglA.on{background:#E8A33D;color:#1A1205;box-shadow:0 0 10px rgba(232,163,61,.7)}
 #bgAnimT svg{margin-inline-end:6px}
+/* scrollbars (desktop / mouse) – slim dark track, gold thumb */
+::-webkit-scrollbar{width:12px;height:12px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#C79A45,#8E6A2A);border-radius:10px;border:3px solid transparent;background-clip:padding-box;min-height:48px}
+::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#F4C77A,#B98A3A);border:2px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:active{background:#F4C77A;background-clip:padding-box}
+::-webkit-scrollbar-corner{background:transparent}
+::-webkit-scrollbar-button{display:none;width:0;height:0}
 .pScroll{position:absolute;inset:0;overflow-y:auto;scrollbar-width:none}
 .pScroll::-webkit-scrollbar{display:none}
 .pInner{padding:38vh 64px 72vh;max-width:1240px;margin:0 auto;font-weight:800}
