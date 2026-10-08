@@ -1434,7 +1434,7 @@ function moveSong(id,dir){
  if(new Set(vals).size<vals.length){const base=S.songs.reduce((m,s)=>Math.max(m,s.order||0),0);vals=list.map((_,k)=>base+k+1)}
  const [x]=list.splice(i,1);list.splice(j,0,x);
  const now=Date.now();list.forEach((s,k)=>{if(s.order!==vals[k]){s.order=vals[k];s.updated=now}});
- save();renderLib();
+ SY.fast=true;save(true);renderLib();
 }
 function newSong(){
  const f=S.folders.some(x=>x.id===S.ui.folder)?S.ui.folder:null;
@@ -4248,7 +4248,9 @@ function pristineSample(s){return s.title==='אור ראשון (שיר לדוג�
 function syncTomb(k,ids){const y=syncState(),t=Date.now();ids.forEach(id=>{y[k]=y[k].filter(x=>x.id!==id);y[k].push({id,t})})}
 function signedIn(){const st=fbAuthState();return !!(st&&st.refresh)}
 const FS_NAME=()=>FB.base.replace('https://firestore.googleapis.com/v1/','');
-function syncSoon(){if(SY.applying||!signedIn())return;clearTimeout(SY.t);SY.t=setTimeout(()=>pushSync().catch(e=>{SY.err=String(e.message||e)}),6000)}
+function syncSoon(){if(SY.applying||!signedIn())return;clearTimeout(SY.t);const d=SY.fast?600:6000;SY.fast=false;SY.t=setTimeout(()=>pushSync().catch(e=>{SY.err=String(e.message||e)}),d)}
+const DEV_ID=(()=>{let d='';try{d=localStorage.getItem('sp_dev')||'';if(!d){d=uid();localStorage.setItem('sp_dev',d)}}catch(e){d=uid()}return d})();
+function pingWrite(st,k){return{update:{name:FS_NAME()+'/users/'+st.uid+'/appMeta/ping',fields:fsFields({dev:DEV_ID,at:Date.now(),k})}}}
 async function fsCommit(writes){for(let i=0;i<writes.length;){let size=0,batch=[];while(i<writes.length&&batch.length<200){const w=writes[i];const n=JSON.stringify(w).length;if(batch.length&&size+n>7e6)break;batch.push(w);size+=n;i++}
   await fbAuthed('POST',FB.base+':commit',{writes:batch})}}
 async function fsGet(path){try{const d=await fbAuthed('GET',FB.base+'/'+path);const o={};for(const[k,x]of Object.entries(d.fields||{}))o[k]=fbVal(x);return o}catch(e){if(/HTTP 404|NOT_FOUND/.test(String(e.message)))return null;throw e}}
@@ -4270,7 +4272,8 @@ async function syncBlobs(st,meta){const idx=meta.blobs||{},y=syncState(),writes=
 function mergeTombs(a,b){const m={};(a||[]).concat(b||[]).forEach(x=>{if(x&&x.id&&(!m[x.id]||m[x.id].t<x.t))m[x.id]=x});const cut=Date.now()-90*864e5;return Object.values(m).filter(x=>x.t>cut)}
 async function fullSync(manual){if(!signedIn()||SY.busy)return;SY.busy=true;SY.err='';const y=syncState();let changed=false;
  try{const st=await fbToken();
-  const cloud={};for(const d of await fbList('users/'+st.uid+'/appSongs',true))cloud[d.id]=d;
+  const cloud={};for(const d of await fbList('users/'+st.uid+'/appSongs',true)){cloud[d.id]=d;if((d.u||0)>(SY.seenU||0))SY.seenU=d.u}
+  const sig0=y.metaSig,hadDel=y.del.length+y.delF.length;
   const meta=(await fsGet('users/'+st.uid+'/appMeta/main'))||{};
   const del=mergeTombs(meta.del?JSON.parse(meta.del):[],y.del),delF=mergeTombs(meta.delF?JSON.parse(meta.delF):[],y.delF);
   const delMap={};del.forEach(x=>delMap[x.id]=x.t);
@@ -4290,16 +4293,18 @@ async function fullSync(manual){if(!signedIn()||SY.busy)return;SY.busy=true;SY.e
   if(meta.pedalU&&meta.pedalU>(S.pedalU||0)&&meta.pedal){S.pedal=JSON.parse(meta.pedal);S.pedalU=meta.pedalU}
   const m2={folders:JSON.stringify(S.folders),del:JSON.stringify(del),delF:JSON.stringify(delF),defStyle:JSON.stringify(S.defStyle||{}),styleU:S.defStyleU||0,pedal:JSON.stringify(S.pedal||{}),pedalU:S.pedalU||0,blobs:meta.blobs||{},u:Date.now()};
   if(await syncBlobs(st,m2))changed=true;
+  const pingIt=writes.length>0||hadDel>0||metaSig()!==sig0;
   writes.push({update:{name:FS_NAME()+'/users/'+st.uid+'/appMeta/main',fields:fsFields(m2)}});
+  if(pingIt)writes.push(pingWrite(st,'meta'));
   await fsCommit(writes);
   y.del=[];y.delF=[];y.at=y.push=Date.now();y.metaSig=metaSig();SY.last=Date.now();
   persist();if(changed&&SCREEN==='lib')renderLib();if(manual)toast('הסנכרון הושלם')}
  catch(e){SY.err=String(e.message||e);if(manual)toast('הסנכרון נכשל. בדוק את החיבור לאינטרנט')}
  finally{SY.applying=false;SY.busy=false;if(SETCAT==='account'&&$('#acctBox'))renderAccount()}}
-async function pushSync(){if(!signedIn()||SY.busy)return;const y=syncState();
+async function pushSync(){if(!signedIn())return;if(SY.busy){SY.fast=true;return syncSoon()}const y=syncState();
  const dirty=S.songs.filter(s=>!s.draft&&!pristineSample(s)&&(s.updated||0)>(y.push||0));const sig=metaSig();if(!dirty.length&&!y.del.length&&!y.delF.length){if(sig!==y.metaSig)return fullSync();return}
  SY.busy=true;try{const st=await fbToken();const writes=[];for(const s of dirty)writes.push(songWrite(st,await cloudSongJson(s),s.id,s.updated||Date.now()));
-  y.del.forEach(x=>writes.push({delete:FS_NAME()+'/users/'+st.uid+'/appSongs/'+x.id}));await fsCommit(writes);y.push=Date.now()}
+  y.del.forEach(x=>writes.push({delete:FS_NAME()+'/users/'+st.uid+'/appSongs/'+x.id}));dirty.forEach(s=>{if((s.updated||0)>(SY.seenU||0))SY.seenU=s.updated});writes.push(pingWrite(st,'songs'));await fsCommit(writes);y.push=Date.now()}
  catch(e){SY.err=String(e.message||e)}finally{SY.busy=false}
  if(y.del.length||y.delF.length||metaSig()!==y.metaSig||[...songBlobIds()].some(id=>!y.blobs[id]))fullSync();}
 function metaSig(){return JSON.stringify([S.folders,S.defStyleU||0,S.pedalU||0])}
@@ -4330,8 +4335,24 @@ function renderAccount(){renderAcctBtn();const M=$('#stMain');if(!M)return;const
 }
 setTimeout(()=>{renderAcctBtn();if(signedIn()){fbProfile();fullSync().catch(()=>{})}},2500);setTimeout(renderAcctBtn,50);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&signedIn()&&Date.now()-SY.last>60000)fullSync().catch(()=>{})});
-function syncPull(gap){if(!document.hidden&&signedIn()&&SCREEN!=='play'&&!SY.busy&&Date.now()-SY.last>gap)fullSync().catch(()=>{})}
-addEventListener('focus',()=>syncPull(30000));setInterval(()=>syncPull(120000),30000);
+/* near real-time: a tiny 'ping' doc tells other devices something changed; they then pull only the changed songs */
+async function quickPull(){if(!signedIn()||SY.busy)return;SY.busy=true;let changed=false;
+ try{const st=await fbToken();const since=Math.max(0,(SY.seenU||0)-600000);
+  const j=await fbAuthed('POST',FB.base+'/users/'+st.uid+':runQuery',{structuredQuery:{from:[{collectionId:'appSongs'}],where:{fieldFilter:{field:{fieldPath:'u'},op:'GREATER_THAN',value:{integerValue:String(since)}}}}});
+  SY.applying=true;
+  for(const r of(Array.isArray(j)?j:[])){const d=r&&r.document;if(!d)continue;const c={};for(const[k,x]of Object.entries(d.fields||{}))c[k]=fbVal(x);c.id=d.name.split('/').pop();
+   if((c.u||0)>(SY.seenU||0))SY.seenU=c.u;
+   const loc=S.songs.find(x=>x.id===c.id);
+   if(!loc||(c.u||0)>(loc.updated||0)){try{const ns=JSON.parse(c.j);ns.parts=ns.parts||[];ns.style=Object.assign(clone(DEF_STYLE),ns.style||{});ns.updated=c.u||ns.updated;if(loc)Object.assign(loc,ns);else S.songs.push(ns);changed=true}catch(e){}}}
+  if(changed){persist();if(SCREEN==='lib')renderLib()}}
+ catch(e){SY.err=String(e.message||e)}
+ finally{SY.applying=false;SY.busy=false}}
+async function pingPoll(){if(document.hidden||!signedIn()||SY.busy||SY.pinging)return;SY.pinging=true;
+ try{const st=await fbToken();const p=await fsGet('users/'+st.uid+'/appMeta/ping');if(!p)return;
+  if(SY.pingAt==null){SY.pingAt=p.at||0;return}
+  if((p.at||0)>SY.pingAt){SY.pingAt=p.at;if(p.dev===DEV_ID)return;if(p.k==='meta')await fullSync();else await quickPull()}}
+ catch(e){}finally{SY.pinging=false}}
+setInterval(pingPoll,3000);addEventListener('focus',()=>{pingPoll()});
 
 /* ========= community submissions + owner admin ========= */
 const OWNER='aviadderi1@gmail.com';
