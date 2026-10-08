@@ -1433,7 +1433,7 @@ function moveSong(id,dir){
  let vals=list.map(s=>s.order||0).sort((a,b)=>a-b);
  if(new Set(vals).size<vals.length){const base=S.songs.reduce((m,s)=>Math.max(m,s.order||0),0);vals=list.map((_,k)=>base+k+1)}
  const [x]=list.splice(i,1);list.splice(j,0,x);
- list.forEach((s,k)=>s.order=vals[k]);
+ const now=Date.now();list.forEach((s,k)=>{if(s.order!==vals[k]){s.order=vals[k];s.updated=now}});
  save();renderLib();
 }
 function newSong(){
@@ -4330,6 +4330,8 @@ function renderAccount(){renderAcctBtn();const M=$('#stMain');if(!M)return;const
 }
 setTimeout(()=>{renderAcctBtn();if(signedIn()){fbProfile();fullSync().catch(()=>{})}},2500);setTimeout(renderAcctBtn,50);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&signedIn()&&Date.now()-SY.last>60000)fullSync().catch(()=>{})});
+function syncPull(gap){if(!document.hidden&&signedIn()&&SCREEN!=='play'&&!SY.busy&&Date.now()-SY.last>gap)fullSync().catch(()=>{})}
+addEventListener('focus',()=>syncPull(30000));setInterval(()=>syncPull(120000),30000);
 
 /* ========= community submissions + owner admin ========= */
 const OWNER='aviadderi1@gmail.com';
