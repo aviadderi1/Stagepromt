@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#0A0A0B">
-<title>StagePromt – המילים שלך, על הבמה</title>
-<meta name="description" content="StagePromt – פרומפטר מילים ואקורדים לזמרים ולנגנים. גלילה אוטומטית, אקורדים מעל המילים, דוושת Bluetooth, מאגר שירים ומילים לקהל בטלפון.">
-<meta property="og:title" content="StagePromt – המילים שלך, על הבמה">
-<meta property="og:description" content="פרומפטר מילים ואקורדים לזמרים ולנגנים, לטאבלט ולנייד אנדרואיד.">
+<meta name="theme-color" content="#070708">
+<title>StagePromt – פרומפטר מילים ואקורדים לבמה</title>
+<meta name="description" content="StagePromt מציגה מילים ואקורדים בגדול על הבמה, גוללת בקצב שלך, עוברת שיר בדוושה ומראה לקהל את המילים בטלפון. לטאבלט, לנייד, ל-Windows ול-Mac.">
+<meta property="og:title" content="StagePromt – המילים והאקורדים שלך, על הבמה">
+<meta property="og:description" content="פרומפטר מילים ואקורדים לזמרים ולנגנים. טאבלט, נייד, Windows ו-Mac, מסונכרנים בחשבון אחד.">
 <meta property="og:image" content="img/show.jpg">
 <link rel="icon" href="logo.svg">
 <style>
@@ -21,136 +21,370 @@
 @font-face{font-family:'Assistant';font-weight:700;font-display:swap;src:url(fonts/assistant-latin-700-normal.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2212,U+FEFF,U+FFFD}
 @font-face{font-family:'Assistant';font-weight:800;font-display:swap;src:url(fonts/assistant-hebrew-800-normal.woff2) format('woff2');unicode-range:U+0307-0308,U+0590-05FF,U+200C-2010,U+20AA,U+25CC,U+FB1D-FB4F}
 @font-face{font-family:'Assistant';font-weight:800;font-display:swap;src:url(fonts/assistant-latin-800-normal.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2212,U+FEFF,U+FFFD}
-:root{--bg:#0A0A0B;--p1:#121316;--p2:#17191D;--ln:#24262B;--tx:#F4EFE6;--mu:#9A948A;--am:#E8A23A;--am2:#F4C77A;--amS:#2A2419}
+:root{
+ --stage:#000;--floor:#0E0D0C;--panel:#151413;--line:#2A2724;
+ --spot:#FFF3DC;--tx:#F2ECE2;--mu:#968F84;--gold:#E8A23A;--gold2:#F5C676;
+ --verse:#F6D9A8;--chorus:#A9D3FF;--bridge:#D9C2FF;
+}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{margin:0;background:var(--bg);color:var(--tx);font-family:'Assistant',sans-serif;font-size:18px;line-height:1.6;overflow-x:hidden}
+body{margin:0;background:var(--stage);color:var(--tx);font-family:'Assistant',sans-serif;font-size:18px;line-height:1.65;overflow-x:hidden;-webkit-font-smoothing:antialiased}
 a{color:inherit}
 img{max-width:100%;height:auto;display:block}
+:focus-visible{outline:2px solid var(--gold2);outline-offset:3px;border-radius:6px}
 .wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+h1,h2,h3{font-family:'Heebo',sans-serif;font-weight:800;margin:0}
+
+/* chord-over-word, the app's own typographic signature */
+.w{position:relative;display:inline-block}
+.w[data-c]::before{content:attr(data-c);position:absolute;top:-.78em;right:0;font-family:'Assistant';font-weight:800;font-size:.42em;line-height:1;color:var(--gold);direction:ltr;letter-spacing:0}
+
 /* nav */
-nav{position:sticky;top:0;z-index:10;background:rgba(10,10,11,.82);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.06)}
-nav .wrap{display:flex;align-items:center;justify-content:space-between;gap:28px;height:68px}
-nav .logo{height:34px;width:auto}
-nav .links{display:flex;gap:24px;font-weight:600;font-size:16px;color:#CFC9BF}
-nav .links a{text-decoration:none}nav .links a:hover{color:var(--am2)}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;height:54px;padding:0 26px;border-radius:14px;font:700 17px 'Assistant',sans-serif;text-decoration:none;border:1px solid transparent;transition:transform .15s,box-shadow .15s}
-.btn:hover{transform:translateY(-1px)}
-.btn.pri{background:var(--am);color:#1A1205;box-shadow:0 10px 30px rgba(232,162,58,.25)}
-.btn.sec{background:var(--p2);border-color:#2C2F35;color:var(--tx)}
-.btn.sm{height:42px;padding:0 18px;font-size:15px;border-radius:11px}
-.btn small{font-weight:600;opacity:.7;font-size:13px}
+nav{position:sticky;top:0;z-index:20;background:rgba(0,0,0,.78);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.07)}
+nav .wrap{display:flex;align-items:center;gap:28px;height:66px}
+nav .mini{height:26px;width:auto;opacity:0;transition:opacity .25s}nav.scrolled .mini{opacity:1}
+nav .links{display:flex;gap:26px;font-weight:600;font-size:16px;color:#CDC6BA;margin-inline-start:auto}
+nav .links a{text-decoration:none}nav .links a:hover{color:var(--gold2)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;height:56px;padding:0 28px;border-radius:999px;font:800 17px 'Assistant',sans-serif;text-decoration:none;border:1px solid transparent;cursor:pointer;transition:background .15s,border-color .15s}
+.btn.pri{background:var(--gold);color:#1B1206}
+.btn.pri:hover{background:var(--gold2)}
+.btn.ghost{border-color:#3A3631;color:var(--tx)}
+.btn.ghost:hover{border-color:var(--gold)}
+.btn.sm{height:42px;padding:0 20px;font-size:15px}
+
 /* hero */
-.hero{position:relative;padding:72px 0 40px;text-align:center;overflow:hidden}
-.hero::before{content:'';position:absolute;inset:-20% -10% auto;height:620px;background:radial-gradient(ellipse at 50% 0%,rgba(232,162,58,.22),rgba(232,162,58,0) 62%);pointer-events:none}
-.heroLogo{position:relative;width:min(620px,86vw);height:auto;margin:0 auto 26px;filter:drop-shadow(0 8px 30px rgba(232,162,58,.25))}
-.eyebrow{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:30px;border:1px solid #3A3226;background:#17140F;color:var(--am2);font-weight:700;font-size:14px;letter-spacing:.3px}
-.hero h1{position:relative;margin:22px auto 14px;font-family:'Heebo',sans-serif;font-weight:800;font-size:clamp(40px,6.4vw,76px);line-height:1.08;letter-spacing:-1.5px;max-width:900px}
-.hero h1 em{font-style:normal;background:linear-gradient(90deg,#C79A45,#F7E2A4,#E2B562);-webkit-background-clip:text;background-clip:text;color:transparent}
-.hero p.lead{position:relative;margin:0 auto 30px;max-width:640px;color:#CFC9BF;font-size:20px}
-.cta{position:relative;display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
-.note{position:relative;margin-top:14px;color:var(--mu);font-size:14px}
-/* device */
-.stage{position:relative;margin:54px auto 0;max-width:1060px}
-.tablet{position:relative;border-radius:30px;padding:14px;background:linear-gradient(145deg,#2A2C31,#121316);box-shadow:0 40px 120px rgba(0,0,0,.7),0 0 0 1px #2E3036,inset 0 0 0 1px rgba(255,255,255,.04)}
-.tablet img{border-radius:18px;width:100%}
-.phone{position:absolute;left:-28px;bottom:-40px;width:22%;min-width:150px;border-radius:30px;padding:9px;background:linear-gradient(145deg,#2A2C31,#121316);box-shadow:0 30px 80px rgba(0,0,0,.75),0 0 0 1px #2E3036}
-.phone img{border-radius:22px}
-.glow{position:absolute;inset:auto 10% -60px;height:120px;background:radial-gradient(ellipse,rgba(232,162,58,.25),transparent 70%);filter:blur(10px);z-index:-1}
+.hero{position:relative;padding:64px 0 0;text-align:center;overflow:hidden}
+.beam{position:absolute;top:-80px;left:50%;width:1100px;height:1300px;transform:translateX(-50%);pointer-events:none;
+ background:conic-gradient(from 180deg at 50% 0%,transparent 0deg 158deg,rgba(255,236,200,.16) 168deg,rgba(255,236,200,.3) 180deg,rgba(255,236,200,.16) 192deg,transparent 202deg 360deg);
+ -webkit-mask:linear-gradient(#000 0%,#000 55%,transparent 92%);mask:linear-gradient(#000 0%,#000 55%,transparent 92%)}
+.heroLogo{position:relative;width:min(560px,82vw);margin:0 auto 54px}
+.hero h1{position:relative;font-size:clamp(40px,7vw,88px);line-height:1.5;letter-spacing:-1.5px;color:var(--spot);text-wrap:balance}
+.hero h1 .l2{display:block;color:var(--verse)}
+.lead{position:relative;margin:18px auto 34px;max-width:620px;color:#CDC6BA;font-size:20px}
+.cta{position:relative;display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.cta small{font-weight:600;opacity:.75;font-size:14px}
+.note{position:relative;margin-top:16px;color:var(--mu);font-size:15px}
+
+/* stage scene */
+.scene{position:relative;max-width:1040px;margin:70px auto 0;padding-bottom:90px}
+.floorGlow{position:absolute;left:8%;right:8%;bottom:30px;height:140px;background:radial-gradient(ellipse at 50% 50%,rgba(255,226,170,.22),transparent 70%);filter:blur(6px)}
+.tab{position:relative;border-radius:34px;padding:16px;background:linear-gradient(160deg,#2B2926,#100F0E 60%);box-shadow:0 50px 120px rgba(0,0,0,.9),0 0 0 1px #34312C,inset 0 1px 0 rgba(255,255,255,.06)}
+.screen{position:relative;aspect-ratio:16/10;border-radius:20px;background:#000;overflow:hidden}
+.pTop{position:absolute;top:0;left:0;right:0;z-index:2;display:flex;align-items:center;gap:14px;padding:16px 24px;font-size:15px;color:var(--mu);background:linear-gradient(#000 60%,transparent)}
+.pTop b{color:var(--tx);font-family:'Assistant';font-weight:800;font-size:17px}
+.pTop .k{padding:1px 9px;border-radius:7px;background:#16273A;color:var(--chorus);font-weight:800;font-size:13px;direction:ltr}
+.pTop .t{margin-inline-start:auto;direction:ltr;font-weight:700;color:var(--tx)}
+.prog{position:absolute;top:52px;left:24px;right:24px;height:3px;background:#1E1D1B;border-radius:3px;z-index:2}
+.prog i{position:absolute;inset:0 0 0 auto;width:0;background:var(--gold);border-radius:3px;transition:width .8s linear}
+.reel{position:absolute;inset:0;padding:0 6%;transition:transform 1.1s cubic-bezier(.4,.1,.2,1)}
+.pl{font-family:'Heebo';font-weight:800;font-size:clamp(17px,3.4vw,38px);line-height:1.15;text-align:center;padding-top:1.05em;margin-bottom:.32em;opacity:.32;transition:opacity .6s}
+.pl.on{opacity:1}
+.pl.lab{font-family:'Assistant';font-size:clamp(11px,1.4vw,15px);padding-top:1.6em;margin-bottom:0;opacity:.8;letter-spacing:.5px}
+.v{color:var(--verse)}.c{color:var(--chorus)}.b{color:var(--bridge)}
+.pBar{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:2;display:flex;align-items:center;gap:22px;padding:8px 22px;border-radius:999px;background:rgba(20,19,18,.92);border:1px solid #2C2926;color:#BDB6AA;font-size:13px;white-space:nowrap}
+.pBar .play{width:38px;height:38px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;color:#1B1206}
+.pBar .nx b{display:block;color:var(--tx);font-size:14px}
+
+.ph{position:absolute;left:-30px;bottom:24px;width:22%;min-width:150px;border-radius:30px;padding:8px;background:linear-gradient(160deg,#2B2926,#100F0E);box-shadow:0 30px 80px rgba(0,0,0,.9),0 0 0 1px #34312C;z-index:3}
+.pscr{position:relative;aspect-ratio:9/19;border-radius:23px;background:#000;overflow:hidden;display:flex;flex-direction:column}
+.phead{display:flex;align-items:center;gap:7px;padding:16px 12px 9px;border-bottom:1px solid #1E1D1B;text-align:right}
+.phead .av{width:24px;height:24px;border-radius:50%;background:#26241F;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex:none}
+.phead b{display:block;font-size:12px;line-height:1.2}.phead span{display:block;font-size:10px;color:var(--mu);line-height:1.2}
+.phead .live{margin-inline-start:auto;display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;color:#E0675C;letter-spacing:.5px}
+.phead .live i{width:6px;height:6px;border-radius:50%;background:#E0675C}
+.pbody{flex:1;display:flex;flex-direction:column;justify-content:center;padding:10px;text-align:center}
+.pbody .pt{font-size:10px;font-weight:800;margin-bottom:6px}
+.pbody .ln{font-family:'Heebo';font-weight:800;font-size:clamp(11px,1.45vw,16px);line-height:1.35;opacity:.42;transition:opacity .5s}
+.pbody .ln.on{opacity:1}
+.cap{position:absolute;left:-30px;bottom:-6px;width:22%;min-width:150px;text-align:center;font-size:13px;color:var(--mu)}
+
 /* sections */
-section{padding:96px 0}
-.sh{text-align:center;max-width:720px;margin:0 auto 52px}
-.sh h2{margin:0 0 12px;font-family:'Heebo',sans-serif;font-weight:800;letter-spacing:-.8px;font-size:clamp(30px,4vw,44px);line-height:1.15}
-.sh p{margin:0;color:var(--mu);font-size:19px}
-.feat{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
-.f{background:var(--p1);border:1px solid var(--ln);border-radius:20px;padding:26px 24px}
-.f .ic{width:48px;height:48px;border-radius:14px;background:var(--amS);color:var(--am2);display:flex;align-items:center;justify-content:center;margin-bottom:16px}
-.f h3{margin:0 0 6px;font-family:'Assistant';font-weight:800;font-size:21px}
-.f p{margin:0;color:var(--mu);font-size:16px}
+section{padding:120px 0}
+.sh{max-width:680px;margin:0 0 56px}
+.sh.mid{margin-inline:auto;text-align:center;max-width:780px}
+.sh h2{font-size:clamp(32px,4.4vw,52px);line-height:1.12;letter-spacing:-1px;color:var(--spot)}
+.sh p{margin:16px 0 0;color:var(--mu);font-size:19px}
+
+/* setlist */
+.setwrap{display:grid;grid-template-columns:1fr 1.15fr;gap:72px;align-items:start}
+.setwrap .sh{position:sticky;top:110px}
+.sheet{position:relative;background:#F3ECDD;color:#1D1A16;border-radius:4px;padding:44px 44px 30px;transform:rotate(-1.2deg);box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.sheet::before,.sheet::after{content:'';position:absolute;top:-14px;width:120px;height:30px;background:rgba(40,38,34,.88);border-radius:2px}
+.sheet::before{right:28px;transform:rotate(4deg)}.sheet::after{left:28px;transform:rotate(-5deg)}
+.sheet .hd{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #1D1A16;padding-bottom:12px;margin-bottom:6px}
+.sheet .hd b{font-family:'Heebo';font-size:26px}.sheet .hd span{font-size:15px;color:#6B645A}
+.sheet ol{list-style:none;margin:0;padding:0;counter-reset:s}
+.sheet li{counter-increment:s;display:grid;grid-template-columns:44px 1fr;gap:4px 10px;padding:16px 0;border-bottom:1px dashed #C9BFAE}
+.sheet li:last-child{border-bottom:0}
+.sheet li::before{content:counter(s);grid-row:span 2;font-family:'Heebo';font-weight:800;font-size:28px;line-height:1.1;color:#B5742A}
+.sheet li b{font-family:'Heebo';font-weight:800;font-size:22px;line-height:1.25}
+.sheet li span{font-size:16.5px;color:#4E483F;line-height:1.5}
+
 /* showcase */
-.row{display:grid;grid-template-columns:1.25fr 1fr;gap:56px;align-items:center;margin-bottom:96px}
-.row:last-child{margin-bottom:0}
-.row.rev{grid-template-columns:1fr 1.25fr}.row.rev .shot{order:2}
-.shot{border-radius:20px;padding:10px;background:linear-gradient(145deg,#24262B,#121316);box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 0 1px #2C2F35}
-.shot img{border-radius:12px}
-.txt .k{color:var(--am);font-weight:800;font-size:14px;letter-spacing:1px}
-.txt h3{margin:8px 0 12px;font-family:'Heebo',sans-serif;font-weight:800;letter-spacing:-.5px;font-size:clamp(26px,3vw,36px);line-height:1.2}
-.txt p{margin:0 0 16px;color:#CFC9BF}
-.txt ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;color:#CFC9BF}
-.txt li{display:flex;gap:10px;align-items:flex-start}.txt li::before{content:'';flex:none;width:7px;height:7px;border-radius:50%;background:var(--am);margin-top:11px}
-/* live band */
-.live{background:linear-gradient(180deg,#0A0A0B,#110F0B 50%,#0A0A0B)}
-.liveGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
-.lc{padding:28px;border-radius:20px;border:1px solid #2E2A22;background:#14120E}
-.lc b{display:block;font-family:'Assistant';font-weight:800;font-size:22px;margin-bottom:6px}.lc span{color:var(--mu);font-size:16px}
-.lc .n{font-family:'Heebo';font-weight:800;font-size:44px;color:var(--am);line-height:1;margin-bottom:12px}
+.show{display:grid;grid-template-columns:1.35fr 1fr;gap:64px;align-items:center}
+.show+.show{margin-top:120px}
+.show.flip{grid-template-columns:1fr 1.35fr}.show.flip .shot{order:2}
+.shot{border-radius:22px;padding:10px;background:linear-gradient(160deg,#2B2926,#100F0E);box-shadow:0 40px 100px rgba(0,0,0,.8),0 0 0 1px #34312C}
+.shot img{border-radius:13px}
+.txt h3{font-size:clamp(28px,3.2vw,40px);line-height:1.18;letter-spacing:-.6px;color:var(--spot)}
+.txt p{margin:16px 0 22px;color:#CDC6BA}
+.txt ul{margin:0;padding:0;list-style:none;display:grid;gap:12px}
+.txt li{padding-inline-start:22px;position:relative;color:#CDC6BA}
+.txt li::before{content:'';position:absolute;right:0;top:.62em;width:8px;height:8px;border-radius:50%;background:var(--gold)}
+
+/* audience */
+.aud{background:radial-gradient(ellipse 70% 60% at 50% 100%,#1A140B,transparent 70%),var(--stage)}
+.audGrid{display:grid;grid-template-columns:1fr 340px;gap:72px;align-items:center}
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:30px;counter-reset:q}
+.steps li{counter-increment:q;display:grid;grid-template-columns:64px 1fr;gap:2px 18px}
+.steps li::before{content:counter(q);grid-row:span 2;width:56px;height:56px;border-radius:50%;border:1px solid #4A3A22;color:var(--gold2);display:flex;align-items:center;justify-content:center;font-family:'Heebo';font-weight:800;font-size:22px}
+.steps b{font-family:'Heebo';font-size:22px;color:var(--spot)}
+.steps span{color:var(--mu)}
+.bigPhone{border-radius:44px;padding:11px;background:linear-gradient(160deg,#2B2926,#100F0E);box-shadow:0 40px 100px rgba(0,0,0,.9),0 0 0 1px #34312C}
+.bigPhone .pscr{border-radius:34px}
+.bigPhone .phead{padding:26px 18px 14px}.bigPhone .phead .av{width:36px;height:36px;font-size:15px}
+.bigPhone .phead b{font-size:16px}.bigPhone .phead span{font-size:13px}.bigPhone .phead .live{font-size:11px}
+.bigPhone .pbody .pt{font-size:13px;margin-bottom:12px}
+.bigPhone .pbody .ln{font-size:25px;opacity:1}
+.bigPhone .foot{display:flex;justify-content:space-between;align-items:center;padding:12px 18px 20px;color:#5E5A53;font-size:12px}
+.dots{display:flex;gap:5px}.dots i{width:6px;height:6px;border-radius:3px;background:#2C2A27}.dots i.on{width:16px;background:var(--gold)}
+
+/* sync */
+.sync{text-align:center}
+.devs{display:flex;justify-content:center;align-items:flex-end;gap:clamp(18px,4vw,54px);margin:10px auto 26px;max-width:860px;position:relative}
+.devs::before{content:'';position:absolute;left:8%;right:8%;bottom:56px;border-top:2px dashed #3B352C}
+.dev{position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;color:var(--mu);font-weight:700;font-size:16px}
+.dev .box{background:#000;border:2px solid #3A3631;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:8px}
+.dev .box i{display:block;height:5px;border-radius:3px;background:var(--verse);opacity:.85}.dev .box i:nth-child(2){background:var(--chorus)}.dev .box i.g{background:var(--gold);opacity:1}
+.dev .tablet{width:150px;height:104px;border-radius:12px}
+.dev .phoneD{width:54px;height:104px;border-radius:12px}
+.dev .lap{width:170px;height:104px;border-radius:10px 10px 4px 4px}
+.dev .dot{width:14px;height:14px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 5px #000;position:relative;z-index:1}
+.sync p.s{max-width:620px;margin:0 auto;color:#CDC6BA;font-size:19px}
+
+/* faq */
+.faq{max-width:820px;margin:0 auto}
+.faq details{border-bottom:1px solid var(--line)}
+.faq summary{list-style:none;cursor:pointer;padding:24px 0;display:flex;justify-content:space-between;gap:20px;font-family:'Heebo';font-weight:800;font-size:21px;color:var(--spot)}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:'+';color:var(--gold);font-size:28px;line-height:1;transition:transform .2s}
+.faq details[open] summary::after{transform:rotate(45deg)}
+.faq details p{margin:-6px 0 24px;color:#CDC6BA;max-width:680px}
+
 /* download */
-.dl{text-align:center;border-radius:28px;padding:64px 28px;background:radial-gradient(ellipse at 50% 0%,rgba(232,162,58,.18),transparent 65%),var(--p1);border:1px solid var(--ln)}
-.dl h2{margin:0 0 10px;font-family:'Heebo',sans-serif;font-weight:800;letter-spacing:-.8px;font-size:clamp(30px,4vw,44px)}
-.dl p{color:var(--mu);margin:0 0 28px}
-.dlGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;max-width:900px;margin:0 auto}
-.dlc{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:22px 12px;border-radius:18px;background:var(--p2);border:1px solid #2C2F35;text-decoration:none;color:var(--tx);transition:transform .15s,border-color .15s}
-.dlc:hover{transform:translateY(-2px);border-color:var(--am)}.dlc:first-child{background:var(--am);color:#1A1205;border-color:var(--am)}
-.dlc b{font-family:'Heebo',sans-serif;font-size:20px}.dlc span{font-size:14px;opacity:.7}.dlc svg{margin-bottom:4px}
-.sync{color:var(--mu);margin:22px 0 0;font-size:16px}
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:40px auto 0;max-width:900px;text-align:right}
-.st{background:var(--p2);border:1px solid var(--ln);border-radius:16px;padding:18px 20px;font-size:16px;color:#CFC9BF}.st b{color:var(--am2);display:block;font-family:'Assistant';font-weight:800;margin-bottom:4px}
-footer{padding:48px 0 60px;border-top:1px solid var(--ln);color:var(--mu);font-size:15px}
-footer .wrap{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
-footer img{height:28px;width:auto;opacity:.9}
-footer a{color:var(--am2);text-decoration:none;font-weight:700}
-@media (max-width:900px){
- nav .links{display:none}nav .wrap{justify-content:space-between}
- .feat,.liveGrid,.steps{grid-template-columns:1fr}
- .dlGrid{grid-template-columns:1fr 1fr}
- .row,.row.rev{grid-template-columns:1fr;gap:28px}.row.rev .shot{order:0}
- .phone{left:-4px;bottom:-24px;width:28%;min-width:0;padding:5px;border-radius:16px}.phone img{border-radius:12px}
- section{padding:72px 0}
+.dl{position:relative;overflow:hidden;border-radius:32px;padding:80px 32px 64px;text-align:center;background:var(--floor);border:1px solid var(--line)}
+.dl .beam{top:-40px;width:900px;height:900px;opacity:.8}
+.dl>*:not(.beam){position:relative}
+.dl h2{font-size:clamp(34px,4.6vw,56px);letter-spacing:-1px;color:var(--spot);line-height:1.5}
+.dl>p{color:var(--mu);margin:8px 0 40px}
+.plats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;max-width:940px;margin:0 auto}
+.plat{display:flex;flex-direction:column;align-items:center;gap:6px;padding:28px 14px 24px;border-radius:22px;background:var(--panel);border:1px solid #2E2B27;text-decoration:none;transition:border-color .15s,background .15s}
+.plat:hover{border-color:var(--gold)}
+.plat svg{color:var(--gold2);margin-bottom:6px}
+.plat b{font-family:'Heebo';font-size:21px;color:var(--spot)}
+.plat span{font-size:14px;color:var(--mu)}
+.plat em{font-style:normal;margin-top:10px;font-weight:800;font-size:15px;color:var(--gold2)}
+.plat.me{background:var(--gold);border-color:var(--gold)}
+.plat.me svg,.plat.me b,.plat.me span,.plat.me em{color:#1B1206}
+.how{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;max-width:940px;margin:40px auto 0;text-align:right;font-size:16px;color:var(--mu)}
+.how b{display:block;color:var(--tx);margin-bottom:4px}
+footer{padding:56px 0 70px;color:var(--mu);font-size:15px}
+footer .wrap{display:flex;align-items:center;gap:22px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:40px}
+footer img{height:26px;width:auto}
+footer a{color:var(--gold2);text-decoration:none;font-weight:700}
+footer .sp{flex:1}
+
+@media (max-width:960px){
+ nav .links{display:none}nav .btn{margin-inline-start:auto}
+ .setwrap,.show,.show.flip,.audGrid{grid-template-columns:1fr;gap:44px}
+ .setwrap .sh{position:static}
+ .show.flip .shot{order:0}
+ .audGrid .bigPhone{max-width:300px;margin:0 auto}
+ .plats{grid-template-columns:1fr 1fr}
+ .how{grid-template-columns:1fr}
+ section{padding:88px 0}
+ .ph,.cap{left:-6px}
 }
+@media (max-width:600px){
+ body{font-size:17px}
+ .show .shot:has(picture){max-width:280px;margin:0 auto;border-radius:34px}.show .shot:has(picture) img{border-radius:26px}
+ .wrap{padding:0 16px}
+ .hero{padding-top:44px}.heroLogo{margin-bottom:40px}
+ .lead{font-size:18px}
+ .scene{margin-top:50px;padding-bottom:120px}
+ .tab{border-radius:20px;padding:8px}.screen{border-radius:13px}
+ .pTop{padding:9px 12px;font-size:11px}.pTop b{font-size:12px}.pTop .k{font-size:10px}
+ .prog{top:34px;left:12px;right:12px}
+ .pBar{display:none}
+ .pl{font-size:15px}.pl.lab{font-size:10px}
+ .ph{width:40%;min-width:0;bottom:6px;left:-4px;padding:5px;border-radius:20px}.ph .pscr{border-radius:16px;aspect-ratio:9/15}
+ .ph .phead{padding:9px 8px 6px}.ph .phead b{font-size:10px}.ph .phead>span:nth-child(2) span{display:none}.ph .phead .av{width:18px;height:18px;font-size:9px}
+ .ph .pbody{padding:6px}.ph .pbody .ln{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cap{display:none}
+ .scene{padding-bottom:150px}
+ .sheet{padding:34px 22px 18px;transform:rotate(-.6deg)}
+ .sheet li{grid-template-columns:34px 1fr}.sheet li b{font-size:19px}.sheet li::before{font-size:23px}
+ .devs .lap{width:96px;height:66px}.devs .tablet{width:84px;height:62px}.devs .phoneD{width:34px;height:66px}
+ .dev{font-size:13px}.devs::before{bottom:50px}
+ .dl{padding:56px 16px 40px;border-radius:24px}
+ .plats{gap:10px}.plat{padding:20px 8px 18px}
+ .faq summary{font-size:18px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
 <body>
-<nav><div class="wrap"><div class="links"><a href="#features">תכונות</a><a href="#show">איך זה עובד</a><a href="#live">מילים לקהל</a><a href="#download">הורדה</a></div><a class="btn pri sm" href="#download">הורדה חינם</a></div></nav>
+<nav><div class="wrap"><img class="mini" src="logo.svg" alt="StagePromt" width="1774" height="418"><div class="links"><a href="#features">מה יש באפליקציה</a><a href="#audience">מילים לקהל</a><a href="#faq">שאלות</a></div><a class="btn pri sm" href="#download">הורדה חינם</a></div></nav>
 
-<header class="hero"><div class="wrap">
- <img class="heroLogo" src="logo.svg" alt="StagePromt" width="1774" height="418">
- <span class="eyebrow">♪ לזמרים, לנגנים ולהרכבים</span>
- <h1>המילים שלך, <em>על הבמה.</em></h1>
- <p class="lead">StagePromt מציגה את מילות השירים והאקורדים בגדול וברור, גוללת בקצב שלך ועוברת שיר בלחיצת דוושה. כל ההופעה – בטאבלט, בנייד או במחשב.</p>
- <div class="cta"><a class="btn pri" href="https://github.com/aviadderi1/Stagepromt/releases/latest/download/StagePromt.apk">⬇ הורדה לטאבלט <small>Android</small></a><a class="btn sec" href="https://github.com/aviadderi1/Stagepromt/releases/latest/download/StagePromt-Mobile.apk">⬇ לנייד <small>Android</small></a><a class="btn sec" href="https://github.com/aviadderi1/Stagepromt/releases/latest/download/StagePromt-Windows.exe"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5l7.5-1v7H3zM11.5 4.4L21 3v8.5h-9.5zM3 12.5h7.5v7L3 18.5zM11.5 12.5H21V21l-9.5-1.4z"/></svg> Windows</a><a class="btn sec" href="https://github.com/aviadderi1/Stagepromt/releases/latest/download/StagePromt-Mac.dmg"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.6c0-2.4 2-3.5 2.1-3.6-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.5-1-2.5-4zM14 5.4c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1.1.1 2.1-.6 2.8-1.4z"/></svg> Mac</a></div>
- <div class="note">טאבלט, נייד ומחשב – מסונכרנים בחשבון אחד · חינם · עברית ואנגלית</div>
- <div class="stage"><div class="tablet"><img src="img/show.jpg" alt="מצב הופעה ב-StagePromt" width="1600" height="1000"></div><div class="phone"><img src="img/phone_show.jpg" alt="StagePromt בנייד" width="600" height="1298"></div><div class="glow"></div></div>
-</div></header>
+<header class="hero">
+ <div class="beam" aria-hidden="true"></div>
+ <div class="wrap">
+  <img class="heroLogo" src="logo.svg" alt="StagePromt" width="1774" height="418">
+  <h1><span class="w" data-c="Am">שרים</span> בלי <span class="w" data-c="F">לזכור.</span><span class="l2"><span class="w" data-c="C">מנגנים</span> בלי <span class="w" data-c="G">לדפדף.</span></span></h1>
+  <p class="lead">StagePromt מציגה את המילים והאקורדים בגדול, גוללת בקצב של השיר ועוברת לשיר הבא בלחיצת דוושה. כל ההופעה במכשיר אחד, ובלי קלסר.</p>
+  <div class="cta"><a class="btn pri" id="heroDl" href="#download">הורדה חינם</a><a class="btn ghost" href="#features">מה יש באפליקציה</a></div>
+  <div class="note">טאבלט ונייד אנדרואיד, Windows ו-Mac. חשבון אחד מסנכרן את כולם.</div>
 
-<section id="features"><div class="wrap">
- <div class="sh"><h2>כל מה שצריך על הבמה</h2><p>נבנה בשביל זמרים ונגנים. בלי דפים, בלי קלסרים ובלי להתכופף לטלפון.</p></div>
- <div class="feat">
-  <div class="f"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v16M6 14l6 6 6-6"/></svg></div><h3>גלילה אוטומטית או דפדוף</h3><p>הטקסט זז בקצב של השיר, או מתחלף בית אחרי בית – מה שנוח לך.</p></div>
-  <div class="f"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3v18M10 3v18M14 3v18M18 3v18M4 8h16M4 13h16"/></svg></div><h3>אקורדים מעל המילים</h3><p>מיקום מדויק מעל כל הברה, החלפת סולם בלחיצה וקאפו.</p></div>
-  <div class="f"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="13" width="16" height="7" rx="2"/><path d="M8 13l3-8h2l3 8"/></svg></div><h3>דוושת Bluetooth</h3><p>מעבר בין שירים וחלקים ברגל, בלי להוריד את הידיים מהכלי.</p></div>
-  <div class="f"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></div><h3>מאגר שירים וחיפוש ברשת</h3><p>שירים מוכנים מהמאגר, או חיפוש מילים מכל אתרי המילים והוספה בלחיצה.</p></div>
-  <div class="f"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8"/></svg></div><h3>מסך שני ושיתוף להקה</h3><p>שידור למסך בבמה, ושליחת סט שלם לחברי הלהקה בקוד QR.</p></div>
-  <div class="f"><div class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 4h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z"/><path d="M8 12l3 3 5-6"/></svg></div><h3>טאבלט, נייד ומחשב</h3><p>אנדרואיד, Windows ו-Mac – מתחברים לחשבון, והשירים והעיצוב זהים בכל המכשירים.</p></div>
+  <div class="scene" aria-label="הדגמה: מצב הופעה בטאבלט והמילים לקהל בטלפון">
+   <div class="floorGlow" aria-hidden="true"></div>
+   <div class="tab"><div class="screen">
+    <div class="pTop"><b>אור ראשון</b><span class="k">Am</span><span>שיר 1 מתוך 8</span><span class="t" id="clock">00:00</span></div>
+    <div class="prog"><i id="prog"></i></div>
+    <div class="reel" id="reel" aria-hidden="true"></div>
+    <div class="pBar" aria-hidden="true"><span class="nx">הבא בסט<b>לילה של כוכבים</b></span><span>א-</span><span>א+</span><span>אקורדים</span><span class="play"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4h4v16H7zM13 4h4v16h-4z"/></svg></span><span>גלילה אוטומטית</span></div>
+   </div></div>
+   <div class="ph" aria-hidden="true"><div class="pscr">
+    <div class="phead"><span class="av">א</span><span><b>אור ראשון</b><span>הופעה בחיפה</span></span><span class="live"><i></i>LIVE</span></div>
+    <div class="pbody" id="aud"></div>
+   </div></div>
+   <div class="cap" aria-hidden="true">מה שהקהל רואה בטלפון</div>
+  </div>
+ </div>
+</header>
+
+<section id="features"><div class="wrap setwrap">
+ <div class="sh"><h2>הסט של הערב. כל מה שצריך על הבמה.</h2><p>נבנתה על ידי מוזיקאי שמופיע, בשביל זמרים ונגנים שמופיעים. בלי דפים שעפים, בלי להתכופף לטלפון באמצע בית.</p></div>
+ <div class="sheet">
+  <div class="hd"><b>StagePromt</b><span>הופעה בחיפה</span></div>
+  <ol>
+   <li><b>גלילה אוטומטית או דפדוף</b><span>הטקסט זז בקצב שבוחרים, או מתחלף בית אחרי בית. הקו הנוכחי תמיד בגובה העיניים.</span></li>
+   <li><b>אקורדים מעל המילים</b><span>כל אקורד יושב מעל ההברה שלו. מחליפים סולם וקאפו בלחיצה, והאקורדים מתעדכנים לבד.</span></li>
+   <li><b>דוושת Bluetooth</b><span>שיר הבא, חלק הבא, עצירה והפעלה. הידיים נשארות על הכלי.</span></li>
+   <li><b>מאגר שירים וחיפוש ברשת</b><span>שירים מוכנים מהמאגר, או חיפוש מילים מאתרי המילים והוספה לספרייה בלחיצה.</span></li>
+   <li><b>עורך שמבין שירים</b><span>מדביקים את המילים, והאפליקציה מחלקת לבתים ולפזמונים. ניקוד אוטומטי, גופנים וקו מתאר לקריאה מרחוק.</span></li>
+   <li><b>מסך שני ושיתוף ללהקה</b><span>שידור למסך או למקרן על הבמה, ושליחת סט שלם לחברי הלהקה בקוד QR.</span></li>
+  </ol>
  </div>
 </div></section>
 
-<section id="show" style="padding-top:20px"><div class="wrap">
- <div class="row"><div class="shot"><img src="img/lib.jpg" alt="ספריית השירים" loading="lazy"></div><div class="txt"><span class="k">הספרייה</span><h3>כל השירים, מסודרים לפי הופעה</h3><p>תיקייה לכל הופעה, סדר שירים שקל לשנות, וכפתור אחד שמתחיל את כל הסט.</p><ul><li>חיפוש לפי שם, אמן או שורה מהשיר</li><li>ייבוא קבצי PDF</li><li>תמונות אמנים ורקעים לכל שיר</li></ul></div></div>
- <div class="row rev"><div class="shot"><img src="img/chords.jpg" alt="עריכת אקורדים" loading="lazy"></div><div class="txt"><span class="k">העורך</span><h3>עריכה מהירה, בלי להתפשר על הבמה</h3><p>מדביקים את המילים – האפליקציה מחלקת לבתים ופזמונים לבד. לחיצה כפולה על מילה מוסיפה אקורד.</p><ul><li>בית, פזמון, גשר והערות לזמר בצבעים שונים</li><li>גופנים, קו מתאר וצל לקריאות מושלמת</li><li>ניקוד אוטומטי לשירים בעברית</li></ul></div></div>
+<section style="padding-top:0"><div class="wrap">
+ <div class="show"><div class="shot"><picture><source media="(max-width:600px)" srcset="img/phone_lib.jpg"><img src="img/lib.jpg" alt="ספריית השירים ב-StagePromt עם תיקייה להופעה" width="1600" height="1000" loading="lazy"></picture></div><div class="txt"><h3>תיקייה לכל הופעה, וסט שמתחיל בלחיצה</h3><p>מסדרים את השירים בסדר שבו מנגנים אותם, ולוחצים "התחל הופעה". בסוף כל שיר, הבא כבר מחכה.</p><ul><li>חיפוש לפי שם, אמן או שורה מתוך השיר</li><li>ייבוא קבצי PDF של מילים ותווים</li><li>תמונת אמן ורקע לכל שיר</li></ul></div></div>
+ <div class="show flip"><div class="shot"><img src="img/edit.jpg" alt="עורך השירים ב-StagePromt" width="1600" height="1000" loading="lazy"></div><div class="txt"><h3>עריכה מהירה, שנראית טוב גם מטר וחצי מהמסך</h3><p>בית, פזמון, גשר והערה לזמר מקבלים כל אחד צבע משלו, כך שרואים איפה נמצאים בשיר במבט אחד.</p><ul><li>גודל טקסט, ריווח שורות ויישור לכל שיר</li><li>קו מתאר וצל לקריאה על רקע תמונה</li><li>"חזור על פזמון" במקום להעתיק אותו שוב</li></ul></div></div>
 </div></section>
 
-<section id="live" class="live"><div class="wrap">
- <div class="sh"><h2>הקהל שר איתך</h2><p>מציגים קוד QR, הקהל סורק בטלפון – ורואה את המילים של השיר שמתנגן עכשיו, מתעדכנות בזמן אמת. בלי אפליקציה ובלי Wi-Fi משותף.</p></div>
- <div class="liveGrid"><div class="lc"><div class="n">1</div><b>פותחים QR</b><span>לחיצה על אייקון ה-QR ליד שם התיקייה.</span></div><div class="lc"><div class="n">2</div><b>הקהל סורק</b><span>כל טלפון, כל רשת – גם סלולרית.</span></div><div class="lc"><div class="n">3</div><b>שרים יחד</b><span>כל מעבר בית אצלך מתחלף גם אצלם.</span></div></div>
+<section id="audience" class="aud"><div class="wrap audGrid">
+ <div>
+  <div class="sh"><h2>הקהל שר איתך, מהטלפון שלו</h2><p>מציגים קוד QR, והקהל רואה את המילים של השיר שמתנגן עכשיו. בלי להתקין כלום ובלי Wi-Fi משותף.</p></div>
+  <ol class="steps">
+   <li><b>פותחים את ה-QR</b><span>לחיצה על האייקון ליד שם התיקייה בספרייה.</span></li>
+   <li><b>הקהל סורק</b><span>כל טלפון, בכל רשת, גם בסלולרי.</span></li>
+   <li><b>המילים זזות איתך</b><span>כל מעבר בית שלך מתחלף אצלם תוך רגע, כולל ניקוד אם הוא מופיע אצלך.</span></li>
+  </ol>
+ </div>
+ <div class="bigPhone" aria-label="דף המילים לקהל בטלפון"><div class="pscr">
+  <div class="phead"><span class="av">א</span><span><b>אור ראשון</b><span>הופעה בחיפה</span></span><span class="live"><i></i>LIVE</span></div>
+  <div class="pbody"><div class="pt c">פזמון</div><div class="ln c">ותני לי אור ראשון</div><div class="ln c">על קצה החלון</div><div class="ln c">שיר אחד קטן</div><div class="ln c">שאומר שאת כאן</div></div>
+  <div class="foot"><span>שיר 1 מתוך 8</span><span class="dots"><i></i><i class="on"></i><i></i><i></i><i></i></span></div>
+ </div></div>
 </div></section>
 
-<section id="download"><div class="wrap"><div class="dl">
- <h2>מתחילים בחינם</h2><p>בחרו את המכשיר שלכם. עדכונים חדשים מגיעים ישר מתוך האפליקציה.</p>
- <div class="dlGrid"><a class="dlc" href="https://github.com/aviadderi1/Stagepromt/releases/latest/download/StagePromt.apk"><b>טאבלט</b><span>Android</span></a><a class="dlc" href="https://github.com/aviadderi1/Stagepromt/releases/latest/download/StagePromt-Mobile.apk"><b>נייד</b><span>Android</span></a><a class="dlc" href="https://github.com/aviadderi1/Stagepromt/releases/latest/download/StagePromt-Windows.exe"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5l7.5-1v7H3zM11.5 4.4L21 3v8.5h-9.5zM3 12.5h7.5v7L3 18.5zM11.5 12.5H21V21l-9.5-1.4z"/></svg><b>Windows</b><span>מחשב PC</span></a><a class="dlc" href="https://github.com/aviadderi1/Stagepromt/releases/latest/download/StagePromt-Mac.dmg"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.6c0-2.4 2-3.5 2.1-3.6-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.5-1-2.5-4zM14 5.4c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1.1.1 2.1-.6 2.8-1.4z"/></svg><b>Mac</b><span>Apple / Intel</span></a></div>
- <div class="steps"><div class="st"><b>אנדרואיד</b>מורידים את הקובץ במכשיר ומאשרים "התקנה ממקור זה" אם מופיעה בקשה.</div><div class="st"><b>Windows</b>מריצים את הקובץ. אם מופיעה האזהרה של Windows – "More info" ואז "Run anyway".</div><div class="st"><b>Mac</b>גוררים ל-Applications. בפעם הראשונה: מקש ימני על האפליקציה ← "Open".</div></div>
- <p class="sync">מתחברים לאותו חשבון Google בכל המכשירים – והשירים, התיקיות והעיצוב מסונכרנים ביניהם.</p>
+<section class="sync"><div class="wrap">
+ <div class="sh mid"><h2>מכינים בבית, מופיעים מהטאבלט</h2><p>מתחברים לאותו חשבון Google בכל המכשירים. שיר שערכת במחשב, או סדר שהחלפת בטאבלט, מופיע בשאר המכשירים תוך שניות.</p></div>
+ <div class="devs" aria-hidden="true">
+  <div class="dev"><div class="box lap"><i style="width:60%"></i><i style="width:46%"></i><i style="width:54%"></i><i class="g" style="width:24%"></i></div><span class="dot"></span>Windows</div>
+  <div class="dev"><div class="box tablet"><i style="width:64%"></i><i style="width:50%"></i><i style="width:58%"></i></div><span class="dot"></span>טאבלט</div>
+  <div class="dev"><div class="box phoneD"><i style="width:70%"></i><i style="width:56%"></i><i style="width:64%"></i></div><span class="dot"></span>נייד</div>
+  <div class="dev"><div class="box lap"><i style="width:60%"></i><i style="width:46%"></i><i style="width:54%"></i><i class="g" style="width:24%"></i></div><span class="dot"></span>Mac</div>
+ </div>
+</div></section>
+
+<section id="faq" style="padding-top:40px"><div class="wrap">
+ <div class="sh mid"><h2>שאלות שחוזרות</h2></div>
+ <div class="faq">
+  <details><summary>כמה זה עולה?</summary><p>האפליקציה חינמית. מורידים, נכנסים ומתחילים להעלות שירים.</p></details>
+  <details><summary>צריך אינטרנט באמצע ההופעה?</summary><p>לא. השירים שמורים במכשיר, ומצב הופעה עובד גם בלי חיבור. צריך אינטרנט רק לחיפוש שירים ברשת, לסנכרון בין מכשירים ולמילים לקהל.</p></details>
+  <details><summary>איזו דוושה מתאימה?</summary><p>כל דוושת Bluetooth שמתחברת כמקלדת, כמו דוושות דפדוף לנגנים. בהגדרות בוחרים מה כל לחיצה עושה: שיר הבא, חלק הבא או עצירה.</p></details>
+  <details><summary>אפשר להשתמש בקבצי PDF שכבר יש לי?</summary><p>כן. מייבאים את הקובץ, והוא מוצג במצב הופעה עם גלילה ודפדוף כמו כל שיר אחר.</p></details>
+  <details><summary>איך מקבלים עדכונים?</summary><p>מתוך האפליקציה: הגדרות, עדכון, בדוק עדכון. השירים וההגדרות נשארים כמו שהם.</p></details>
+ </div>
+</div></section>
+
+<section id="download" style="padding-top:40px"><div class="wrap"><div class="dl">
+ <div class="beam" aria-hidden="true"></div>
+ <h2><span class="w" data-c="D">מוכנים</span> <span class="w" data-c="A">לעלות?</span></h2>
+ <p>בחרו את המכשיר שלכם. ההורדה מתחילה מיד.</p>
+ <div class="plats">
+  <a class="plat" data-p="android" href="https://github.com/aviadderi1/Stagepromt/releases/latest/download/StagePromt.apk"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="14" rx="2.5"/><path d="M10 21h4"/></svg><b>טאבלט</b><span>Android</span><em>הורדה</em></a>
+  <a class="plat" data-p="android" href="https://github.com/aviadderi1/Stagepromt/releases/latest/download/StagePromt-Mobile.apk"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg><b>נייד</b><span>Android</span><em>הורדה</em></a>
+  <a class="plat" data-p="win" href="https://github.com/aviadderi1/Stagepromt/releases/latest/download/StagePromt-Windows.exe"><svg width="34" height="34" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5l7.5-1v7H3zM11.5 4.4L21 3v8.5h-9.5zM3 12.5h7.5v7L3 18.5zM11.5 12.5H21V21l-9.5-1.4z"/></svg><b>Windows</b><span>מחשב PC</span><em>הורדה</em></a>
+  <a class="plat" data-p="mac" href="https://github.com/aviadderi1/Stagepromt/releases/latest/download/StagePromt-Mac.dmg"><svg width="34" height="34" viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.6c0-2.4 2-3.5 2.1-3.6-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.5-1-2.5-4zM14 5.4c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1.1.1 2.1-.6 2.8-1.4z"/></svg><b>Mac</b><span>Apple ו-Intel</span><em>הורדה</em></a>
+ </div>
+ <div class="how">
+  <div><b>אנדרואיד</b>פותחים את הקובץ במכשיר. אם מופיעה בקשה, מאשרים "התקנה ממקור זה".</div>
+  <div><b>Windows</b>מריצים את הקובץ. אם Windows מזהיר, לוחצים "More info" ואז "Run anyway".</div>
+  <div><b>Mac</b>גוררים ל-Applications. בפעם הראשונה: מקש ימני על האפליקציה ואז "Open".</div>
+ </div>
 </div></div></section>
 
-<footer><div class="wrap"><img src="logo.svg" alt="StagePromt"><span>© 2026 StagePromt</span><span style="flex:1"></span><span>ליצירת קשר: <a href="mailto:stagepromt@gmail.com">stagepromt@gmail.com</a></span></div></footer>
+<footer><div class="wrap"><img src="logo.svg" alt="StagePromt" width="1774" height="418"><span>© 2026 StagePromt</span><span class="sp"></span><span>יצירת קשר: <a href="mailto:stagepromt@gmail.com">stagepromt@gmail.com</a></span></div></footer>
+
+<script>
+(function(){
+ 'use strict';
+ // the demo song (StagePromt's built-in sample)
+ var song=[
+  {t:'v',n:'בית 1',l:[['עוד','Am'],['לפני'],['שהעיר'],['מתעוררת','F']],l2:[[['אני','C'],['הולך'],['לאורך','G'],['החוף']],[['הרוח','Am'],['לוחשת'],['לי','F'],['בשקט']],[['שהלילה','E'],['הזה'],['עוד'],['לא'],['סוף']]]},
+  {t:'c',n:'פזמון',l:[['ותני','F'],['לי'],['אור','G'],['ראשון']],l2:[[['על','C'],['קצה'],['החלון','Am']],[['שיר','F'],['אחד'],['קטן','G']],[['שאומר','E'],['שאת'],['כאן']]]},
+  {t:'v',n:'בית 2',l:[['הקפה','Am'],['כבר'],['מתקרר'],['על','F'],['השולחן']],l2:[[['ואת','C'],['עוד'],['ישנה','G'],['לצידי']],[['אני','Am'],['לוחש'],['מילים','F'],['שאין'],['להן'],['זמן']],[['ומחכה','E'],['שתפקחי'],['עיניים'],['אליי']]]},
+  {t:'b',n:'גשר',l:[['וגם','Dm'],['אם'],['יבוא'],['החורף','Am']],l2:[[['וגם','Dm'],['אם'],['ייגמר'],['הקיץ','E']],[['אני','F'],['נשאר'],['כאן','G'],['איתך']]]}
+ ];
+ var reel=document.getElementById('reel'),aud=document.getElementById('aud'),prog=document.getElementById('prog'),clock=document.getElementById('clock');
+ var lines=[],html='';
+ function words(ws){return ws.map(function(w){return '<span class="w"'+(w[1]?' data-c="'+w[1]+'"':'')+'>'+w[0]+'</span>'}).join(' ')}
+ song.forEach(function(p,pi){
+  html+='<div class="pl lab '+p.t+'">'+p.n+'</div>';
+  [p.l].concat(p.l2).forEach(function(ws,li){lines.push({p:pi,i:li});html+='<div class="pl '+p.t+'" data-k="'+(lines.length-1)+'">'+words(ws)+'</div>'});
+ });
+ reel.innerHTML=html;
+ var els=reel.querySelectorAll('.pl[data-k]');
+ var names={v:'בית',c:'פזמון',b:'גשר'};
+ function audHtml(pi){var p=song[pi];return '<div class="pt '+p.t+'">'+p.n+'</div>'+[p.l].concat(p.l2).map(function(ws,li){return '<div class="ln '+p.t+'" data-i="'+li+'">'+ws.map(function(w){return w[0]}).join(' ')+'</div>'}).join('')}
+ var cur=-1,shownPart=-1,t0=Date.now();
+ function go(k){
+  cur=k;var L=lines[k];
+  els.forEach(function(e,i){e.classList.toggle('on',i===k)});
+  var el=els[k],scr=reel.parentNode;
+  var y=el.offsetTop+el.offsetHeight/2-scr.clientHeight*0.48;
+  reel.style.transform='translateY('+(-Math.max(0,y))+'px)';
+  if(L.p!==shownPart){shownPart=L.p;aud.innerHTML=audHtml(L.p)}
+  aud.querySelectorAll('.ln').forEach(function(e,i){e.classList.toggle('on',i===L.i)});
+  prog.style.width=((k+1)/lines.length*100)+'%';
+ }
+ function tick(){var s=Math.floor((Date.now()-t0)/1000);clock.textContent=('0'+Math.floor(s/60)).slice(-2)+':'+('0'+s%60).slice(-2)}
+ var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+ go(0);
+ if(!reduce){
+  setInterval(function(){var n=cur+1;if(n>=lines.length){n=0;t0=Date.now()}go(n)},2300);
+  setInterval(tick,1000);
+ }
+ addEventListener('resize',function(){go(cur)});
+ var nav=document.querySelector('nav'),hl=document.querySelector('.heroLogo');
+ if('IntersectionObserver' in window)new IntersectionObserver(function(e){nav.classList.toggle('scrolled',!e[0].isIntersecting)}).observe(hl);else nav.classList.add('scrolled');
+ // highlight the download that fits this device
+ var ua=navigator.userAgent,p=/Android/i.test(ua)?'android':/Mac/i.test(ua)&&!/iPhone|iPad/i.test(ua)?'mac':/Windows/i.test(ua)?'win':'';
+ if(p){var cards=document.querySelectorAll('.plat[data-p="'+p+'"]');
+  var pick=p==='android'?(Math.min(screen.width,screen.height)<600?cards[1]:cards[0]):cards[0];
+  if(pick){pick.classList.add('me');var hb=document.getElementById('heroDl');hb.href=pick.href;hb.textContent='הורדה חינם ל'+(p==='android'?(pick===cards[1]?'נייד':'טאבלט'):p==='mac'?'Mac':'Windows')}}
+})();
+</script>
 </body>
 </html>
