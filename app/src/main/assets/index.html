@@ -729,6 +729,11 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
 .sbPrev{max-height:28vh;overflow:auto;padding:10px 12px;border:1px solid var(--ln2);border-radius:10px;background:#16171A;font-size:14px;line-height:1.5;color:var(--tx)}
 .aeTxt{min-height:34vh;font-size:15px;line-height:1.5;resize:vertical}
 .admHead{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.admHead h2{flex:1}
+.aeImgRow{display:flex;align-items:center;gap:14px;flex-wrap:wrap}.aeImgRow .aeAv{width:72px;height:72px;border-radius:50%;object-fit:cover;flex:none;background:#26272B;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:#CDC6BA}
+.aeImgBtns{display:flex;gap:8px;flex-wrap:wrap}
+.aeGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;margin-top:10px}
+.aeGrid button{aspect-ratio:1;border-radius:14px;overflow:hidden;padding:0;border:2px solid transparent;background:#26272B}.aeGrid button.on{border-color:#E8A23A}.aeGrid img{width:100%;height:100%;object-fit:cover;display:block}
+.aeAll,.sbForm .aeAll{display:flex;flex-direction:row;justify-content:flex-start;gap:8px;align-items:center;font-size:15px;color:#CDC6BA;margin-top:10px}
 .agt{display:flex;flex-direction:column;gap:16px}.agt h4{margin:0;font-size:16px}
 .agtChips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .agtChip{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 8px 0 14px;border-radius:999px;background:#2A2116;border:1px solid #5A4220;color:#F5C676;font-weight:700;font-size:15px}
@@ -4573,19 +4578,37 @@ function renderAdminFind(){const B=$('#admBody');
 }
 function adminEdit(x,pend){if(pend==null)pend=ADM.tab==='pend';const B=$('#admBody');
  B.innerHTML='<div class="sbForm"><label>שם השיר<input class="field" id="aeT" dir="auto" value="'+esc(x.title||'')+'"></label><label>אמן<input class="field" id="aeA" dir="auto" value="'+esc(x.artist||'')+'"></label>'+
-  '<label>קטגוריה<input class="field" id="aeL" dir="auto" value="'+esc(x.list||'')+'"></label><label>קישור לתמונת האמן<input class="field" id="aeI" dir="ltr" value="'+esc(/^data:/.test(x.artistImg||'')?'':(x.artistImg||''))+'" placeholder="'+(/^data:/.test(x.artistImg||'')?'(תמונה מצורפת)':'https://…')+'"></label>'+
+  '<label>קטגוריה<input class="field" id="aeL" dir="auto" value="'+esc(x.list||'')+'"></label><div><div style="font-size:14px;color:var(--mu);margin-bottom:8px">תמונת האמן</div><div class="aeImgRow"><span id="aeImgPrev"></span><div class="aeImgBtns"><button class="btn sm" id="aeImgFind">'+ic('search',16)+'חפש תמונה</button><button class="btn sm" id="aeImgUp">'+ic('upload',16)+'העלה מהמכשיר</button><button class="btn sm" id="aeImgDel">'+ic('trash',16)+'הסר</button></div></div>'+
+  '<div id="aeGrid"></div><label style="margin-top:10px">או הדבק קישור לתמונה<input class="field" id="aeI" dir="ltr" value="'+esc(/^data:/.test(x.artistImg||'')?'':(x.artistImg||''))+'" placeholder="https://…"></label><label class="aeAll" id="aeAllW" hidden><input type="checkbox" id="aeAll" checked><span id="aeAllT"></span></label></div>'+
   '<label>מילים <small>שורה ריקה בין בתים · "פזמון:" בתחילת פזמון · [פזמון] לחזרה</small><textarea class="field aeTxt" id="aeX" dir="auto">'+esc(x.text||'')+'</textarea></label></div><p class="hint" id="aeErr"></p>'+
   '<div class="acts"><button class="btn pri" id="aeOk">'+ic('check',18)+(pend?'אשר ופרסם':'שמור')+'</button><button class="btn" id="aeDel" style="color:#E0675C">'+ic('trash',18)+(pend?'דחה':'מחק מהמאגר')+'</button><span class="flex1"></span><button class="btn" id="aeBack">חזור</button></div>';
  $('#aeBack').onclick=renderAdmin;
+ let curImg=x.artistImg||'';const img0=curImg,selfId=pend?'u'+x.id:x.id;
+ const others=()=>{const a=dupKey($('#aeA').value.trim());return a?ADM.lib.filter(q=>q.id!==selfId&&dupKey(q.artist)===a):[]};
+ const paintImg=()=>{$('#aeImgPrev').innerHTML=curImg?'<img class="aeAv" alt="" referrerpolicy="no-referrer" src="'+esc(curImg)+'">':'<span class="aeAv">'+esc(($('#aeA').value.trim()||'♪').charAt(0))+'</span>';$('#aeImgDel').hidden=!curImg;
+  const o=others(),w=$('#aeAllW');w.hidden=!o.length||curImg===img0;if(o.length)$('#aeAllT').textContent='לעדכן את התמונה גם ב-'+(o.length===1?'שיר אחד נוסף':o.length+' שירים נוספים')+' של '+$('#aeA').value.trim()+' במאגר'};
+ const setImg=v=>{curImg=v||'';$('#aeI').value=/^data:/.test(curImg)?'':curImg;paintImg()};
+ paintImg();$('#aeA').addEventListener('input',paintImg);
+ $('#aeI').onchange=()=>{const v=$('#aeI').value.trim();if(!v||/^https?:\/\//.test(v))setImg(v);else toast('הקישור צריך להתחיל ב-https://')};
+ $('#aeImgDel').onclick=()=>setImg('');
+ $('#aeImgUp').onclick=async()=>{const d=await pickImageData('device');if(!d)return;const s=await shrinkData(d,320);if(s)setImg(s);else toast('לא הצלחתי לקרוא את התמונה')};
+ $('#aeImgFind').onclick=async()=>{const a=$('#aeA').value.trim();if(!a)return toast('כתוב שם אמן כדי לחפש תמונה');if(!CAN_HTTP)return toast('חיפוש תמונה עובד באפליקציה');
+  const G=$('#aeGrid');G.innerHTML='<p class="hint"><span class="spin"></span> מחפש תמונות של '+esc(a)+'…</p>';
+  let urls=[];try{urls=await artistImageUrls(a)}catch(e){}
+  if(!urls.length){G.innerHTML='<p class="hint">לא נמצאו תמונות. אפשר להעלות תמונה מהמכשיר או להדביק קישור.</p>';return}
+  G.innerHTML='<div class="aeGrid">'+urls.slice(0,12).map(u=>'<button data-aeu="'+esc(u)+'" aria-label="בחר תמונה"><img alt="" loading="lazy" referrerpolicy="no-referrer" src="'+esc(u)+'" onerror="this.parentNode.remove()"></button>').join('')+'</div><p class="hint">לחץ על תמונה כדי לבחור אותה.</p>';
+  G.onclick=e=>{const b=e.target.closest('[data-aeu]');if(!b)return;$$('#aeGrid [data-aeu]').forEach(q=>q.classList.toggle('on',q===b));setImg(b.dataset.aeu)}};
  $('#aeOk').onclick=async()=>{const t=$('#aeT').value.trim();if(!t)return $('#aeT').focus();$('#aeErr').textContent='שומר…';
   const d=findDup(ADM.lib,t,$('#aeA').value.trim(),pend?'u'+x.id:x.id);
   if(d){$('#aeErr').innerHTML='<b style="color:#E8A23A">שיר בשם הזה כבר קיים במאגר: "'+esc(d.title)+'"'+(d.artist?' של '+esc(d.artist):'')+'.</b> '+(pend?'דחה את השיר או שנה את השם.':'שנה את השם.');return}
-  const img=$('#aeI').value.trim()||(/^data:/.test(x.artistImg||'')?x.artistImg:'');
+  const img=curImg;const alsoAll=!$('#aeAllW').hidden&&$('#aeAll').checked?others():[];
   const sc=GENBG.scenes,tm=GENBG.times;const bg=x.bg&&x.bg.scene?x.bg:{scene:sc[Math.floor(Math.random()*sc.length)],time:tm[Math.floor(Math.random()*tm.length)],seed:1+Math.floor(Math.random()*999)};
   const doc={title:t,artist:$('#aeA').value.trim(),list:$('#aeL').value.trim(),text:$('#aeX').value,artistImg:img,bg,order:x.order||0,updatedAt:Date.now(),by:x.by||''};
   try{const id=pend?'u'+x.id:x.id;await fbAuthed('PATCH',FB.base+'/library/'+id,{fields:fsFields(doc)});
    if(pend){await fbAuthed('DELETE',FB.base+'/submissions/'+x.id);ADM.pend=ADM.pend.filter(q=>q.id!==x.id);ADM.lib.push(Object.assign({id},doc))}else Object.assign(x,doc);
-   toast(pend?'השיר פורסם במאגר':'השינויים נשמרו');renderAdmin()}catch(e){$('#aeErr').textContent='השמירה נכשלה: '+String(e.message).slice(0,120)}};
+   let n=0;for(const q of alsoAll){$('#aeErr').textContent='מעדכן את התמונה בשירים של האמן… '+(n+1)+'/'+alsoAll.length;
+    try{await fbAuthed('PATCH',FB.base+'/library/'+q.id+'?updateMask.fieldPaths=artistImg&updateMask.fieldPaths=updatedAt',{fields:fsFields({artistImg:img,updatedAt:Date.now()})});q.artistImg=img;n++}catch(e){}}
+   toast((pend?'השיר פורסם במאגר':'השינויים נשמרו')+(alsoAll.length?'. התמונה עודכנה ב-'+n+' שירים נוספים':''));renderAdmin()}catch(e){$('#aeErr').textContent='השמירה נכשלה: '+String(e.message).slice(0,120)}};
  $('#aeDel').onclick=()=>{if(!confirm(pend?'לדחות את השיר?':'למחוק את השיר מהמאגר?'))return;(async()=>{try{
    await fbAuthed('DELETE',FB.base+'/'+(pend?'submissions':'library')+'/'+x.id);if(pend)ADM.pend=ADM.pend.filter(q=>q.id!==x.id);else ADM.lib=ADM.lib.filter(q=>q.id!==x.id);toast(pend?'השיר נדחה':'השיר נמחק');renderAdmin()}catch(e){$('#aeErr').textContent='הפעולה נכשלה'}})()};
 }
