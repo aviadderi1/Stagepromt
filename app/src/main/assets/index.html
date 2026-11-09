@@ -4183,9 +4183,15 @@ async function fbSignIn(email,password){
  const j=await fbReq('POST','https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key='+FB.key,{email,password,returnSecureToken:true});
  const st={uid:j.localId,email:j.email,refresh:j.refreshToken,token:j.idToken,exp:Date.now()+(+j.expiresIn||3600)*1000-60000};
  localStorage.setItem(FB.LS,JSON.stringify(st));return st}
-async function fbToken(){const st=fbAuthState();if(!st)throw new Error('signin');if(st.token&&st.exp>Date.now())return st;
- const j=await fbReq('POST','https://securetoken.googleapis.com/v1/token?key='+FB.key,{grant_type:'refresh_token',refresh_token:st.refresh});
- Object.assign(st,{token:j.id_token,refresh:j.refresh_token,exp:Date.now()+(+j.expires_in||3600)*1000-60000});localStorage.setItem(FB.LS,JSON.stringify(st));return st}
+const FB_DEAD=/TOKEN_EXPIRED|INVALID_REFRESH_TOKEN|USER_DISABLED|USER_NOT_FOUND|MISSING_REFRESH_TOKEN|INVALID_GRANT_TYPE|INVALID_ID_TOKEN/;
+function fbExpire(){const st=fbAuthState();if(!st||st.dead)return;st.dead=true;st.token='';localStorage.setItem(FB.LS,JSON.stringify(st));SY.err='';
+ try{renderAcctBtn();toast('פג תוקף ההתחברות לחשבון. התחבר מחדש בהגדרות ← חשבון. השירים שלך שמורים.')}catch(e){}}
+async function fbToken(){const st=fbAuthState();if(!st||st.dead||!st.refresh)throw new Error('signin');if(st.token&&st.exp>Date.now())return st;
+ let j;try{j=await fbReq('POST','https://securetoken.googleapis.com/v1/token?key='+FB.key,{grant_type:'refresh_token',refresh_token:st.refresh})}
+ catch(e){if(FB_DEAD.test(String(e&&e.message||e))){fbExpire();throw new Error('signin')}throw e}
+ const em=j&&j.error&&j.error.message||'';if(FB_DEAD.test(em)){fbExpire();throw new Error('signin')}
+ if(!j||!j.id_token)throw new Error('token: '+(em||'no token'));
+ Object.assign(st,{token:j.id_token,refresh:j.refresh_token||st.refresh,exp:Date.now()+(+j.expires_in||3600)*1000-60000});localStorage.setItem(FB.LS,JSON.stringify(st));return st}
 function fbVal(v){if(!v)return null;if('stringValue'in v)return v.stringValue;if('integerValue'in v)return +v.integerValue;if('doubleValue'in v)return v.doubleValue;if('booleanValue'in v)return v.booleanValue;if('nullValue'in v)return null;
  if('mapValue'in v){const o={};for(const[k,x]of Object.entries(v.mapValue.fields||{}))o[k]=fbVal(x);return o}if('arrayValue'in v)return(v.arrayValue.values||[]).map(fbVal);return null}
 async function fbStageSongs(){const st=await fbToken();const out=[];let pt='';
@@ -4246,7 +4252,7 @@ function dedupeLocal(){const out={songs:[],folders:[]};
  return out}
 function pristineSample(s){return s.title==='אור ראשון (שיר לדוגמה)'&&(s.updated||0)<=(s.created||0)+2000}
 function syncTomb(k,ids){const y=syncState(),t=Date.now();ids.forEach(id=>{y[k]=y[k].filter(x=>x.id!==id);y[k].push({id,t})})}
-function signedIn(){const st=fbAuthState();return !!(st&&st.refresh)}
+function signedIn(){const st=fbAuthState();return !!(st&&st.refresh&&!st.dead)}
 const FS_NAME=()=>FB.base.replace('https://firestore.googleapis.com/v1/','');
 function syncSoon(){if(SY.applying||!signedIn())return;clearTimeout(SY.t);const d=SY.fast?600:6000;SY.fast=false;SY.t=setTimeout(()=>pushSync().catch(e=>{SY.err=String(e.message||e)}),d)}
 const DEV_ID=(()=>{let d='';try{d=localStorage.getItem('sp_dev')||'';if(!d){d=uid();localStorage.setItem('sp_dev',d)}}catch(e){d=uid()}return d})();
@@ -4299,7 +4305,7 @@ async function fullSync(manual){if(!signedIn()||SY.busy)return;SY.busy=true;SY.e
   await fsCommit(writes);
   y.del=[];y.delF=[];y.at=y.push=Date.now();y.metaSig=metaSig();SY.last=Date.now();
   persist();if(changed&&SCREEN==='lib')renderLib();if(manual)toast('הסנכרון הושלם')}
- catch(e){SY.err=String(e.message||e);if(manual)toast('הסנכרון נכשל. בדוק את החיבור לאינטרנט')}
+ catch(e){SY.err=String(e.message||e);if(manual&&signedIn())toast('הסנכרון נכשל. בדוק את החיבור לאינטרנט')}
  finally{SY.applying=false;SY.busy=false;if(SETCAT==='account'&&$('#acctBox'))renderAccount()}}
 async function pushSync(){if(!signedIn())return;if(SY.busy){SY.fast=true;return syncSoon()}const y=syncState();
  const dirty=S.songs.filter(s=>!s.draft&&!pristineSample(s)&&(s.updated||0)>(y.push||0));const sig=metaSig();if(!dirty.length&&!y.del.length&&!y.delF.length){if(sig!==y.metaSig)return fullSync();return}
@@ -4319,7 +4325,7 @@ function renderAcctBtn(){const b=$('#acctBtn');if(!b)return;const st=fbAuthState
  else if(st&&st.email)b.textContent=(st.name||st.email).trim().charAt(0).toUpperCase();else b.innerHTML=ic('user',20);
  b.title=st&&st.email?st.email:'התחברות'}
 function renderAccount(){renderAcctBtn();const M=$('#stMain');if(!M)return;const st=fbAuthState();
- if(!signedIn()){M.innerHTML='<h3>'+ic('user',20)+' חשבון</h3><p class="mTxt">התחבר כדי לשמור את כל השירים, התיקיות, האקורדים והעיצובים בחשבון שלך. כשתתחבר באותו חשבון במכשיר אחר, הכול יופיע שם אוטומטית.</p><div id="acctBox">'+acctLoginHtml()+'</div>';
+ if(!signedIn()){M.innerHTML='<h3>'+ic('user',20)+' חשבון</h3><p class="mTxt">התחבר כדי לשמור את כל השירים, התיקיות, האקורדים והעיצובים בחשבון שלך. כשתתחבר באותו חשבון במכשיר אחר, הכול יופיע שם אוטומטית.</p>'+(st&&st.dead?'<div class="stCard" style="border-color:#E8A23A"><div class="flex1"><b>פג תוקף ההתחברות'+(st.email?' של '+esc(st.email):'')+'</b><p>התחבר שוב לאותו חשבון כדי לחזור לסנכרן. השירים שבמכשיר שמורים ולא יימחקו.</p></div></div>':'')+'<div id="acctBox">'+acctLoginHtml()+'</div>';
   $('#acG').onclick=()=>{ADM.wantLogin=false;const sch=window.Android&&window.Android.authScheme?window.Android.authScheme():'';const u='https://aviadderi1.github.io/Stagepromt/auth/'+(sch?'?app='+sch:'');if(window.Android&&window.Android.openUrl)window.Android.openUrl(u);else window.open(u,'_blank');$('#acErr').textContent='התחבר בדפדפן, ואז לחץ "חזור ל-StagePromt".'};
   const go=async up=>{const e=$('#acE').value.trim(),p=$('#acP').value;if(!e||p.length<6){$('#acErr').textContent='מלא אימייל וסיסמה (6 תווים לפחות)';return}$('#acErr').textContent=up?'יוצר חשבון…':'מתחבר…';
    try{if(up){const j=await fbReq('POST','https://identitytoolkit.googleapis.com/v1/accounts:signUp?key='+FB.key,{email:e,password:p,returnSecureToken:true});localStorage.setItem(FB.LS,JSON.stringify({uid:j.localId,email:j.email,refresh:j.refreshToken,token:j.idToken,exp:Date.now()+(+j.expiresIn||3600)*1000-60000}))}else await fbSignIn(e,p);
