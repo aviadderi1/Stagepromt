@@ -4417,6 +4417,7 @@ function submitSongModal(id){
 }
 /* ---- סוכן: מחפש שירים לפי קטגוריות, מחלק לבתים ולפזמונים ושולח ל"ממתינים לאישור" ---- */
 const AGT={cats:(()=>{try{return JSON.parse(localStorage.getItem('agt-cats'))||[]}catch(e){return []}})(),per:+(localStorage.getItem('agt-per')||20)||20,skip:true,run:false,stop:false,log:[],sent:0,total:0};
+const AGT_PRESET=['שירי ארץ ישראל','שירי חתונה','שירי אהבה','שירי חנוכה','שירי פסח','שירי ראש השנה','שירי שבת','שירי יום העצמאות','שירי יום הזיכרון','שירי ירושלים','שירי ים','שירי טבע','שירי ילדים','שירי להקות צבאיות','שירי שירה בציבור','שירים לאמא','שירי געגועים','שירי חורף','שירי קיץ','רוק ישראלי','פופ ישראלי','מוזיקה מזרחית','שירים חסידיים','שירי שנות ה-60','שירי שנות ה-70','שירי שנות ה-80','שירי שנות ה-90','שירי שנות ה-2000','שירים מסרטים ישראליים','שירי פרידה'];
 function agtSave(){try{localStorage.setItem('agt-cats',JSON.stringify(AGT.cats));localStorage.setItem('agt-per',String(AGT.per))}catch(e){}}
 function agtLogHtml(){return AGT.log.map(s=>'<div class="agtSec"><b>'+esc(s.cat)+': '+(s.status||('נשלחו '+s.sent+' מתוך '+AGT.per))+'</b>'+s.rows.slice().reverse().map(r=>'<div class="agtRow"><span><b dir="auto">'+esc(r.title)+'</b><small dir="auto">'+esc(r.artist||'')+'</small></span><em class="'+r.c+'">'+esc(r.st)+'</em></div>').join('')+'</div>').slice().reverse().join('')}
 function agtStatus(){return AGT.run?(AGT.stop?'עוצר…':'רץ… נשלחו '+AGT.sent+' מתוך '+AGT.total):(AGT.log.length?'הסתיים. נשלחו '+AGT.sent+' שירים ל"ממתינים לאישור".':'')}
@@ -4425,13 +4426,18 @@ function agtPaint(){if(ADM.tab!=='agent')return;const L=$('#agtLog'),S2=$('#agtS
 function renderAgent(){const B=$('#admBody');if(!B)return;
  B.innerHTML='<div class="agt">'+(CAN_HTTP?'':'<p class="mTxt" style="color:#E0675C">הסוכן עובד רק באפליקציה (טאבלט, נייד או מחשב), לא בדפדפן.</p>')+
   '<div><h4>קטגוריות לחיפוש</h4><div class="agtChips">'+AGT.cats.map((c,i)=>'<span class="agtChip">'+esc(c)+'<button data-agx="'+i+'" aria-label="הסר '+esc(c)+'"'+(AGT.run?' disabled':'')+'>'+ic('close',14)+'</button></span>').join('')+
-  '<input class="agtAdd" id="agtNew" dir="auto" placeholder="הוסף קטגוריה ולחץ Enter…" aria-label="הוסף קטגוריה"></div></div>'+
+  '<input class="agtAdd" id="agtNew" dir="auto" placeholder="הוסף קטגוריה ולחץ Enter…" aria-label="הוסף קטגוריה"></div>'+
+  (()=>{const rest=AGT_PRESET.filter(c=>!AGT.cats.some(x=>normTxt(x)===normTxt(c)));return rest.length?'<div style="margin-top:12px"><small style="color:#8F897F">קטגוריות מוכנות, לחץ כדי להוסיף:</small><div class="agtChips" style="margin-top:6px">'+rest.map(c=>'<button class="chip" data-agp="'+esc(c)+'"'+(AGT.run?' disabled':'')+'>'+ic('plus',14)+esc(c)+'</button>').join('')+'<button class="btn sm" id="agtAll"'+(AGT.run?' disabled':'')+'>הוסף את כולן</button></div></div>':''})()+
+  (AGT.cats.length&&!AGT.run?'<button class="btn sm" id="agtClr" style="margin-top:10px">נקה את כל הקטגוריות</button>':'')+'</div>'+
   '<div class="agtOpts"><span>שירים לכל קטגוריה</span><span class="agtPer" role="group" aria-label="שירים לכל קטגוריה">'+[10,20,50].map(n=>'<button data-agn="'+n+'" class="'+(AGT.per===n?'on':'')+'">'+n+'</button>').join('')+'</span>'+
   '<label><input type="checkbox" id="agtSkip"'+(AGT.skip?' checked':'')+'> לדלג על שירים שכבר במאגר או ממתינים</label></div>'+
   '<p class="hint" style="margin:0">הסוכן שולח מילים בלבד, בלי אקורדים. כל שיר מגיע ל"ממתינים לאישור" עם התגית "סוכן", ואתה מחליט מה נכנס למאגר.</p>'+
   '<div class="agtRun"><button class="btn pri" id="agtGo">הפעל סוכן</button><button class="btn" id="agtStop">עצור</button><span id="agtSt"></span></div>'+
   '<div class="agtBar"><i id="agtBar" style="width:0"></i></div><div id="agtLog" style="display:flex;flex-direction:column;gap:12px"></div></div>';
  B.onclick=e=>{const x=e.target.closest('[data-agx]');if(x&&!AGT.run){AGT.cats.splice(+x.dataset.agx,1);agtSave();renderAgent();return}
+  const pr=e.target.closest('[data-agp]');if(pr&&!AGT.run){AGT.cats.push(pr.dataset.agp);agtSave();renderAgent();return}
+  if(e.target.closest('#agtAll')&&!AGT.run){AGT_PRESET.forEach(c=>{if(!AGT.cats.some(x=>normTxt(x)===normTxt(c)))AGT.cats.push(c)});agtSave();renderAgent();return}
+  if(e.target.closest('#agtClr')&&!AGT.run){AGT.cats=[];agtSave();renderAgent();return}
   const n=e.target.closest('[data-agn]');if(n){AGT.per=+n.dataset.agn;agtSave();$$('[data-agn]').forEach(b=>b.classList.toggle('on',b===n))}};
  const inp=$('#agtNew');inp.onkeydown=e=>{if(e.key!=='Enter')return;e.preventDefault();const v=inp.value.trim();if(!v)return;if(!AGT.cats.some(c=>normTxt(c)===normTxt(v)))AGT.cats.push(v.slice(0,60));agtSave();renderAgent();setTimeout(()=>{const i=$('#agtNew');if(i)i.focus()},30)};
  inp.onblur=()=>{const v=inp.value.trim();if(v&&!AGT.cats.some(c=>normTxt(c)===normTxt(v))){AGT.cats.push(v.slice(0,60));agtSave();setTimeout(renderAgent,0)}};
@@ -4445,14 +4451,22 @@ async function runAgent(){if(AGT.run||!AGT.cats.length)return;if(!CAN_HTTP)retur
  try{
  for(const cat of AGT.cats){if(AGT.stop)break;
   const sec={cat,rows:[],sent:0,status:'מחפש שירים ברשת…'};AGT.log.push(sec);agtPaint();
-  let res=[];const seen=new Set();
-  for(const q of [cat,/שיר/.test(cat)?cat+' מילים':'שירי '+cat]){if(res.length>=AGT.per*2.5||AGT.stop)break;
-   try{(await siteSongs(q)).forEach(r=>{const k=normTxt(r.title)+'|'+normTxt(r.artist);if(!seen.has(k)){seen.add(k);res.push(r)}})}catch(e){}}
-  sec.status='';if(!res.length){sec.status='לא נמצאו שירים לקטגוריה הזו';agtPaint();continue}
+  const res=[],seen=new Set();let why='';
+  const addC=l=>(l||[]).forEach(r=>{const k=normTxt(r.title);if(k&&k.length>1&&!seen.has(k)){seen.add(k);res.push(r)}});
+  const tmo=(pr,ms)=>Promise.race([pr,new Promise((_,rj)=>setTimeout(()=>rj(new Error('timeout')),ms))]);
+  await Promise.all([tmo(gemSongList(cat,S.gemKey||'',[]),90000).then(addC).catch(e=>{why=String(e.message||e)}),tmo(siteSongs(cat),40000).then(addC).catch(()=>{})]);
+  for(let k=0;k<2&&res.length<AGT.per*1.6&&!AGT.stop;k++){try{addC(await tmo(gemSongList(cat,S.gemKey||'',res.map(x=>x.title)),90000))}catch(e){break}}
+  sec.status='';if(!res.length){sec.status='לא נמצאו שירים לקטגוריה הזו'+(why?' ('+why.slice(0,60)+')':'');agtPaint();continue}
   for(const r of res){if(AGT.stop||sec.sent>=AGT.per)break;
    const row={title:r.title,artist:r.artist||'',st:'מוריד מילים…',c:'wip'};sec.rows.push(row);agtPaint();
    if(AGT.skip&&findDup(known,r.title,r.artist)){row.st='כבר במאגר, דילגתי';row.c='skip';agtPaint();continue}
-   try{const page=await httpGet(r.url,false,15000);const ex=extractLyrics(page.text,page.url||r.url);
+   try{let url=r.url,direct='';
+    if(!url){row.st='מחפש את המילים…';agtPaint();
+     const hits=await tmo(webSearch(r.title,r.artist||''),45000).catch(()=>[]);
+     const h=(hits||[]).find(x=>!x.demo&&(x.direct||/^https?:/.test(x.url||'')));
+     if(!h){row.st='לא נמצאו מילים';row.c='bad';agtPaint();continue}
+     url=h.url;direct=h.direct||'';if(!row.artist&&h.artist)row.artist=h.artist}
+    let ex;if(direct)ex={text:addBreaks(cleanLyr(direct)),meta:{}};else{row.st='מוריד מילים…';agtPaint();const page=await httpGet(url,false,15000);ex=extractLyrics(page.text,page.url||url)}
     const meta=ex.meta&&ex.meta.title?ex.meta:{};if(!row.artist&&meta.artist)row.artist=meta.artist;
     row.st='מחלק לבתים ופזמונים…';agtPaint();
     const text=songToText({parts:autoSplit(ex.text)});
