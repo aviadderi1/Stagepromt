@@ -729,6 +729,24 @@ html[dir=ltr] .stWrap{flex-direction:row-reverse}
 .sbPrev{max-height:28vh;overflow:auto;padding:10px 12px;border:1px solid var(--ln2);border-radius:10px;background:#16171A;font-size:14px;line-height:1.5;color:var(--tx)}
 .aeTxt{min-height:34vh;font-size:15px;line-height:1.5;resize:vertical}
 .admHead{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.admHead h2{flex:1}
+.agt{display:flex;flex-direction:column;gap:16px}.agt h4{margin:0;font-size:16px}
+.agtChips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.agtChip{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 8px 0 14px;border-radius:999px;background:#2A2116;border:1px solid #5A4220;color:#F5C676;font-weight:700;font-size:15px}
+.agtChip button{width:26px;height:26px;border-radius:50%;background:transparent;color:#F5C676;display:flex;align-items:center;justify-content:center;opacity:.8}
+.agtChip button:hover{opacity:1;background:#3A2C18}
+.agtAdd{flex:1;min-width:160px;height:38px;border-radius:999px;border:1px dashed #3A3631;background:transparent;color:var(--tx);padding:0 14px;font-size:15px}
+.agtOpts{display:flex;flex-wrap:wrap;gap:14px;align-items:center;color:#CDC6BA;font-size:15px}
+.agtOpts label{display:flex;gap:6px;align-items:center}
+.agtPer{display:inline-flex;border:1px solid #3A3631;border-radius:10px;overflow:hidden}
+.agtPer button{padding:6px 12px;background:transparent;color:var(--tx);font-size:15px}.agtPer button.on{background:#E8A23A;color:#1B1206;font-weight:800}
+.agtRun{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.agtRun span{color:#8F897F;font-size:14px}
+.agtBar{height:6px;border-radius:3px;background:#26272B;overflow:hidden}.agtBar i{display:block;height:100%;background:#E8A23A;border-radius:3px;transition:width .3s}
+.agtSec{border:1px solid #26272B;border-radius:14px;overflow:hidden}
+.agtSec>b{display:block;padding:10px 14px;background:#17181B;font-size:14px;color:#CDC6BA}
+.agtRow{display:flex;align-items:center;gap:12px;padding:10px 14px;border-top:1px solid #26272B}
+.agtRow span{flex:1;min-width:0}.agtRow span b{display:block;font-size:15px}.agtRow small{color:#8F897F}
+.agtRow em{font-style:normal;font-size:13px;font-weight:700;white-space:nowrap}
+.agtRow .ok{color:#7FD18B}.agtRow .skip{color:#8F897F}.agtRow .bad{color:#E0675C}.agtRow .wip{color:#F5C676}
 .admRow{width:100%;text-align:right;background:transparent;color:var(--tx)}
 .admFind{display:flex;gap:8px;align-items:center;margin-top:10px}.admFind .field{flex:1;margin:0}.admFind .btn{white-space:nowrap}.admSnip{opacity:.55!important;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw}.pendTag{background:#7C5CD6!important;color:#fff!important}.dupGrp{border:1px solid rgba(232,162,58,.35);border-radius:12px;padding:8px;margin:10px 0}.dupGrpH{font-size:13px;font-weight:700;color:#E8A23A;margin:0 4px 4px}.dupGrp .glRows{max-height:none;margin:0}#admRes>.glRows{max-height:50vh}#admRes{max-height:52vh;overflow:auto}
 .dupTag{display:inline-block;font-size:11px;font-weight:700;color:#17120A;background:#E8A23A;border-radius:6px;padding:1px 6px;margin-inline-start:6px;vertical-align:middle}
@@ -4397,6 +4415,57 @@ function submitSongModal(id){
    closeModal();toast('השיר נשלח לבדיקה. תודה!')}
   catch(e){$('#sbGo').disabled=false;$('#sbErr').textContent='השליחה נכשלה. בדוק את החיבור לאינטרנט ונסה שוב.'}};
 }
+/* ---- סוכן: מחפש שירים לפי קטגוריות, מחלק לבתים ולפזמונים ושולח ל"ממתינים לאישור" ---- */
+const AGT={cats:(()=>{try{return JSON.parse(localStorage.getItem('agt-cats'))||[]}catch(e){return []}})(),per:+(localStorage.getItem('agt-per')||20)||20,skip:true,run:false,stop:false,log:[],sent:0,total:0};
+function agtSave(){try{localStorage.setItem('agt-cats',JSON.stringify(AGT.cats));localStorage.setItem('agt-per',String(AGT.per))}catch(e){}}
+function agtLogHtml(){return AGT.log.map(s=>'<div class="agtSec"><b>'+esc(s.cat)+': '+(s.status||('נשלחו '+s.sent+' מתוך '+AGT.per))+'</b>'+s.rows.slice().reverse().map(r=>'<div class="agtRow"><span><b dir="auto">'+esc(r.title)+'</b><small dir="auto">'+esc(r.artist||'')+'</small></span><em class="'+r.c+'">'+esc(r.st)+'</em></div>').join('')+'</div>').slice().reverse().join('')}
+function agtStatus(){return AGT.run?(AGT.stop?'עוצר…':'רץ… נשלחו '+AGT.sent+' מתוך '+AGT.total):(AGT.log.length?'הסתיים. נשלחו '+AGT.sent+' שירים ל"ממתינים לאישור".':'')}
+function agtPaint(){if(ADM.tab!=='agent')return;const L=$('#agtLog'),S2=$('#agtSt'),B=$('#agtBar');if(L)L.innerHTML=agtLogHtml();if(S2)S2.textContent=agtStatus();if(B)B.style.width=(AGT.total?Math.min(100,AGT.sent/AGT.total*100):0)+'%';
+ const go=$('#agtGo'),st=$('#agtStop');if(go)go.disabled=AGT.run||!AGT.cats.length;if(st)st.disabled=!AGT.run}
+function renderAgent(){const B=$('#admBody');if(!B)return;
+ B.innerHTML='<div class="agt">'+(CAN_HTTP?'':'<p class="mTxt" style="color:#E0675C">הסוכן עובד רק באפליקציה (טאבלט, נייד או מחשב), לא בדפדפן.</p>')+
+  '<div><h4>קטגוריות לחיפוש</h4><div class="agtChips">'+AGT.cats.map((c,i)=>'<span class="agtChip">'+esc(c)+'<button data-agx="'+i+'" aria-label="הסר '+esc(c)+'"'+(AGT.run?' disabled':'')+'>'+ic('close',14)+'</button></span>').join('')+
+  '<input class="agtAdd" id="agtNew" dir="auto" placeholder="הוסף קטגוריה ולחץ Enter…" aria-label="הוסף קטגוריה"></div></div>'+
+  '<div class="agtOpts"><span>שירים לכל קטגוריה</span><span class="agtPer" role="group" aria-label="שירים לכל קטגוריה">'+[10,20,50].map(n=>'<button data-agn="'+n+'" class="'+(AGT.per===n?'on':'')+'">'+n+'</button>').join('')+'</span>'+
+  '<label><input type="checkbox" id="agtSkip"'+(AGT.skip?' checked':'')+'> לדלג על שירים שכבר במאגר או ממתינים</label></div>'+
+  '<p class="hint" style="margin:0">הסוכן שולח מילים בלבד, בלי אקורדים. כל שיר מגיע ל"ממתינים לאישור" עם התגית "סוכן", ואתה מחליט מה נכנס למאגר.</p>'+
+  '<div class="agtRun"><button class="btn pri" id="agtGo">הפעל סוכן</button><button class="btn" id="agtStop">עצור</button><span id="agtSt"></span></div>'+
+  '<div class="agtBar"><i id="agtBar" style="width:0"></i></div><div id="agtLog" style="display:flex;flex-direction:column;gap:12px"></div></div>';
+ B.onclick=e=>{const x=e.target.closest('[data-agx]');if(x&&!AGT.run){AGT.cats.splice(+x.dataset.agx,1);agtSave();renderAgent();return}
+  const n=e.target.closest('[data-agn]');if(n){AGT.per=+n.dataset.agn;agtSave();$$('[data-agn]').forEach(b=>b.classList.toggle('on',b===n))}};
+ const inp=$('#agtNew');inp.onkeydown=e=>{if(e.key!=='Enter')return;e.preventDefault();const v=inp.value.trim();if(!v)return;if(!AGT.cats.some(c=>normTxt(c)===normTxt(v)))AGT.cats.push(v.slice(0,60));agtSave();renderAgent();setTimeout(()=>{const i=$('#agtNew');if(i)i.focus()},30)};
+ inp.onblur=()=>{const v=inp.value.trim();if(v&&!AGT.cats.some(c=>normTxt(c)===normTxt(v))){AGT.cats.push(v.slice(0,60));agtSave();setTimeout(renderAgent,0)}};
+ $('#agtSkip').onchange=e=>{AGT.skip=e.target.checked};
+ $('#agtGo').onclick=()=>runAgent();$('#agtStop').onclick=()=>{AGT.stop=true;agtPaint()};
+ agtPaint()}
+async function runAgent(){if(AGT.run||!AGT.cats.length)return;if(!CAN_HTTP)return toast('הסוכן עובד רק באפליקציה');
+ AGT.run=true;AGT.stop=false;AGT.log=[];AGT.sent=0;AGT.total=AGT.cats.length*AGT.per;agtPaint();
+ try{await adminLoad()}catch(e){}
+ const known=ADM.lib.concat(ADM.pend).map(x=>({id:'k',title:x.title,artist:x.artist}));
+ try{
+ for(const cat of AGT.cats){if(AGT.stop)break;
+  const sec={cat,rows:[],sent:0,status:'מחפש שירים ברשת…'};AGT.log.push(sec);agtPaint();
+  let res=[];const seen=new Set();
+  for(const q of [cat,/שיר/.test(cat)?cat+' מילים':'שירי '+cat]){if(res.length>=AGT.per*2.5||AGT.stop)break;
+   try{(await siteSongs(q)).forEach(r=>{const k=normTxt(r.title)+'|'+normTxt(r.artist);if(!seen.has(k)){seen.add(k);res.push(r)}})}catch(e){}}
+  sec.status='';if(!res.length){sec.status='לא נמצאו שירים לקטגוריה הזו';agtPaint();continue}
+  for(const r of res){if(AGT.stop||sec.sent>=AGT.per)break;
+   const row={title:r.title,artist:r.artist||'',st:'מוריד מילים…',c:'wip'};sec.rows.push(row);agtPaint();
+   if(AGT.skip&&findDup(known,r.title,r.artist)){row.st='כבר במאגר, דילגתי';row.c='skip';agtPaint();continue}
+   try{const page=await httpGet(r.url,false,15000);const ex=extractLyrics(page.text,page.url||r.url);
+    const meta=ex.meta&&ex.meta.title?ex.meta:{};if(!row.artist&&meta.artist)row.artist=meta.artist;
+    row.st='מחלק לבתים ופזמונים…';agtPaint();
+    const text=songToText({parts:autoSplit(ex.text)});
+    if(text.split('\n').filter(l=>l.trim()).length<4){row.st='לא נמצאו מילים';row.c='bad';agtPaint();continue}
+    if(AGT.skip&&findDup(known,row.title,row.artist)){row.st='כבר במאגר, דילגתי';row.c='skip';agtPaint();continue}
+    await fbReq('POST',FB.base+'/submissions?key='+FB.key,{fields:fsFields({title:row.title.slice(0,190),artist:row.artist.slice(0,190),text:text.slice(0,19000),by:('סוכן · '+cat).slice(0,80),at:Date.now()})},null);
+    known.push({id:'k',title:row.title,artist:row.artist});sec.sent++;AGT.sent++;row.st='נשלח לאישור';row.c='ok'}
+   catch(e){row.st='ההורדה נכשלה, דילגתי';row.c='bad'}
+   agtPaint();await sleep(500)}
+  if(sec.sent<AGT.per&&!AGT.stop)sec.status='נשלחו '+sec.sent+' (לא נמצאו עוד שירים חדשים)';agtPaint()}
+ }finally{AGT.run=false;AGT.stop=false;
+  try{await adminLoad();if(ADM.tab!=='agent')renderAdmin();else{const b=$('#admSeg [data-at=pend]');if(b)b.textContent='ממתינים לאישור'+(ADM.pend.length?' ('+ADM.pend.length+')':'')}}catch(e){}
+  agtPaint();toast('הסוכן סיים. נשלחו '+AGT.sent+' שירים לאישור')}}
 function adminLoginModal(){
  openModal('<h2>כניסת מנהל</h2><p class="mTxt">כניסה לניהול מאגר השירים.</p><button class="btn gBtn" id="adG"><svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>התחברות עם Google</button><div class="orSep"><span>או עם אימייל וסיסמה</span></div>'+
   '<input class="field" id="adE" type="email" placeholder="אימייל" dir="ltr"><input class="field" id="adP" type="password" placeholder="סיסמה" dir="ltr" style="margin-top:8px"><p class="hint" id="adErr"></p>'+
@@ -4409,7 +4478,7 @@ function adminLoginModal(){
 const ADM={tab:'pend',pend:[],lib:[],busy:false,q:'',dup:null};
 async function adminLoad(){ADM.busy=true;try{ADM.pend=(await fbList('submissions',true)).sort((a,b)=>(b.at||0)-(a.at||0));ADM.lib=(await fbList('library',false)).filter(x=>x.text).sort((a,b)=>(a.title||'').localeCompare(b.title||'','he'))}finally{ADM.busy=false}}
 function openAdmin(){if(!isOwner())return adminLoginModal();
- openModal('<div class="admHead"><h2>ניהול מאגר</h2><div class="seg" id="admSeg"><button data-at="pend">ממתינים לאישור</button><button data-at="lib">במאגר</button><button data-at="find">'+ic('search',16)+'חיפוש</button></div></div><div id="admBody"><p class="mTxt">טוען…</p></div>'+
+ openModal('<div class="admHead"><h2>ניהול מאגר</h2><div class="seg" id="admSeg"><button data-at="pend">ממתינים לאישור</button><button data-at="lib">במאגר</button><button data-at="find">'+ic('search',16)+'חיפוש</button><button data-at="agent">סוכן</button></div></div><div id="admBody"><p class="mTxt">טוען…</p></div>'+
   '<div class="acts"><button class="btn" id="admOut">התנתק</button><span class="flex1"></span><button class="btn" id="mCancel">סגור</button></div>',true);
  $('#mCancel').onclick=closeModal;$('#admOut').onclick=()=>{localStorage.removeItem(FB.LS);adminSync();closeModal();toast('התנתקת')};
  $('#admSeg').onclick=e=>{const b=e.target.closest('[data-at]');if(b){ADM.tab=b.dataset.at;renderAdmin()}};
@@ -4421,6 +4490,7 @@ function renderAdmin(){const B=$('#admBody');if(!B)return;
  $$('#admSeg [data-at]').forEach(b=>b.classList.toggle('on',b.dataset.at===ADM.tab));
  $('#admSeg [data-at=pend]').textContent='ממתינים לאישור'+(ADM.pend.length?' ('+ADM.pend.length+')':'');
  if(ADM.tab==='find')return renderAdminFind();
+ if(ADM.tab==='agent')return renderAgent();
  const pend=ADM.tab==='pend',L=pend?ADM.pend:ADM.lib;
  if(!L.length){B.innerHTML='<p class="mTxt">'+(pend?'אין שירים שממתינים לאישור.':'המאגר ריק.')+'</p>';return}
  B.innerHTML='<div class="glRows">'+L.map((x,i)=>admRowHtml(x,i,pend,{noPend:1,tag:pend&&findDup(ADM.lib,x.title,x.artist)?'כבר במאגר':''})).join('')+'</div>';
