@@ -4451,6 +4451,26 @@ function renderAgent(){const B=$('#admBody');if(!B)return;
   $('#agtKeyGet').onclick=()=>{const u='https://aistudio.google.com/apikey';try{window.Android&&window.Android.openUrl?window.Android.openUrl(u):window.open(u,'_blank')}catch(e){}}}
  $('#agtGo').onclick=()=>runAgent();$('#agtStop').onclick=()=>{AGT.stop=true;agtPaint()};
  agtPaint()}
+async function agtExtract(url){try{const p=await httpGet(url,false,15000);const ex=extractLyrics(p.text,p.url||url);return songToText({parts:autoSplit(ex.text)}).split('\n').filter(l=>l.trim()).length>=4?ex:null}catch(e){return null}}
+/* lyrics for one song: the lyrics sites' own search pages first (fast, no search engine), then the full web search */
+async function agtFind(title,artist,say){
+ const E=encodeURIComponent,nt=normTxt(title),na=normTxt(artist||'');
+ const score=r=>{const t=normTxt(r.title||'');if(!t)return 0;const s=t===nt?3:(t.includes(nt)||(t.length>3&&nt.includes(t)))?2:fracIn(wordsOf(title),t)>=.67?1.5:0;
+  return s?s+(na&&normTxt([r.artist,r.title,r.snippet].join(' ')).includes(na)?1:0):0};
+ const sites=[
+  ['שירונט',async()=>{const u='https://shironet.mako.co.il/searchSongs?q='+E(title)+'&type=lyrics';return shironetFrom((await httpGet(u,false,12000)).text,u)}],
+  ['שירונט',async()=>{const u='https://shironet.mako.co.il/search?q='+E(title+(artist?' '+artist:''));return shironetFrom((await httpGet(u,false,12000)).text,u)}],
+  ['זמרשת',async()=>{const u='https://www.zemereshet.co.il/m/searchResults.asp?searchText='+E(title);return parseGeneric((await httpGet(u,false,12000)).text,'https://www.zemereshet.co.il/').filter(x=>/zemereshet\.co\.il\/(m\/)?song\.asp/i.test(x.url))}],
+  ['Tab4U',async()=>{const u='https://www.tab4u.com/resultsSimple?tab=songs&q='+E(title);return parseGeneric((await httpGet(u,false,12000)).text,'https://www.tab4u.com/').filter(x=>/tab4u\.com\/tabs\/songs\//.test(x.url))}]];
+ const tried=new Set();
+ for(const [n,f] of sites){if(AGT.stop)return null;say&&say('מחפש ב'+n+'…');let l=[];try{l=await f()}catch(e){}
+  const cand=l.map(r=>({r,s:score(r)})).filter(x=>x.s>=1.5).sort((a,b)=>b.s-a.s).slice(0,2);
+  for(const c of cand){if(tried.has(c.r.url))continue;tried.add(c.r.url);const ex=await agtExtract(c.r.url);if(ex)return ex}}
+ for(const a of [artist,''].filter((x,i,arr)=>arr.indexOf(x)===i)){if(AGT.stop)return null;say&&say('מחפש ברשת…');
+  const hits=await webSearch(title,a).catch(()=>[]);
+  for(const h of (hits||[]).filter(x=>!x.demo).slice(0,3)){if(h.direct){const ex={text:addBreaks(cleanLyr(h.direct)),meta:{}};if(songToText({parts:autoSplit(ex.text)}).split('\n').filter(l=>l.trim()).length>=4)return ex;continue}
+   if(!/^https?:/.test(h.url||'')||tried.has(h.url))continue;tried.add(h.url);const ex=await agtExtract(h.url);if(ex)return ex}}
+ return null}
 async function runAgent(){if(AGT.run||!AGT.cats.length)return;if(!CAN_HTTP)return toast('הסוכן עובד רק באפליקציה');
  AGT.run=true;AGT.stop=false;AGT.log=[];AGT.sent=0;AGT.total=AGT.cats.length*AGT.per;agtPaint();
  try{await adminLoad()}catch(e){}
@@ -4468,13 +4488,10 @@ async function runAgent(){if(AGT.run||!AGT.cats.length)return;if(!CAN_HTTP)retur
   for(const r of res){if(AGT.stop||sec.sent>=AGT.per)break;
    const row={title:r.title,artist:r.artist||'',st:'מוריד מילים…',c:'wip'};sec.rows.push(row);agtPaint();
    if(AGT.skip&&findDup(known,r.title,r.artist)){row.st='כבר במאגר, דילגתי';row.c='skip';agtPaint();continue}
-   try{let url=r.url,direct='';
-    if(!url){row.st='מחפש את המילים…';agtPaint();
-     const hits=await tmo(webSearch(r.title,r.artist||''),45000).catch(()=>[]);
-     const h=(hits||[]).find(x=>!x.demo&&(x.direct||/^https?:/.test(x.url||'')));
-     if(!h){row.st='לא נמצאו מילים';row.c='bad';agtPaint();continue}
-     url=h.url;direct=h.direct||'';if(!row.artist&&h.artist)row.artist=h.artist}
-    let ex;if(direct)ex={text:addBreaks(cleanLyr(direct)),meta:{}};else{row.st='מוריד מילים…';agtPaint();const page=await httpGet(url,false,15000);ex=extractLyrics(page.text,page.url||url)}
+   try{row.st='מחפש את המילים…';agtPaint();
+    let ex=r.url?await agtExtract(r.url):null;
+    if(!ex)ex=await tmo(agtFind(r.title,r.artist||'',s=>{row.st=s;agtPaint()}),90000).catch(()=>null);
+    if(!ex){row.st='לא נמצאו מילים';row.c='bad';agtPaint();await sleep(800);continue}
     const meta=ex.meta&&ex.meta.title?ex.meta:{};if(!row.artist&&meta.artist)row.artist=meta.artist;
     row.st='מחלק לבתים ופזמונים…';agtPaint();
     const text=songToText({parts:autoSplit(ex.text)});
