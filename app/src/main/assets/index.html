@@ -3437,7 +3437,10 @@ async function freeLLM(prompt){
  const tries=[
   async()=>{const r=await aiReqOrFetch('POST','https://text.pollinations.ai/openai',JSON.stringify({model:'openai',messages:[{role:'user',content:prompt}],referrer:'stagepromt',private:true}),{'Content-Type':'application/json'});
    let j;try{j=JSON.parse(r)}catch(e){return r}return ((((j.choices||[])[0]||{}).message)||{}).content||''},
-  async()=>await aiReqOrFetch('GET','https://text.pollinations.ai/'+encodeURIComponent(prompt)+'?referrer=stagepromt&private=true','',null)];
+  async()=>await aiReqOrFetch('GET','https://text.pollinations.ai/'+encodeURIComponent(prompt)+'?referrer=stagepromt&private=true','',null),
+  async()=>{const r=await aiReqOrFetch('POST','https://gen.pollinations.ai/v1/chat/completions',JSON.stringify({model:'openai',messages:[{role:'user',content:prompt}]}),{'Content-Type':'application/json'});
+   let j;try{j=JSON.parse(r)}catch(e){return r}return ((((j.choices||[])[0]||{}).message)||{}).content||''},
+  async()=>await aiReqOrFetch('GET','https://gen.pollinations.ai/text/'+encodeURIComponent(prompt),'',null)];
  let last=null;for(const f of tries){try{const t=await f();if(t&&parseSongText(t).length)return t;last=new Error('empty')}catch(e){last=e}}throw last||new Error('failed')}
 function parseSongText(t){t=String(t||'').replace(/```(?:json)?/g,'');const out=[];
  const add=(ti,ar,er)=>{ti=String(ti||'').replace(/^[\s\d.)\-•*"']+|["'\s]+$/g,'').trim();if(!ti||ti.length>80||/^(title|שם השיר)$/i.test(ti))return;out.push({title:ti,artist:String(ar||'').replace(/^["'\s]+|["'\s]+$/g,'').trim().slice(0,80),era:String(er||'').replace(/^["'\s]+|["'\s.]+$/g,'').trim().slice(0,24)})};
@@ -4429,6 +4432,8 @@ function renderAgent(){const B=$('#admBody');if(!B)return;
   '<input class="agtAdd" id="agtNew" dir="auto" placeholder="הוסף קטגוריה ולחץ Enter…" aria-label="הוסף קטגוריה"></div>'+
   (()=>{const rest=AGT_PRESET.filter(c=>!AGT.cats.some(x=>normTxt(x)===normTxt(c)));return rest.length?'<div style="margin-top:12px"><small style="color:#8F897F">קטגוריות מוכנות, לחץ כדי להוסיף:</small><div class="agtChips" style="margin-top:6px">'+rest.map(c=>'<button class="chip" data-agp="'+esc(c)+'"'+(AGT.run?' disabled':'')+'>'+ic('plus',14)+esc(c)+'</button>').join('')+'<button class="btn sm" id="agtAll"'+(AGT.run?' disabled':'')+'>הוסף את כולן</button></div></div>':''})()+
   (AGT.cats.length&&!AGT.run?'<button class="btn sm" id="agtClr" style="margin-top:10px">נקה את כל הקטגוריות</button>':'')+'</div>'+
+  (S.gemKey?'':'<div class="stCard" style="border-color:#E8A23A;flex-wrap:wrap;gap:10px"><div class="flex1" style="min-width:220px"><b>מפתח Gemini (חינמי)</b><p>הסוכן משתמש ב-Gemini של Google כדי לדעת אילו שירים שייכים לכל קטגוריה. בלי מפתח הוא ינסה רק ויקיפדיה ואתרי המילים, ויימצאו הרבה פחות שירים.</p></div>'+
+  '<div style="display:flex;gap:8px;flex-wrap:wrap;width:100%"><input class="field" id="agtKey" dir="ltr" placeholder="AIza…" style="flex:1;min-width:180px" aria-label="מפתח Gemini"><button class="btn pri" id="agtKeySave">שמור</button><button class="btn" id="agtKeyGet">קבל מפתח</button></div></div>')+
   '<div class="agtOpts"><span>שירים לכל קטגוריה</span><span class="agtPer" role="group" aria-label="שירים לכל קטגוריה">'+[10,20,50].map(n=>'<button data-agn="'+n+'" class="'+(AGT.per===n?'on':'')+'">'+n+'</button>').join('')+'</span>'+
   '<label><input type="checkbox" id="agtSkip"'+(AGT.skip?' checked':'')+'> לדלג על שירים שכבר במאגר או ממתינים</label></div>'+
   '<p class="hint" style="margin:0">הסוכן שולח מילים בלבד, בלי אקורדים. כל שיר מגיע ל"ממתינים לאישור" עם התגית "סוכן", ואתה מחליט מה נכנס למאגר.</p>'+
@@ -4442,6 +4447,8 @@ function renderAgent(){const B=$('#admBody');if(!B)return;
  const inp=$('#agtNew');inp.onkeydown=e=>{if(e.key!=='Enter')return;e.preventDefault();const v=inp.value.trim();if(!v)return;if(!AGT.cats.some(c=>normTxt(c)===normTxt(v)))AGT.cats.push(v.slice(0,60));agtSave();renderAgent();setTimeout(()=>{const i=$('#agtNew');if(i)i.focus()},30)};
  inp.onblur=()=>{const v=inp.value.trim();if(v&&!AGT.cats.some(c=>normTxt(c)===normTxt(v))){AGT.cats.push(v.slice(0,60));agtSave();setTimeout(renderAgent,0)}};
  $('#agtSkip').onchange=e=>{AGT.skip=e.target.checked};
+ if($('#agtKeySave')){$('#agtKeySave').onclick=()=>{const k=$('#agtKey').value.trim();if(!/^AIza[\w-]{20,}$/.test(k))return toast('המפתח לא נראה תקין. הוא מתחיל ב-AIza');S.gemKey=k;save();toast('המפתח נשמר');renderAgent()};
+  $('#agtKeyGet').onclick=()=>{const u='https://aistudio.google.com/apikey';try{window.Android&&window.Android.openUrl?window.Android.openUrl(u):window.open(u,'_blank')}catch(e){}}}
  $('#agtGo').onclick=()=>runAgent();$('#agtStop').onclick=()=>{AGT.stop=true;agtPaint()};
  agtPaint()}
 async function runAgent(){if(AGT.run||!AGT.cats.length)return;if(!CAN_HTTP)return toast('הסוכן עובד רק באפליקציה');
@@ -4455,8 +4462,9 @@ async function runAgent(){if(AGT.run||!AGT.cats.length)return;if(!CAN_HTTP)retur
   const addC=l=>(l||[]).forEach(r=>{const k=normTxt(r.title);if(k&&k.length>1&&!seen.has(k)){seen.add(k);res.push(r)}});
   const tmo=(pr,ms)=>Promise.race([pr,new Promise((_,rj)=>setTimeout(()=>rj(new Error('timeout')),ms))]);
   await Promise.all([tmo(gemSongList(cat,S.gemKey||'',[]),90000).then(addC).catch(e=>{why=String(e.message||e)}),tmo(siteSongs(cat),40000).then(addC).catch(()=>{})]);
-  for(let k=0;k<2&&res.length<AGT.per*1.6&&!AGT.stop;k++){try{addC(await tmo(gemSongList(cat,S.gemKey||'',res.map(x=>x.title)),90000))}catch(e){break}}
-  sec.status='';if(!res.length){sec.status='לא נמצאו שירים לקטגוריה הזו'+(why?' ('+why.slice(0,60)+')':'');agtPaint();continue}
+  for(let k=0;k<2&&res.length&&res.length<AGT.per*1.6&&!AGT.stop;k++){try{addC(await tmo(gemSongList(cat,S.gemKey||'',res.map(x=>x.title)),90000))}catch(e){break}}
+  if(res.length<AGT.per&&!AGT.stop){sec.status='מחפש בוויקיפדיה…';agtPaint();try{addC((await tmo(wikiSongs(cat,res.map(x=>x.title)),60000)).filter(x=>/[\u0590-\u05FF]/.test(x.title)))}catch(e){}}
+  sec.status='';if(!res.length){sec.status='לא נמצאו שירים לקטגוריה הזו'+(S.gemKey?(why?' ('+why.slice(0,60)+')':''):'. הוסף מפתח Gemini למעלה ונסה שוב.');agtPaint();continue}
   for(const r of res){if(AGT.stop||sec.sent>=AGT.per)break;
    const row={title:r.title,artist:r.artist||'',st:'מוריד מילים…',c:'wip'};sec.rows.push(row);agtPaint();
    if(AGT.skip&&findDup(known,r.title,r.artist)){row.st='כבר במאגר, דילגתי';row.c='skip';agtPaint();continue}
